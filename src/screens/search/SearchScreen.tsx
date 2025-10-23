@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SPACING, FONTS } from '../../utils/theme';
 import { SearchHeader, RecentSearches, FilterTabs, VehicleCard } from '../../components';
+import { RootStackParamList } from '../../types/navigation';
+import { VehicleData } from '../../data/vehicles';
+import mockVehicles from '../../data/vehicles';
+
+type SearchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface FilterOption {
   id: string;
@@ -15,27 +21,13 @@ interface FilterOption {
   selected: boolean;
 }
 
-interface ElectricVehicle {
-  id: string;
-  name: string;
-  model: string;
-  type: 'electric-car' | 'electric-bike' | 'electric-scooter' | 'electric-motorbike';
-  battery: number;
-  distance: string;
-  pricePerHour: number;
-  image: string;
-  features: string[];
-  stationName: string;
-  stationAddress: string;
-  isAvailable: boolean;
-  rating: number;
-}
-
 const SearchScreen = () => {
+  const navigation = useNavigation<SearchScreenNavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchResults, setSearchResults] = useState<ElectricVehicle[]>([]);
+  const [searchResults, setSearchResults] = useState<VehicleData[]>([]);
+  const [allVehicles, setAllVehicles] = useState<VehicleData[]>([]);
 
   const filterOptions: FilterOption[] = [
     { id: 'all', title: 'Tất cả', selected: true },
@@ -52,81 +44,24 @@ const SearchScreen = () => {
     'BMW iX3',
   ];
 
-  const featuredVehicles: ElectricVehicle[] = [
-    {
-      id: '1',
-      name: 'Tesla Model 3',
-      model: '2024 Standard Range',
-      type: 'electric-car',
-      battery: 85,
-      distance: '0.3 km',
-      pricePerHour: 120000,
-      image: 'https://via.placeholder.com/150',
-      features: ['Tự lái', 'Sạc nhanh', 'Màn hình cảm ứng'],
-      stationName: 'Trạm FPT University',
-      stationAddress: 'Khu Công nghệ cao Hòa Lạc',
-      isAvailable: true,
-      rating: 4.8,
-    },
-    {
-      id: '2',
-      name: 'VinFast VF8',
-      model: '2024 Eco',
-      type: 'electric-car',
-      battery: 92,
-      distance: '0.5 km',
-      pricePerHour: 100000,
-      image: 'https://via.placeholder.com/150',
-      features: ['Thông minh', 'An toàn cao', 'Tiết kiệm'],
-      stationName: 'Trạm Keangnam',
-      stationAddress: 'Phạm Hùng, Nam Từ Liêm',
-      isAvailable: true,
-      rating: 4.6,
-    },
-    {
-      id: '3',
-      name: 'Honda PCX Electric',
-      model: '2024',
-      type: 'electric-scooter',
-      battery: 78,
-      distance: '0.8 km',
-      pricePerHour: 45000,
-      image: 'https://via.placeholder.com/150',
-      features: ['Nhỏ gọn', 'Tiết kiệm', 'Dễ điều khiển'],
-      stationName: 'Trạm Honda Dream',
-      stationAddress: 'Nguyễn Trãi, Thanh Xuân',
-      isAvailable: true,
-      rating: 4.4,
-    },
-    {
-      id: '4',
-      name: 'BMW iX3',
-      model: '2024',
-      type: 'electric-car',
-      battery: 95,
-      distance: '1.2 km',
-      pricePerHour: 150000,
-      image: 'https://via.placeholder.com/150',
-      features: ['Sang trọng', 'Hiệu suất cao', 'Công nghệ'],
-      stationName: 'Trạm Lotte Center',
-      stationAddress: '54 Liễu Giai, Ba Đình',
-      isAvailable: false,
-      rating: 4.9,
-    },
-  ];
+  useEffect(() => {
+    setAllVehicles(mockVehicles);
+    setSearchResults(mockVehicles);
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     
     if (query.trim() === '') {
-      setSearchResults([]);
+      setSearchResults(allVehicles);
       return;
     }
 
-    const filtered = featuredVehicles.filter(vehicle =>
+    const filtered = allVehicles.filter(vehicle =>
       vehicle.name.toLowerCase().includes(query.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(query.toLowerCase()) ||
-      vehicle.stationName.toLowerCase().includes(query.toLowerCase())
+      vehicle.type.toLowerCase().includes(query.toLowerCase()) ||
+      vehicle.location.toLowerCase().includes(query.toLowerCase()) ||
+      vehicle.brand.toLowerCase().includes(query.toLowerCase())
     );
     
     setSearchResults(filtered);
@@ -136,11 +71,17 @@ const SearchScreen = () => {
     setActiveFilter(filterId);
     
     if (filterId === 'all') {
-      setSearchResults(featuredVehicles);
+      setSearchResults(allVehicles);
     } else {
-      const filtered = featuredVehicles.filter(vehicle => vehicle.type === filterId);
+      const filtered = allVehicles.filter(vehicle => 
+        vehicle.type.toLowerCase().includes(filterId.replace('electric-', '').toLowerCase())
+      );
       setSearchResults(filtered);
     }
+  };
+
+  const handleVehiclePress = (vehicleId: string) => {
+    navigation.navigate('VehicleDetails', { vehicleId });
   };
 
   const handleRecentSearchPress = (searchTerm: string) => {
@@ -150,7 +91,7 @@ const SearchScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Search Header */}
       <SearchHeader
         searchQuery={searchQuery}
@@ -185,17 +126,17 @@ const SearchScreen = () => {
               {searchQuery ? `Kết quả tìm kiếm (${searchResults.length})` : 'Xe phổ biến'}
             </Text>
             
-            {(searchQuery ? searchResults : featuredVehicles).map((vehicle) => (
+            {searchResults.map((vehicle) => (
               <VehicleCard
                 key={vehicle.id}
                 vehicle={vehicle}
-                onPress={(vehicleId) => console.log('Vehicle pressed:', vehicleId)}
+                onPress={handleVehiclePress}
               />
             ))}
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

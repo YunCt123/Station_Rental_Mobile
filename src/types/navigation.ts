@@ -4,15 +4,17 @@ export type RootStackParamList = {
   AuthLanding: undefined;
   Register: undefined;
   Login: undefined;
-  ForgotPassword: undefined;
   
   // Main App (Bottom Tabs)
   MainTabs: undefined;
   
   // Other screens that can be accessed from anywhere
   VehicleDetails: { vehicleId: string };
+  BookingPayment: { vehicleId: string };
   StationDetails: { stationId: string };
   BookingDetails: { bookingId: string };
+  ActiveBookingDetail: { bookingId: string };
+  HistoryBookingDetail: { bookingId: string };
   RentalHistory: undefined;
   UserInfo: undefined;
   EditProfile: undefined;
@@ -20,6 +22,7 @@ export type RootStackParamList = {
   Help: undefined;
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
+  VerifyAccount: undefined;
 };
 
 // Bottom Tab Navigator

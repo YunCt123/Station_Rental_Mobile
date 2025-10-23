@@ -1,43 +1,48 @@
 export const COLORS = {
-    // Primary brand colors - Modern blue theme for rental/sharing services
-    primary: '#2196F3', 
-    primaryDark: '#1976D2',
+    // Primary colors - Electric blue for tech feel
+    primary: '#2979FF', // Xanh điện - Primary button
+    primaryDark: '#1565C0',
     primaryLight: '#64B5F6', 
     
-    // Secondary colors
-    secondary: '#FF9800', 
-    secondaryDark: '#F57C00',
-    secondaryLight: '#FFB74D',
+    // Secondary colors - Neon green for header/app bar
+    secondary: '#00C853', // Xanh lá neon - App bar/Header, Success (xe sẵn sàng)
+    secondaryDark: '#00A344',
+    secondaryLight: '#5EFC82',
     
     // Success states (for available vehicles/stations)
-    success: '#4CAF50',
-    successLight: '#81C784',
-    successDark: '#388E3C',
+    success: '#00C853', // Thân thiện, "Active"
+    successLight: '#5EFC82',
+    successDark: '#00A344',
     
-    // Warning states (for low availability)
-    warning: '#FF9800',
-    warningLight: '#FFB74D',
-    warningDark: '#F57C00',
+    // Warning states (for maintenance)
+    warning: '#FFB300', // Cảnh báo nhẹ - bảo trì
+    warningLight: '#FFCA28',
+    warningDark: '#FF8F00',
     
-    // Error states (for unavailable/maintenance)
-    error: '#F44336',
+    // Error/Danger states (for unavailable/errors)
+    error: '#D32F2F', // Đỏ để cảnh báo lỗi - sự cố
     errorLight: '#E57373',
-    errorDark: '#D32F2F',
+    errorDark: '#B71C1C',
+    
+    // Accent color
+    accent: '#26C6DA', // Highlight text/icon - cảm giác mượt và sáng
+    accentLight: '#4DD0E1',
+    accentDark: '#00ACC1',
     
     // Neutral colors
     white: '#FFFFFF',
     black: '#000000',
     
     // Background colors
-    background: '#F8F9FA',
-    backgroundSecondary: '#F5F5F5',
+    background: '#F5F5F5', // Light mode background
+    backgroundSecondary: '#FFFFFF',
+    backgroundDark: '#121212', // Dark mode background
     surface: '#FFFFFF',
     
     // Text colors
     text: '#212121',
     textSecondary: '#757575',
     textTertiary: '#9E9E9E',
-    textInverse: '#FFFFFF',
     
     // Border colors
     border: '#E0E0E0',
@@ -45,16 +50,16 @@ export const COLORS = {
     borderDark: '#BDBDBD',
     
     // Status colors for rental states
-    available: '#4CAF50', 
-    rented: '#2196F3', 
-    maintenance: '#FF9800', 
-    unavailable: '#F44336', 
+    available: '#00C853', // Xe sẵn sàng
+    rented: '#2979FF', // Đang được thuê
+    maintenance: '#FFB300', // Bảo trì
+    unavailable: '#D32F2F', // Sự cố
     
     // Map related colors
-    mapPrimary: '#2196F3',
-    mapSecondary: '#FF9800',
-    stationActive: '#4CAF50',
-    stationInactive: '#F44336',
+    mapPrimary: '#2979FF',
+    mapSecondary: '#FFB300',
+    stationActive: '#00C853',
+    stationInactive: '#D32F2F',
     
     // Overlay colors
     overlay: 'rgba(0, 0, 0, 0.5)',

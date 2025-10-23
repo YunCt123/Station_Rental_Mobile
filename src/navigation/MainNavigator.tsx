@@ -1,82 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import BottomTabNavigator from './BottomTabNavigator';
+import DetailScreen from '../screens/details/DetailScreen';
+import BookingPaymentScreen from '../screens/booking/BookingPaymentScreen';
+import ActiveBookingDetailScreen from '../screens/booking/ActiveBookingDetailScreen';
+import HistoryBookingDetailScreen from '../screens/booking/HistoryBookingDetailScreen';
+import VerifyAccountScreen from '../screens/profile/VerifyAccountScreen';
 import { COLORS, FONTS, RADII, SPACING } from '../utils/theme';
-
-// Import auth screens (placeholders for now)
-const AuthLandingScreen = () => {
-  
-  return (
-    <SafeAreaView style={styles.authContainer}>
-      <View style={styles.authContent}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="bicycle" size={80} color={COLORS.primary} />
-          <Text style={styles.appName}>EcoRide</Text>
-          <Text style={styles.appSlogan}>
-            Thuê phương tiện điện thông minh
-          </Text>
-        </View>
-        
-        <View style={styles.authButtons}>
-          <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Đăng nhập</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Đăng ký</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.guestButton}>
-            <Text style={styles.guestButtonText}>Dùng thử không cần đăng nhập</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-const RegisterScreen = () => {
-  
-  return (
-    <SafeAreaView style={styles.screenContainer}>
-      <View style={styles.screenContent}>
-        <Text style={styles.screenTitle}>Đăng ký tài khoản</Text>
-        <Text style={styles.screenSubtitle}>
-          Tạo tài khoản để trải nghiệm đầy đủ các tính năng
-        </Text>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-const UserInfoScreen = () => {
-  
-  return (
-    <SafeAreaView style={styles.screenContainer}>
-      <View style={styles.screenContent}>
-        <Text style={styles.screenTitle}>Thông tin người dùng</Text>
-        <Text style={styles.screenSubtitle}>
-          Xem và chỉnh sửa thông tin cá nhân của bạn
-        </Text>
-      </View>
-    </SafeAreaView>
-  );
-};
+import AuthLandingScreen from '../screens/auth/AuthLandingScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MainNavigator = () => {
-  const isAuthenticated = true; // This would come from auth context/state
+  const isAuthenticated = true; 
 
   return (
     <NavigationContainer>
       <Stack.Navigator
         id={undefined}
-        initialRouteName={isAuthenticated ? 'MainTabs' : 'AuthLanding'}
+        initialRouteName={'AuthLanding'}
         screenOptions={{
           headerShown: false,
         }}
@@ -85,6 +32,11 @@ const MainNavigator = () => {
         <Stack.Screen
           name="AuthLanding"
           component={AuthLandingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -102,6 +54,41 @@ const MainNavigator = () => {
         
         {/* Other Screens */}
         <Stack.Screen
+          name="VehicleDetails"
+          component={DetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="BookingPayment"
+          component={BookingPaymentScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ActiveBookingDetail"
+          component={ActiveBookingDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="HistoryBookingDetail"
+          component={HistoryBookingDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="VerifyAccount"
+          component={VerifyAccountScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        {/* <Stack.Screen
           name="UserInfo"
           component={UserInfoScreen}
           options={{
@@ -116,7 +103,7 @@ const MainNavigator = () => {
               fontWeight: '600',
             },
           }}
-        />
+        /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

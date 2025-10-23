@@ -6,8 +6,6 @@ import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 interface UserStats {
   totalRides: number;
   totalDistance: string;
-  favoriteVehicle: string;
-  carbonSaved: string;
 }
 
 interface StatsGridProps {
@@ -44,16 +42,6 @@ const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
           title="Quãng đường"
           value={stats.totalDistance}
           icon="speedometer-outline"
-        />
-        <StatCard
-          title="Xe ưa thích"
-          value={stats.favoriteVehicle}
-          icon="heart-outline"
-        />
-        <StatCard
-          title="Carbon tiết kiệm"
-          value={stats.carbonSaved}
-          icon="leaf-outline"
         />
       </View>
     </View>
