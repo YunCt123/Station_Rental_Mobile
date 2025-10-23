@@ -1,26 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-
-interface ElectricVehicle {
-  id: string;
-  name: string;
-  model: string;
-  type: 'electric-car' | 'electric-bike' | 'electric-scooter' | 'electric-motorbike';
-  battery: number;
-  distance: string;
-  pricePerHour: number;
-  image: string;
-  features: string[];
-  stationName: string;
-  stationAddress: string;
-  isAvailable: boolean;
-  rating: number;
-}
+import { VehicleData } from '../../data/vehicles';
 
 interface VehicleCardProps {
-  vehicle: ElectricVehicle;
+  vehicle: VehicleData;
   onPress: (vehicleId: string) => void;
 }
 
@@ -41,15 +26,9 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => {
       onPress={() => onPress(vehicle.id)}
     >
       <View style={styles.vehicleImageContainer}>
-        <View style={styles.vehicleImagePlaceholder}>
-          <Ionicons 
-            name={getVehicleIcon(vehicle.type) as any} 
-            size={32} 
-            color={COLORS.primary} 
-          />
-        </View>
-        <View style={[styles.batteryIndicator, { opacity: vehicle.battery / 100 }]}>
-          <Text style={styles.batteryText}>{vehicle.battery}%</Text>
+        <Image source={{ uri: vehicle.image }} style={styles.vehicleImage} />
+        <View style={[styles.batteryIndicator, { opacity: vehicle.batteryLevel / 100 }]}>
+          <Text style={styles.batteryText}>{vehicle.batteryLevel}%</Text>
         </View>
       </View>
       
@@ -62,31 +41,31 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => {
           </View>
         </View>
         
-        <Text style={styles.vehicleModel}>{vehicle.model}</Text>
+        <Text style={styles.vehicleModel}>{vehicle.year} • {vehicle.type}</Text>
         
         <View style={styles.vehicleDetails}>
           <View style={styles.detailItem}>
             <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{vehicle.distance}</Text>
+            <Text style={styles.detailText}>{vehicle.range} km range</Text>
           </View>
           
           <View style={styles.detailItem}>
             <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{vehicle.pricePerHour.toLocaleString()}đ/h</Text>
+            <Text style={styles.detailText}>{vehicle.hourlyRate.toLocaleString()}đ/h</Text>
           </View>
         </View>
         
-        <Text style={styles.stationName}>{vehicle.stationName}</Text>
+        <Text style={styles.stationName}>{vehicle.location}</Text>
         
         <View style={[
           styles.availabilityBadge,
-          { backgroundColor: vehicle.isAvailable ? COLORS.success + '20' : COLORS.error + '20' }
+          { backgroundColor: vehicle.status === 'Available' ? COLORS.success + '20' : COLORS.error + '20' }
         ]}>
           <Text style={[
             styles.availabilityText,
-            { color: vehicle.isAvailable ? COLORS.success : COLORS.error }
+            { color: vehicle.status === 'Available' ? COLORS.success : COLORS.error }
           ]}>
-            {vehicle.isAvailable ? 'Có sẵn' : 'Đang thuê'}
+            {vehicle.status === 'Available' ? 'Có sẵn' : 'Bảo trì'}
           </Text>
         </View>
       </View>
@@ -106,6 +85,12 @@ const styles = StyleSheet.create({
   vehicleImageContainer: {
     position: 'relative',
     marginRight: SPACING.lg,
+  },
+  vehicleImage: {
+    width: 80,
+    height: 80,
+    borderRadius: RADII.card,
+    backgroundColor: COLORS.background,
   },
   vehicleImagePlaceholder: {
     width: 80,

@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import StatsGrid from '../../components/profile/StatsGrid';
@@ -25,11 +25,11 @@ interface MenuItem {
 interface UserStats {
   totalRides: number;
   totalDistance: string;
-  favoriteVehicle: string;
-  carbonSaved: string;
 }
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
+  
   const [userInfo] = useState({
     name: 'Nguyễn Văn An',
     email: 'nguyenvanan@email.com',
@@ -42,11 +42,15 @@ const ProfileScreen = () => {
   const [userStats] = useState<UserStats>({
     totalRides: 42,
     totalDistance: '156.8 km',
-    favoriteVehicle: 'E-Bike',
-    carbonSaved: '23.5 kg CO2',
   });
 
   const menuItems: MenuItem[] = [
+    {
+      id: 'verify-account',
+      title: 'Xác minh tài khoản',
+      icon: 'shield-checkmark-outline',
+      onPress: () => navigation.navigate('VerifyAccount' as never),
+    },
     {
       id: 'rental-history',
       title: 'Lịch sử thuê xe',
@@ -106,7 +110,7 @@ const ProfileScreen = () => {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <ProfileHeader 
@@ -129,7 +133,7 @@ const ProfileScreen = () => {
         {/* App Version */}
         <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -4,7 +4,6 @@ export { default as StatsGrid } from './profile/StatsGrid';
 export { default as ProfileMenu } from './profile/ProfileMenu';
 
 // Home Components
-export { default as VehicleCategories } from './home/VehicleCategories';
 export { default as FeaturedVehicles } from './home/FeaturedVehicles';
 export { default as AvailableVehicles } from './home/AvailableVehicles';
 
@@ -12,4 +11,11 @@ export { default as AvailableVehicles } from './home/AvailableVehicles';
 export { default as SearchHeader } from './search/SearchHeader';
 export { default as RecentSearches } from './search/RecentSearches';
 export { default as FilterTabs } from './search/FilterTabs';
-export { default as VehicleCard } from './search/VehicleCard';
+
+// Booking Components
+export { default as BookingCard } from './booking/BookingCard';
+export { default as EmptyState } from './booking/EmptyState';
+export { default as BookingFilterTabs } from './booking/BookingFilterTabs';
+
+// Shared Components
+export { default as VehicleCard } from './VehicleCard';

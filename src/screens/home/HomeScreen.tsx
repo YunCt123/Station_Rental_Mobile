@@ -4,26 +4,17 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS } from '../../utils/theme';
-import { VehicleCategories, FeaturedVehicles, AvailableVehicles } from '../../components';
+import { FeaturedVehicles, AvailableVehicles } from '../../components';
+import { RootStackParamList } from '../../types/navigation';
+import { VehicleData } from '../../data/vehicles';
+import mockVehicles from '../../data/vehicles';
 
-interface ElectricVehicle {
-  id: string;
-  name: string;
-  model: string;
-  type: 'electric-car' | 'electric-bike' | 'electric-scooter' | 'electric-motorbike';
-  battery: number;
-  distance: string;
-  pricePerHour: number;
-  image: string;
-  features: string[];
-  stationName: string;
-  isAvailable: boolean;
-  rating: number;
-}
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface VehicleCategory {
   id: string;
@@ -34,9 +25,10 @@ interface VehicleCategory {
 }
 
 const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const [greeting, setGreeting] = useState('');
-  const [availableVehicles, setAvailableVehicles] = useState<ElectricVehicle[]>([]);
-  const [featuredVehicles, setFeaturedVehicles] = useState<ElectricVehicle[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<VehicleData[]>([]);
+  const [featuredVehicles, setFeaturedVehicles] = useState<VehicleData[]>([]);
 
   const vehicleCategories: VehicleCategory[] = [
     { id: '1', name: 'Xe hơi điện', icon: 'car', count: 12, color: COLORS.primary },
@@ -51,71 +43,17 @@ const HomeScreen = () => {
     else if (hour < 18) setGreeting('Chào buổi chiều');
     else setGreeting('Chào buổi tối');
 
-    const mockVehicles: ElectricVehicle[] = [
-      {
-        id: '1',
-        name: 'Tesla Model 3',
-        model: '2024 Standard Range',
-        type: 'electric-car',
-        battery: 85,
-        distance: '0.3 km',
-        pricePerHour: 120000,
-        image: 'https://via.placeholder.com/150',
-        features: ['Tự động lái', 'Sạc nhanh', 'GPS'],
-        stationName: 'Trạm FPT University',
-        isAvailable: true,
-        rating: 4.8,
-      },
-      {
-        id: '2',
-        name: 'VinFast VF8',
-        model: '2024 Eco',
-        type: 'electric-car',
-        battery: 92,
-        distance: '0.5 km',
-        pricePerHour: 100000,
-        image: 'https://via.placeholder.com/150',
-        features: ['Thông minh', 'An toàn cao', 'Tiết kiệm'],
-        stationName: 'Trạm Keangnam',
-        isAvailable: true,
-        rating: 4.6,
-      },
-      {
-        id: '3',
-        name: 'Honda PCX Electric',
-        model: '2024',
-        type: 'electric-motorbike',
-        battery: 78,
-        distance: '0.8 km',
-        pricePerHour: 45000,
-        image: 'https://via.placeholder.com/150',
-        features: ['Nhẹ nhàng', 'Tiết kiệm', 'Dễ lái'],
-        stationName: 'Trạm Cầu Giấy',
-        isAvailable: true,
-        rating: 4.4,
-      },
-      {
-        id: '4',
-        name: 'BMW iX3',
-        model: '2024',
-        type: 'electric-car',
-        battery: 95,
-        distance: '1.2 km',
-        pricePerHour: 150000,
-        image: 'https://via.placeholder.com/150',
-        features: ['Sang trọng', 'Hiệu suất cao', 'Công nghệ'],
-        stationName: 'Trạm Lotte Center',
-        isAvailable: false,
-        rating: 4.9,
-      },
-    ];
-    
+    // Use mock data from vehicles.ts
     setAvailableVehicles(mockVehicles);
     setFeaturedVehicles(mockVehicles.slice(0, 3));
   }, []);
 
+  const handleVehiclePress = (vehicleId: string) => {
+    navigation.navigate('VehicleDetails', { vehicleId });
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -131,16 +69,16 @@ const HomeScreen = () => {
         {/* Featured Vehicles */}
         <FeaturedVehicles 
           vehicles={featuredVehicles} 
-          onVehiclePress={(vehicleId) => console.log('Featured vehicle pressed:', vehicleId)} 
+          onVehiclePress={handleVehiclePress} 
         />
 
         {/* Available Vehicles */}
         <AvailableVehicles 
           vehicles={availableVehicles} 
-          onVehiclePress={(vehicleId) => console.log('Available vehicle pressed:', vehicleId)} 
+          onVehiclePress={handleVehiclePress} 
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
