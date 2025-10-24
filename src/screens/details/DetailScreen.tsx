@@ -59,9 +59,6 @@ const DetailScreen: React.FC<DetailScreenProps> = ({ vehicle: propVehicle }) => 
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Chi tiết xe</Text>
-          <TouchableOpacity style={styles.favoriteButton}>
-            <Ionicons name="heart-outline" size={24} color={COLORS.text} />
-          </TouchableOpacity>
         </View>
 
         {/* Vehicle Image */}
@@ -172,31 +169,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.lg,
     backgroundColor: COLORS.white,
+    position: 'relative',
   },
   backButton: {
+    position: 'absolute',
+    left: SPACING.screenPadding,
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: FONTS.bodyLarge,
     fontWeight: '600',
-    color: COLORS.text,
-  },
-  favoriteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    textAlign: 'center',
   },
   imageContainer: {
     position: 'relative',

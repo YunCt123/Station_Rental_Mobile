@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS, SPACING, FONTS } from '../../utils/theme';
 import { VehicleData } from '../../data/vehicles';
-import VehicleCard from '../VehicleCard';
+import VehicleCard from '../common/VehicleCard';
 
 interface FeaturedVehiclesProps {
   vehicles: VehicleData[];

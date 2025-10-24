@@ -11,6 +11,7 @@ export type RootStackParamList = {
   // Other screens that can be accessed from anywhere
   VehicleDetails: { vehicleId: string };
   BookingPayment: { vehicleId: string };
+  PayOSWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
   StationDetails: { stationId: string };
   BookingDetails: { bookingId: string };
   ActiveBookingDetail: { bookingId: string };

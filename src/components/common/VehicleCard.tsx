@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../utils/theme';
-import { VehicleData } from '../data/vehicles';
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+import { VehicleData } from '../../data/vehicles';
 
 interface VehicleCardProps {
   vehicle: VehicleData;

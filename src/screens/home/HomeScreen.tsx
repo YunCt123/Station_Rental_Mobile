@@ -30,13 +30,6 @@ const HomeScreen = () => {
   const [availableVehicles, setAvailableVehicles] = useState<VehicleData[]>([]);
   const [featuredVehicles, setFeaturedVehicles] = useState<VehicleData[]>([]);
 
-  const vehicleCategories: VehicleCategory[] = [
-    { id: '1', name: 'Xe hơi điện', icon: 'car', count: 12, color: COLORS.primary },
-    { id: '2', name: 'Xe đạp điện', icon: 'bicycle', count: 8, color: COLORS.success },
-    { id: '3', name: 'Xe máy điện', icon: 'speedometer', count: 15, color: COLORS.warning },
-    { id: '4', name: 'Xe scooter điện', icon: 'car-sport', count: 6, color: COLORS.secondary },
-  ];
-
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Chào buổi sáng');
@@ -60,9 +53,6 @@ const HomeScreen = () => {
           <View>
             <Text style={styles.greeting}>{greeting}!</Text>
             <Text style={styles.subtitle}>Thuê xe điện thông minh</Text>
-          </View>
-          <View style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
           </View>
         </View>
 

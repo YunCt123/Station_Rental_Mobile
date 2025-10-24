@@ -55,7 +55,7 @@ const ProfileScreen = () => {
       id: 'rental-history',
       title: 'Lịch sử thuê xe',
       icon: 'time-outline',
-      onPress: () => console.log('Rental history'),
+      onPress: () => navigation.navigate('RentalHistory' as never),
     },
     {
       id: 'payment',
@@ -64,23 +64,10 @@ const ProfileScreen = () => {
       onPress: () => console.log('Payment methods'),
     },
     {
-      id: 'notifications',
-      title: 'Thông báo',
-      icon: 'notifications-outline',
-      hasNotification: true,
-      onPress: () => console.log('Notifications'),
-    },
-    {
-      id: 'favorites',
-      title: 'Trạm yêu thích',
-      icon: 'heart-outline',
-      onPress: () => console.log('Favorite stations'),
-    },
-    {
       id: 'settings',
       title: 'Cài đặt',
       icon: 'settings-outline',
-      onPress: () => console.log('Settings'),
+      onPress: () => navigation.navigate('EditProfile' as never),
     },
     {
       id: 'help',
@@ -114,8 +101,7 @@ const ProfileScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <ProfileHeader 
-          userInfo={userInfo} 
-          onEditPress={() => console.log('Edit profile')} 
+          userInfo={userInfo}
         />
 
         {/* User Stats */}

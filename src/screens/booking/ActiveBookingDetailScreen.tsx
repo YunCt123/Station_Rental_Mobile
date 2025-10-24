@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+import QRCodeModal from '../../components/common/QRCodeModal';
+import QRCode from 'react-native-qrcode-svg';
 
 interface RouteParams {
   bookingId: string;
@@ -20,6 +22,8 @@ const ActiveBookingDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { bookingId } = route.params;
+  
+  const [qrModalVisible, setQrModalVisible] = useState(false);
 
   // Mock data
   const booking = {
@@ -228,12 +232,31 @@ const ActiveBookingDetailScreen = () => {
         {/* QR Code Section */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Mã QR nhận xe</Text>
-          <View style={styles.qrContainer}>
-            <View style={styles.qrPlaceholder}>
-              <Ionicons name="qr-code-outline" size={120} color={COLORS.textTertiary} />
+          <TouchableOpacity 
+            style={styles.qrContainer}
+            onPress={() => setQrModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.qrCodeWrapper}>
+              <QRCode
+                value={JSON.stringify({
+                  bookingId: booking.bookingCode,
+                  vehicleName: `${booking.vehicleName} ${booking.vehicleModel}`,
+                  location: booking.locationAddress,
+                  pickupTime: `${booking.startDate} ${booking.startTime}`,
+                  timestamp: new Date().toISOString(),
+                })}
+                size={180}
+                color={COLORS.text}
+                backgroundColor={COLORS.white}
+              />
             </View>
-            <Text style={styles.qrText}>Xuất trình mã này tại trạm để nhận xe</Text>
-          </View>
+            <Text style={styles.qrText}>Nhấn để xem mã QR check-in</Text>
+            <View style={styles.qrButton}>
+              <Text style={styles.qrButtonText}>Xem chi tiết</Text>
+              <Ionicons name="expand-outline" size={16} color={COLORS.white} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />
@@ -259,6 +282,16 @@ const ActiveBookingDetailScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        visible={qrModalVisible}
+        onClose={() => setQrModalVisible(false)}
+        bookingId={booking.bookingCode}
+        vehicleName={`${booking.vehicleName} ${booking.vehicleModel}`}
+        location={booking.locationAddress}
+        pickupTime={`${booking.startDate} ${booking.startTime}`}
+      />
     </View>
   );
 };
@@ -428,22 +461,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.lg,
   },
-  qrPlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: COLORS.background,
+  qrCodeWrapper: {
+    padding: SPACING.md,
+    backgroundColor: COLORS.white,
     borderRadius: RADII.md,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary,
     borderStyle: 'dashed',
+    ...SHADOWS.sm,
   },
   qrText: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  qrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADII.button,
+    gap: SPACING.xs,
+    ...SHADOWS.sm,
+  },
+  qrButtonText: {
+    fontSize: FONTS.body,
+    fontWeight: '600',
+    color: COLORS.white,
   },
   bottomContainer: {
     position: 'absolute',

@@ -14,10 +14,9 @@ interface UserInfo {
 
 interface ProfileHeaderProps {
   userInfo: UserInfo;
-  onEditPress?: () => void;
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo, onEditPress }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo }) => {
   return (
     <View style={styles.profileHeader}>
       <View style={styles.avatarContainer}>
@@ -33,9 +32,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo, onEditPress }) 
         <Text style={styles.userEmail}>{userInfo.email}</Text>
         <Text style={styles.memberSince}>{userInfo.memberSince}</Text>
       </View>
-      <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
-        <Ionicons name="pencil-outline" size={16} color={COLORS.primary} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -88,14 +84,6 @@ const styles = StyleSheet.create({
   memberSince: {
     fontSize: FONTS.caption,
     color: COLORS.textTertiary,
-  },
-  editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primaryLight + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

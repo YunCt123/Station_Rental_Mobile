@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
 
 interface BookingFilterTab {
@@ -15,11 +15,7 @@ interface BookingFilterTabsProps {
 
 const BookingFilterTabs: React.FC<BookingFilterTabsProps> = ({ tabs, activeTab, onTabPress }) => {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
+    <View style={styles.container}>
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.id}
@@ -38,34 +34,38 @@ const BookingFilterTabs: React.FC<BookingFilterTabsProps> = ({ tabs, activeTab, 
           </Text>
         </TouchableOpacity>
       ))}
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
     gap: SPACING.sm,
   },
   tab: {
-    paddingHorizontal: SPACING.sm,
+    flex: 1,
     paddingVertical: SPACING.sm,
-    borderRadius: RADII.pill,
+    paddingHorizontal: SPACING.xs,
+    borderRadius: RADII.button,
     backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: 'black',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabActive: {
     backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   tabText: {
-    fontSize: FONTS.body,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.textSecondary,
   },
   tabTextActive: {
     color: COLORS.white,
+    fontWeight: '600',
   },
 });
 
