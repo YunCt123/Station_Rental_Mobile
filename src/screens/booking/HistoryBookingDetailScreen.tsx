@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import StatusModal from '../../components/common/StatusModal';
+import InvoiceModal from '../../components/common/InvoiceModal';
 
 interface RouteParams {
   bookingId: string;
@@ -24,6 +25,7 @@ const HistoryBookingDetailScreen = () => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error'>('success');
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
 
   // Mock data
   const booking = {
@@ -59,7 +61,7 @@ const HistoryBookingDetailScreen = () => {
 
   const handleRateBooking = () => {
     Alert.alert(
-      'Đánh giá chuyến đi',
+      'Đánh giá phương tiện',
       'Chức năng đánh giá đang được phát triển',
       [{ text: 'OK' }]
     );
@@ -68,6 +70,20 @@ const HistoryBookingDetailScreen = () => {
   const handleBookAgain = () => {
     setModalType('success');
     setModalVisible(true);
+  };
+
+  const handleViewInvoice = () => {
+    setInvoiceModalVisible(true);
+  };
+
+  const handleModalActionPress = () => {
+    setModalVisible(false);
+    // Navigate to payment screen with vehicle info
+    setTimeout(() => {
+      (navigation as any).navigate('BookingPayment', { 
+        vehicleId: '2', // Mock vehicle ID - should match the booked vehicle
+      });
+    }, 300);
   };
 
   const handleReportIssue = () => {
@@ -168,7 +184,7 @@ const HistoryBookingDetailScreen = () => {
                   ))}
                 </View>
                 <Text style={styles.ratingText}>
-                  {booking.rating > 0 ? 'Sửa đánh giá' : 'Đánh giá chuyến đi'}
+                  {booking.rating > 0 ? 'Sửa đánh giá' : 'Đánh giá phương tiện'}
                 </Text>
               </TouchableOpacity>
             </>
@@ -285,7 +301,10 @@ const HistoryBookingDetailScreen = () => {
 
         {/* Receipt */}
         <View style={styles.card}>
-          <TouchableOpacity style={styles.receiptButton}>
+          <TouchableOpacity 
+            style={styles.receiptButton}
+            onPress={handleViewInvoice}
+          >
             <Ionicons name="receipt-outline" size={24} color={COLORS.primary} />
             <Text style={styles.receiptText}>Xem hóa đơn</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
@@ -316,10 +335,29 @@ const HistoryBookingDetailScreen = () => {
         message="Xe đã được thêm vào giỏ hàng. Vui lòng hoàn tất thanh toán."
         onClose={() => setModalVisible(false)}
         actionButtonText="Xem đặt chỗ"
-        onActionPress={() => {
-          setModalVisible(false);
-          navigation.goBack();
-        }}
+        onActionPress={handleModalActionPress}
+      />
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        visible={invoiceModalVisible}
+        onClose={() => setInvoiceModalVisible(false)}
+        bookingCode={booking.bookingCode}
+        vehicleName={booking.vehicleName}
+        vehicleModel={booking.vehicleModel}
+        startDate={booking.startDate}
+        endDate={booking.endDate}
+        startTime={booking.startTime}
+        endTime={booking.endTime}
+        actualStartTime={booking.actualStartTime}
+        actualEndTime={booking.actualEndTime}
+        hourlyRate={booking.hourlyRate}
+        totalHours={booking.totalHours}
+        actualHours={booking.actualHours}
+        totalPrice={booking.totalPrice}
+        actualPrice={booking.actualPrice}
+        paymentMethod={booking.paymentMethod}
+        location={booking.location}
       />
     </View>
   );

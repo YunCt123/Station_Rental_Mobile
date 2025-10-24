@@ -53,7 +53,6 @@ const BookingPaymentScreen = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate PayOS API call
       const paymentData = {
         amount: calculateTotal(),
         description: `Thuê xe ${vehicle.name} - ${rentalHours} giờ`,
@@ -62,24 +61,34 @@ const BookingPaymentScreen = () => {
         cancelUrl: 'myapp://payment-cancel',
       };
 
-      // Mock PayOS payment URL
-      const paymentUrl = `https://pay.payos.vn/checkout/${paymentData.orderCode}`;
+      // TODO: Replace with your actual PayOS API call
+      // See PAYOS_INTEGRATION.md for detailed instructions
       
-      // In production, you would call PayOS API here
-      // const response = await fetch('https://api.payos.vn/create-payment', {...});
+      // OPTION 1: Call your backend API (RECOMMENDED - when ready)
+      // const response = await fetch('https://your-backend.com/api/create-payment', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(paymentData),
+      // });
+      // const { checkoutUrl } = await response.json();
       
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // For demo, just open a mock URL
-      // In production: await Linking.openURL(paymentUrl);
-      
-      // Simulate successful payment
+      // OPTION 2: Demo mode - Simulate success without WebView
       setIsProcessing(false);
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setModalType('success');
       setModalTitle('Thanh toán thành công!');
-      setModalMessage(`Đã đặt xe ${vehicle.name} thành công. Vui lòng đến trạm để nhận xe.`);
+      setModalMessage(`Đã đặt xe ${vehicle.name} thành công. (Demo mode - Chưa tích hợp backend PayOS)`);
       setModalVisible(true);
+      return;
+      
+      // OPTION 3: Test WebView with a working URL (uncomment when you have real PayOS URL)
+      // const paymentUrl = checkoutUrl; // from API response
+      // navigation.navigate('PayOSWebView', {
+      //   paymentUrl: paymentUrl,
+      //   bookingId: paymentData.orderCode,
+      //   amount: paymentData.amount,
+      //   vehicleName: vehicle.name,
+      // });
       
     } catch (error) {
       setIsProcessing(false);

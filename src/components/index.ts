@@ -18,4 +18,4 @@ export { default as EmptyState } from './booking/EmptyState';
 export { default as BookingFilterTabs } from './booking/BookingFilterTabs';
 
 // Shared Components
-export { default as VehicleCard } from './VehicleCard';
+export { default as VehicleCard } from './common/VehicleCard';

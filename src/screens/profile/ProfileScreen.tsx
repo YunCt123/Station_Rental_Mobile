@@ -64,13 +64,6 @@ const ProfileScreen = () => {
       onPress: () => console.log('Payment methods'),
     },
     {
-      id: 'notifications',
-      title: 'Thông báo',
-      icon: 'notifications-outline',
-      hasNotification: true,
-      onPress: () => console.log('Notifications'),
-    },
-    {
       id: 'settings',
       title: 'Cài đặt',
       icon: 'settings-outline',
