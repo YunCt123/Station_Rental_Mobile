@@ -134,9 +134,16 @@ const BookingPaymentScreen = () => {
     if (modalType === 'success') {
       // Navigate to bookings screen after success
       setTimeout(() => {
-        navigation.navigate('MainTabs' as any);
+        navigation.navigate('MainTabs' as any, { screen: 'Bookings' });
       }, 300);
     }
+  };
+
+  const handleViewBooking = () => {
+    setModalVisible(false);
+    setTimeout(() => {
+      navigation.navigate('MainTabs' as any, { screen: 'Bookings' });
+    }, 300);
   };
 
   return (
@@ -335,7 +342,7 @@ const BookingPaymentScreen = () => {
         message={modalMessage}
         onClose={handleModalClose}
         actionButtonText={modalType === 'success' ? 'Xem đặt chỗ' : 'Thử lại'}
-        onActionPress={modalType === 'success' ? handleModalClose : () => setModalVisible(false)}
+        onActionPress={modalType === 'success' ? handleViewBooking : () => setModalVisible(false)}
       />
     </View>
   );

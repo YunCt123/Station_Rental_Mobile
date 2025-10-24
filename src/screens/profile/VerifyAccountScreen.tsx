@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+import StatusModal from '../../components/common/StatusModal';
 
 interface DocumentType {
   id: 'id_card' | 'driver_license';
@@ -32,6 +33,11 @@ const VerifyAccountScreen = () => {
     { type: 'id_card', frontImage: null, backImage: null },
     { type: 'driver_license', frontImage: null, backImage: null },
   ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'error'>('success');
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
 
   const documentTypes: DocumentType[] = [
     {
@@ -106,12 +112,18 @@ const VerifyAccountScreen = () => {
     const driverLicense = uploadedDocs.find(d => d.type === 'driver_license');
 
     if (!idCard?.frontImage || !idCard?.backImage) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng tải lên đầy đủ ảnh CMND/CCCD (mặt trước và mặt sau)');
+      setModalType('error');
+      setModalTitle('Thiếu thông tin');
+      setModalMessage('Vui lòng tải lên đầy đủ ảnh CMND/CCCD (mặt trước và mặt sau)');
+      setModalVisible(true);
       return;
     }
 
     if (!driverLicense?.frontImage || !driverLicense?.backImage) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng tải lên đầy đủ ảnh Giấy phép lái xe (mặt trước và mặt sau)');
+      setModalType('error');
+      setModalTitle('Thiếu thông tin');
+      setModalMessage('Vui lòng tải lên đầy đủ ảnh Giấy phép lái xe (mặt trước và mặt sau)');
+      setModalVisible(true);
       return;
     }
 
@@ -123,13 +135,23 @@ const VerifyAccountScreen = () => {
         {
           text: 'Gửi',
           onPress: () => {
-            Alert.alert('Thành công', 'Đã gửi tài liệu xác minh. Vui lòng chờ admin phê duyệt.', [
-              { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            setModalType('success');
+            setModalTitle('Xác minh thành công!');
+            setModalMessage('Đã gửi tài liệu xác minh. Vui lòng chờ admin phê duyệt trong vòng 24-48 giờ.');
+            setModalVisible(true);
           }
         }
       ]
     );
+  };
+
+  const handleModalClose = () => {
+    setModalVisible(false);
+    if (modalType === 'success') {
+      setTimeout(() => {
+        navigation.goBack();
+      }, 300);
+    }
   };
 
   const getDocumentData = (type: 'id_card' | 'driver_license') => {
@@ -276,6 +298,17 @@ const VerifyAccountScreen = () => {
           <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
         </TouchableOpacity>
       </View>
+
+      {/* Status Modal */}
+      <StatusModal
+        visible={modalVisible}
+        type={modalType}
+        title={modalTitle}
+        message={modalMessage}
+        onClose={handleModalClose}
+        actionButtonText="OK"
+        onActionPress={handleModalClose}
+      />
     </View>
   );
 };

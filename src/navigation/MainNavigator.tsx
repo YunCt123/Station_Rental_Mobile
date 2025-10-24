@@ -8,7 +8,9 @@ import DetailScreen from '../screens/details/DetailScreen';
 import BookingPaymentScreen from '../screens/booking/BookingPaymentScreen';
 import ActiveBookingDetailScreen from '../screens/booking/ActiveBookingDetailScreen';
 import HistoryBookingDetailScreen from '../screens/booking/HistoryBookingDetailScreen';
+import RentalHistoryScreen from '../screens/booking/RentalHistoryScreen';
 import VerifyAccountScreen from '../screens/profile/VerifyAccountScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import { COLORS, FONTS, RADII, SPACING } from '../utils/theme';
 import AuthLandingScreen from '../screens/auth/AuthLandingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -84,6 +86,20 @@ const MainNavigator = () => {
         <Stack.Screen
           name="VerifyAccount"
           component={VerifyAccountScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="RentalHistory"
+          component={RentalHistoryScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
           options={{
             headerShown: false,
           }}
