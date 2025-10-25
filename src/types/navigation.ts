@@ -13,6 +13,7 @@ export type RootStackParamList = {
   BookingPayment: { vehicleId: string };
   PayOSWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
   StationDetails: { stationId: string };
+  StationDetail: { stationId: string };
   BookingDetails: { bookingId: string };
   ActiveBookingDetail: { bookingId: string };
   HistoryBookingDetail: { bookingId: string };
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
   VerifyAccount: undefined;
+  MapView: undefined;
 };
 
 // Bottom Tab Navigator

@@ -1,79 +1,143 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  Alert,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+import { Station } from '../../types/station';
+import { stationApi } from '../../api/stationApi';
 
-const { width } = Dimensions.get('window');
-
-interface Station {
-  id: string;
-  name: string;
-  address: string;
-  distance: number;
-  availableVehicles: number;
-  totalVehicles: number;
-  status: 'active' | 'maintenance' | 'offline';
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  };
-}
+const { width, height } = Dimensions.get('window');
+const ASPECT_RATIO = width / height;
+const LATITUDE_DELTA = 0.0922;
+const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const MapScreen = () => {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [nearbyStations, setNearbyStations] = useState<Station[]>([]);
 
   useEffect(() => {
-    // Mock data for nearby stations
+    // Mock data for nearby stations - Match Station type from MongoDB
     const mockStations: Station[] = [
       {
-        id: '1',
+        _id: '1',
         name: 'Trạm VinFast Times City',
         address: '458 Minh Khai, Hai Bà Trưng, Hà Nội',
-        distance: 0.5,
-        availableVehicles: 8,
-        totalVehicles: 12,
-        status: 'active',
-        coordinates: { latitude: 21.0285, longitude: 105.8542 },
+        city: 'Hà Nội',
+        geo: {
+          type: 'Point',
+          coordinates: [105.8542, 21.0285] // [lng, lat]
+        },
+        totalSlots: 12,
+        amenities: ['fast_charging', 'cafe', 'parking'],
+        fastCharging: true,
+        rating: {
+          avg: 4.5,
+          count: 128
+        },
+        operatingHours: {
+          mon_fri: '6:00 - 22:00',
+          weekend: '7:00 - 23:00'
+        },
+        status: 'ACTIVE',
+        metrics: {
+          vehicles_total: 12,
+          vehicles_available: 8,
+          vehicles_in_use: 4,
+          utilization_rate: 33
+        }
       },
       {
-        id: '2',
+        _id: '2',
         name: 'Trạm VinFast Royal City',
         address: '72A Nguyễn Trãi, Thanh Xuân, Hà Nội',
-        distance: 1.2,
-        availableVehicles: 5,
-        totalVehicles: 10,
-        status: 'active',
-        coordinates: { latitude: 21.0014, longitude: 105.8167 },
+        city: 'Hà Nội',
+        geo: {
+          type: 'Point',
+          coordinates: [105.8167, 21.0014]
+        },
+        totalSlots: 10,
+        amenities: ['cafe', 'restroom'],
+        fastCharging: false,
+        rating: {
+          avg: 4.2,
+          count: 95
+        },
+        operatingHours: {
+          mon_fri: '6:00 - 22:00',
+          weekend: '7:00 - 23:00'
+        },
+        status: 'ACTIVE',
+        metrics: {
+          vehicles_total: 10,
+          vehicles_available: 5,
+          vehicles_in_use: 5,
+          utilization_rate: 50
+        }
       },
       {
-        id: '3',
+        _id: '3',
         name: 'Trạm VinFast Lotte Center',
         address: '54 Liễu Giai, Ba Đình, Hà Nội',
-        distance: 2.1,
-        availableVehicles: 0,
-        totalVehicles: 8,
-        status: 'maintenance',
-        coordinates: { latitude: 21.0333, longitude: 105.8167 },
+        city: 'Hà Nội',
+        geo: {
+          type: 'Point',
+          coordinates: [105.8167, 21.0333]
+        },
+        totalSlots: 8,
+        amenities: ['parking'],
+        fastCharging: false,
+        rating: {
+          avg: 4.0,
+          count: 67
+        },
+        operatingHours: {
+          mon_fri: '6:00 - 22:00'
+        },
+        status: 'UNDER_MAINTENANCE',
+        metrics: {
+          vehicles_total: 8,
+          vehicles_available: 0,
+          vehicles_in_use: 0,
+          utilization_rate: 0
+        }
       },
       {
-        id: '4',
+        _id: '4',
         name: 'Trạm VinFast Aeon Mall',
         address: '27 Cổ Linh, Long Biên, Hà Nội',
-        distance: 3.5,
-        availableVehicles: 12,
-        totalVehicles: 15,
-        status: 'active',
-        coordinates: { latitude: 21.0167, longitude: 105.8833 },
+        city: 'Hà Nội',
+        geo: {
+          type: 'Point',
+          coordinates: [105.8833, 21.0167]
+        },
+        totalSlots: 15,
+        amenities: ['fast_charging', 'cafe', 'restroom', 'parking'],
+        fastCharging: true,
+        rating: {
+          avg: 4.8,
+          count: 203
+        },
+        operatingHours: {
+          mon_fri: '6:00 - 23:00',
+          weekend: '6:00 - 24:00'
+        },
+        status: 'ACTIVE',
+        metrics: {
+          vehicles_total: 15,
+          vehicles_available: 12,
+          vehicles_in_use: 3,
+          utilization_rate: 20
+        }
       },
     ];
 
@@ -82,28 +146,28 @@ const MapScreen = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return COLORS.success;
-      case 'maintenance': return COLORS.warning;
-      case 'offline': return COLORS.error;
+      case 'ACTIVE': return COLORS.success;
+      case 'UNDER_MAINTENANCE': return COLORS.warning;
+      case 'INACTIVE': return COLORS.error;
       default: return COLORS.textSecondary;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return 'Hoạt động';
-      case 'maintenance': return 'Bảo trì';
-      case 'offline': return 'Tạm ngưng';
+      case 'ACTIVE': return 'Hoạt động';
+      case 'UNDER_MAINTENANCE': return 'Bảo trì';
+      case 'INACTIVE': return 'Tạm ngưng';
       default: return 'Không xác định';
     }
   };
 
   const renderStationCard = (station: Station) => (
     <TouchableOpacity
-      key={station.id}
+      key={station._id}
       style={[
         styles.stationCard,
-        selectedStation?.id === station.id && styles.selectedStationCard
+        selectedStation?._id === station._id && styles.selectedStationCard
       ]}
       onPress={() => setSelectedStation(station)}
     >
@@ -128,13 +192,13 @@ const MapScreen = () => {
       <View style={styles.stationDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.detailText}>{station.distance} km</Text>
+          <Text style={styles.detailText}>{station.city}</Text>
         </View>
         
         <View style={styles.detailRow}>
           <Ionicons name="car-outline" size={16} color={COLORS.textSecondary} />
           <Text style={styles.detailText}>
-            {station.availableVehicles}/{station.totalVehicles} xe có sẵn
+            {station.metrics.vehicles_available}/{station.metrics.vehicles_total} xe
           </Text>
         </View>
       </View>
@@ -145,14 +209,14 @@ const MapScreen = () => {
             style={[
               styles.availabilityFill,
               { 
-                width: `${(station.availableVehicles / station.totalVehicles) * 100}%`,
-                backgroundColor: station.availableVehicles > 0 ? COLORS.success : COLORS.error
+                width: `${(station.metrics.vehicles_available / station.metrics.vehicles_total) * 100}%`,
+                backgroundColor: station.metrics.vehicles_available > 0 ? COLORS.success : COLORS.error
               }
             ]} 
           />
         </View>
         <Text style={styles.availabilityText}>
-          {station.availableVehicles > 0 ? 'Có xe sẵn sàng' : 'Hết xe'}
+          {station.metrics.vehicles_available > 0 ? 'Có xe sẵn sàng' : 'Hết xe'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -233,7 +297,7 @@ const MapScreen = () => {
               <View style={styles.infoRow}>
                 <Ionicons name="car-outline" size={16} color={COLORS.primary} />
                 <Text style={styles.infoText}>
-                  {selectedStation.availableVehicles} xe có sẵn trong tổng số {selectedStation.totalVehicles} xe
+                  {selectedStation.metrics.vehicles_available} xe có sẵn trong tổng số {selectedStation.metrics.vehicles_total} xe
                 </Text>
               </View>
             </View>

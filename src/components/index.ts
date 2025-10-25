@@ -28,3 +28,5 @@ export { default as StatusBanner } from './details/StatusBanner';
 
 // Shared Components
 export { default as VehicleCard } from './common/VehicleCard';
+// Map Components
+export { default as StationMarkerCard } from './map/StationMarkerCard';
