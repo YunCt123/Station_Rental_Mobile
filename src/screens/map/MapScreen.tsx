@@ -316,6 +316,7 @@ const MapScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.primary,
   },
   gradientBackground: {
     flex: 1,
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.primary,
   },
   headerContent: {
@@ -345,8 +346,6 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.white + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -10,6 +10,7 @@ import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import BookingsScreen from '../screens/booking/BookingsScreen';
+import MapScreen from '../screens/map/MapScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -35,7 +36,7 @@ const BottomTabNavigator = () => {
             iconName = focused ? 'receipt' : 'receipt-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Maps') {
+          } else if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map-outline';
           } else {
             iconName = 'home-outline';
@@ -86,8 +87,8 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Maps"
-        component={ProfileScreen}
+        name="Map"
+        component={MapScreen}
         options={{
           tabBarLabel: 'Bản đồ',
         }}

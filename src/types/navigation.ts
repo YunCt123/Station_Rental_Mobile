@@ -34,6 +34,7 @@ export type MainTabParamList = {
   Search: undefined;
   Bookings: undefined;
   Profile: undefined;
+  Map: undefined;
 };
 
 // Home Stack Navigator

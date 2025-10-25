@@ -16,7 +16,7 @@ import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
 import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
-import MapScreenWithMap from "../screens/map/MapScreenWithMap";
+import MapScreen from "../screens/map/MapScreen";
 import { StationDetailScreen } from "../screens/details/StationDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -116,7 +116,7 @@ const MainNavigator = () => {
         />
         <Stack.Screen
           name="MapView"
-          component={MapScreenWithMap}
+          component={MapScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
