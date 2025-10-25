@@ -22,82 +22,122 @@ interface BookingCardProps {
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
-  const getStatusColor = (status: string) => {
+  const getStatusInfo = (status: string) => {
     switch (status) {
       case 'active':
-        return COLORS.primary;
+        return {
+          color: COLORS.success,
+          bgColor: COLORS.success + '15',
+          icon: 'play-circle',
+          text: 'Đang thuê'
+        };
       case 'completed':
-        return COLORS.success;
+        return {
+          color: COLORS.primary,
+          bgColor: COLORS.primary + '15',
+          icon: 'checkmark-circle',
+          text: 'Hoàn thành'
+        };
       case 'cancelled':
-        return COLORS.error;
+        return {
+          color: COLORS.error,
+          bgColor: COLORS.error + '15',
+          icon: 'close-circle',
+          text: 'Đã hủy'
+        };
       case 'upcoming':
-        return COLORS.warning;
+        return {
+          color: COLORS.warning,
+          bgColor: COLORS.warning + '15',
+          icon: 'time',
+          text: 'Sắp tới'
+        };
       default:
-        return COLORS.textSecondary;
+        return {
+          color: COLORS.textSecondary,
+          bgColor: COLORS.textSecondary + '15',
+          icon: 'information-circle',
+          text: status
+        };
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Đang thuê';
-      case 'completed':
-        return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
-      case 'upcoming':
-        return 'Sắp tới';
-      default:
-        return status;
-    }
-  };
+  const statusInfo = getStatusInfo(booking.status);
 
   return (
     <TouchableOpacity 
       style={styles.card}
       onPress={() => onPress(booking)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <Image source={{ uri: booking.vehicleImage }} style={styles.image} />
+      {/* Image Container with Status Badge */}
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: booking.vehicleImage }} style={styles.image} />
+        <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+          <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+          <Text style={[styles.statusText, { color: statusInfo.color }]}>
+            {statusInfo.text}
+          </Text>
+        </View>
+      </View>
+
+      {/* Content */}
       <View style={styles.content}>
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.vehicleName}>{booking.vehicleName}</Text>
             <Text style={styles.vehicleModel}>{booking.vehicleModel}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(booking.status)}15` }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
-              {getStatusText(booking.status)}
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceValue}>
+              {booking.totalPrice.toLocaleString('vi-VN')}đ
             </Text>
+            <Text style={styles.priceLabel}>Tổng cộng</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.details}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>
-              {booking.startDate} - {booking.endDate}
-            </Text>
+        {/* Details Grid */}
+        <View style={styles.detailsGrid}>
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconContainer}>
+              <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Ngày thuê</Text>
+              <Text style={styles.detailValue}>
+                {booking.startDate} - {booking.endDate}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{booking.totalHours} giờ</Text>
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconContainer}>
+              <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Thời gian</Text>
+              <Text style={styles.detailValue}>{booking.totalHours} giờ</Text>
+            </View>
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{booking.location}</Text>
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconContainer}>
+              <Ionicons name="location-outline" size={16} color={COLORS.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Trạm</Text>
+              <Text style={styles.detailValue}>{booking.location}</Text>
+            </View>
           </View>
         </View>
 
+        {/* Footer with Action */}
         <View style={styles.footer}>
-          <Text style={styles.priceLabel}>Tổng cộng</Text>
-          <Text style={styles.priceValue}>
-            {booking.totalPrice.toLocaleString('vi-VN')}đ
-          </Text>
+          <View style={styles.footerLeft}>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
+            <Text style={styles.footerText}>Xem chi tiết</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -107,65 +147,101 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.card,
+    borderRadius: RADII.lg,
     marginBottom: SPACING.md,
-    ...SHADOWS.sm,
+    marginHorizontal: SPACING.xs,
+    ...SHADOWS.md,
     overflow: 'hidden',
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 160,
   },
   image: {
     width: '100%',
-    height: 140,
+    height: '100%',
     backgroundColor: COLORS.background,
   },
+  statusBadge: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADII.button,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   content: {
-    padding: SPACING.sm,
+    padding: SPACING.md,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   titleContainer: {
     flex: 1,
-    marginRight: SPACING.xs,
+    marginRight: SPACING.sm,
   },
   vehicleName: {
-    fontSize: FONTS.body,
+    fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 2,
   },
   vehicleModel: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  priceValue: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  priceLabel: {
     fontSize: FONTS.caption,
     color: COLORS.textSecondary,
   },
-  statusBadge: {
-    paddingHorizontal: SPACING.xs,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
+  detailsGrid: {
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginBottom: SPACING.sm,
-  },
-  details: {
-    gap: SPACING.xs,
-    marginBottom: SPACING.sm,
-  },
-  detailRow: {
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: SPACING.sm,
   },
-  detailText: {
+  detailIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailLabel: {
     fontSize: FONTS.caption,
     color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
   },
   footer: {
     flexDirection: 'row',
@@ -173,16 +249,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderLight,
   },
-  priceLabel: {
-    fontSize: FONTS.caption,
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  footerText: {
+    fontSize: FONTS.body,
     color: COLORS.textSecondary,
+    fontWeight: '500',
   },
-  priceValue: {
-    fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
-    color: COLORS.primary,
+  footerRight: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

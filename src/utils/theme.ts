@@ -1,13 +1,9 @@
 export const COLORS = {
     // Primary colors - Electric blue for tech feel
-    primary: '#2979FF', // Xanh điện - Primary button
-    primaryDark: '#1565C0',
-    primaryLight: '#64B5F6', 
+    primary: '#10B981', // Xanh điện - Primary button
     
     // Secondary colors - Neon green for header/app bar
     secondary: '#00C853', // Xanh lá neon - App bar/Header, Success (xe sẵn sàng)
-    secondaryDark: '#00A344',
-    secondaryLight: '#5EFC82',
     
     // Success states (for available vehicles/stations)
     success: '#00C853', // Thân thiện, "Active"
@@ -64,7 +60,27 @@ export const COLORS = {
     // Overlay colors
     overlay: 'rgba(0, 0, 0, 0.5)',
     overlayLight: 'rgba(0, 0, 0, 0.3)',
+
+    gradient_1: ["#10B981", "#059669", "#047857"] as const,
+    gradient_2: ["#064E3B", "#047857", "#10B981", "#34D399", "#6EE7B7"] as const,
+    gradient_3: ["#FFFFFF", "#D1FAE5", "#6EE7B7", "#10B981"] as const,
+    gradient_4: ["#F0FDF4", "#E2FAE9", "#D3F0FF", "#EFF6FF"] as const,
+
+    
 } as const;
+
+export const GREEN = {
+    green900: "#064E3B",
+    green800: "#047857",
+    green700: "#059669",
+    green600: "#10B981", // main green
+    green500: "#22C55E",
+    green400: "#34D399",
+    green300: "#6EE7B7",
+    green200: "#A7F3D1",
+    green100: "#D1FAE5",
+    green50: "#F0FDF4",
+  };
 
 export const SPACING = {
     xs: 4,

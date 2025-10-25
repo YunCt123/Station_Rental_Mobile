@@ -75,7 +75,6 @@ export type ProfileStackParamList = {
 };
 
 // Navigation Props Types
-import { NavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 

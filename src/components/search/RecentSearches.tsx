@@ -21,7 +21,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
           style={styles.searchItem}
           onPress={() => onSearchPress(search)}
         >
-          <Ionicons name="time-outline" size={16} color={COLORS.textSecondary} />
+          <Ionicons name="time-outline" size={16} color={COLORS.borderDark} />
           <Text style={styles.searchText}>{search}</Text>
         </TouchableOpacity>
       ))}
@@ -31,14 +31,13 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.lg,
   },
   title: {
     fontSize: FONTS.bodyLarge,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.borderDark,
     marginBottom: SPACING.md,
   },
   searchItem: {
@@ -49,7 +48,7 @@ const styles = StyleSheet.create({
   },
   searchText: {
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.borderDark,
   },
 });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
+import { COLORS, SPACING, RADII } from '../../utils/theme';
 
 interface BookingFilterTab {
   id: string;
@@ -43,7 +43,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
     gap: SPACING.sm,
   },
   tab: {
@@ -51,7 +50,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xs,
     borderRadius: RADII.button,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
   },

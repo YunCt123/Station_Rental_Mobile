@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import StatsGrid from '../../components/profile/StatsGrid';
@@ -97,36 +99,45 @@ const ProfileScreen = () => {
 
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <ProfileHeader 
-          userInfo={userInfo}
-        />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Profile Header */}
+          <ProfileHeader 
+            userInfo={userInfo}
+          />
 
-        {/* User Stats */}
-        <StatsGrid stats={userStats} />
+          {/* User Stats */}
+          <StatsGrid stats={userStats} />
 
-        {/* Menu Items */}
-        <ProfileMenu menuItems={menuItems} />
+          {/* Menu Items */}
+          <ProfileMenu menuItems={menuItems} />
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-          <Text style={styles.logoutText}>Đăng xuất</Text>
-        </TouchableOpacity>
+          {/* Logout Button */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+            <Text style={styles.logoutText}>Đăng xuất</Text>
+          </TouchableOpacity>
 
-        {/* App Version */}
-        <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
-      </ScrollView>
-    </View>
+          {/* App Version */}
+          <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  gradientBackground: {
+    flex: 1,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -180,7 +191,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryLight + '20',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -213,7 +224,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primaryLight + '20',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -256,7 +267,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryLight + '15',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.lg,

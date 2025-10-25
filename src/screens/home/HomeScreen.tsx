@@ -7,8 +7,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS } from '../../utils/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
 import { FeaturedVehicles, AvailableVehicles } from '../../components';
 import { RootStackParamList } from '../../types/navigation';
 import { VehicleData } from '../../data/vehicles';
@@ -46,9 +47,12 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+    <SafeAreaView style={styles.container} edges={['top',]}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
+        {/* Header - Sticky */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{greeting}!</Text>
@@ -56,53 +60,53 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Featured Vehicles */}
-        <FeaturedVehicles 
-          vehicles={featuredVehicles} 
-          onVehiclePress={handleVehiclePress} 
-        />
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Featured Vehicles */}
+          <FeaturedVehicles 
+            vehicles={featuredVehicles} 
+            onVehiclePress={handleVehiclePress} 
+          />
 
-        {/* Available Vehicles */}
-        <AvailableVehicles 
-          vehicles={availableVehicles} 
-          onVehiclePress={handleVehiclePress} 
-        />
-      </ScrollView>
-    </View>
+          {/* Available Vehicles */}
+          <AvailableVehicles 
+            vehicles={availableVehicles} 
+            onVehiclePress={handleVehiclePress} 
+          />
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.primary,
+  },
+  gradientBackground: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.white,
-    marginBottom: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.md,
   },
   greeting: {
     fontSize: FONTS.title,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: COLORS.white,
   },
   subtitle: {
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
     marginTop: SPACING.xs,
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontWeight: '700',
   },
 });
 

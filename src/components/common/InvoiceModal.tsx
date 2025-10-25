@@ -261,12 +261,11 @@ const styles = StyleSheet.create({
     fontSize: FONTS.title,
     fontWeight: '700',
     color: COLORS.text,
+    textAlign: 'center'
   },
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -407,11 +406,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.sm,
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    paddingBottom: SPACING.lg,
+    paddingVertical: SPACING.xxl,
+    padding: SPACING.md,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
   },
   downloadButton: {
     flex: 1,
@@ -422,6 +419,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
     gap: SPACING.xs,
+    marginTop: -SPACING.sm,
   },
   downloadButtonText: {
     fontSize: FONTS.body,
@@ -435,6 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: RADII.button,
     alignItems: 'center',
     ...SHADOWS.sm,
+    marginTop: -SPACING.sm,
   },
   closeActionButtonText: {
     fontSize: FONTS.body,

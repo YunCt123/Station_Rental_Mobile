@@ -6,6 +6,8 @@ import {
   FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import BookingCard from '../../components/booking/BookingCard';
 import EmptyState from '../../components/booking/EmptyState';
@@ -102,79 +104,87 @@ const BookingsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Đặt chỗ của tôi</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Đặt chỗ của tôi</Text>
+        </View>
 
-      {/* Tabs */}
-      <BookingFilterTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabPress={(tabId) => setActiveTab(tabId as 'active' | 'history')}
-      />
+        {/* Tabs */}
+        <BookingFilterTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabPress={(tabId) => setActiveTab(tabId as 'active' | 'history')}
+        />
 
-      {/* Content */}
-      <View style={styles.content}>
-        {activeTab === 'active' && (
-          activeBookings.length > 0 ? (
-            <FlatList
-              data={activeBookings}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <BookingCard booking={item} onPress={handleBookingPress} />
-              )}
-              contentContainerStyle={styles.listContainer}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <EmptyState type="active" />
-          )
-        )}
+        {/* Content */}
+        <View style={styles.content}>
+          {activeTab === 'active' && (
+            activeBookings.length > 0 ? (
+              <FlatList
+                data={activeBookings}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <BookingCard booking={item} onPress={handleBookingPress} />
+                )}
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <EmptyState type="active" />
+            )
+          )}
 
-        {activeTab === 'history' && (
-          historyBookings.length > 0 ? (
-            <FlatList
-              data={historyBookings}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <BookingCard booking={item} onPress={handleBookingPress} />
-              )}
-              contentContainerStyle={styles.listContainer}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <EmptyState type="history" />
-          )
-        )}
-      </View>
-    </View>
+          {activeTab === 'history' && (
+            historyBookings.length > 0 ? (
+              <FlatList
+                data={historyBookings}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <BookingCard booking={item} onPress={handleBookingPress} />
+                )}
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <EmptyState type="history" />
+            )
+          )}
+        </View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.primary,
+  },
+  gradientBackground: {
+    flex: 1,
   },
   header: {
-    backgroundColor: COLORS.white,
-    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    ...SHADOWS.md,
   },
   headerTitle: {
-    fontSize: FONTS.header,
+    fontSize: FONTS.title,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.white,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
   },
   listContainer: {
-    padding: SPACING.md,
+    padding: SPACING.screenPadding,
   },
 });
 

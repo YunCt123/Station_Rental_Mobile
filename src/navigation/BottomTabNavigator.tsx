@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator, BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS } from '../utils/theme';
+import { COLORS, SPACING, FONTS, SHADOWS } from '../utils/theme';
 import { MainTabParamList } from '../types/navigation';
 
 // Import screens
@@ -35,14 +35,17 @@ const BottomTabNavigator = () => {
             iconName = focused ? 'receipt' : 'receipt-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Maps') {
+            iconName = focused ? 'map' : 'map-outline';
           } else {
             iconName = 'home-outline';
           }
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
         },
-        tabBarActiveTintColor: COLORS.secondary, // Xanh lá neon #00C853
+        tabBarActiveTintColor: COLORS.primary, 
         tabBarInactiveTintColor: COLORS.textSecondary,
+        
         tabBarStyle: {
           backgroundColor: COLORS.white,
           borderTopWidth: 1,
@@ -50,11 +53,13 @@ const BottomTabNavigator = () => {
           paddingBottom: 25, // Increased padding to avoid system navigation bar
           paddingTop: SPACING.sm,
           height: 85, // Increased height to accommodate safe area
+          
         },
         tabBarLabelStyle: {
           fontSize: FONTS.caption,
           fontWeight: '500',
           marginTop: SPACING.xs,
+          
         },
         headerShown: false,
       })}
@@ -81,6 +86,13 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen
+        name="Maps"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Bản đồ',
+        }}
+    />
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -90,31 +102,5 @@ const BottomTabNavigator = () => {
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  bookingsContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  bookingsContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenPadding,
-  },
-  bookingsTitle: {
-    fontSize: FONTS.header,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  bookingsSubtitle: {
-    fontSize: FONTS.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-});
 
 export default BottomTabNavigator;

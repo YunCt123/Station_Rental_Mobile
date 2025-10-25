@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS, SPACING, FONTS } from '../../utils/theme';
+import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
 import { VehicleData } from '../../data/vehicles';
 import VehicleCard from '../common/VehicleCard';
 
@@ -57,11 +57,13 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '600',
     color: COLORS.text,
+    paddingTop: SPACING.md,
   },
   seeAll: {
     fontSize: FONTS.body,
     color: COLORS.primary,
     fontWeight: '500',
+    paddingTop: SPACING.md,
   },
   vehiclesContainer: {
     paddingHorizontal: SPACING.screenPadding,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface UserInfo {
   name: string;
@@ -41,8 +41,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.screenPadding,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.primary,
     marginBottom: SPACING.lg,
+    ...SHADOWS.md,
   },
   avatarContainer: {
     position: 'relative',
@@ -73,17 +74,17 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: FONTS.title,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.white,
     marginBottom: SPACING.xs,
   },
   userEmail: {
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
     marginBottom: SPACING.xs,
   },
   memberSince: {
     fontSize: FONTS.caption,
-    color: COLORS.textTertiary,
+    color: COLORS.white,
   },
 });
 

@@ -137,9 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: RADII.card,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    ...SHADOWS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
   },
   horizontalImageContainer: {
     position: 'relative',
@@ -174,12 +172,13 @@ const styles = StyleSheet.create({
     borderRadius: RADII.card,
     padding: SPACING.md,
     marginRight: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderDark,
+    ...SHADOWS.md,
+    marginBottom: SPACING.sm,
   },
   verticalImageContainer: {
     position: 'relative',
     marginBottom: SPACING.sm,
+    borderRadius: RADII.md,
   },
   verticalImage: {
     width: '100%',

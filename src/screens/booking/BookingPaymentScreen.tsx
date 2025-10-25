@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -156,20 +157,26 @@ const BookingPaymentScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Đặt xe & Thanh toán</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <LinearGradient
+      colors={COLORS.gradient_4}
+      style={styles.container}
+    >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Đặt xe & Thanh toán</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.contentContainer} 
+      showsVerticalScrollIndicator={false}>
         {/* Vehicle Info */}
         <View style={styles.vehicleCard}>
           <Image source={{ uri: vehicle.image }} style={styles.vehicleImage} />
@@ -353,37 +360,41 @@ const BookingPaymentScreen = () => {
         actionButtonText={modalType === 'success' ? 'Xem đặt chỗ' : 'Thử lại'}
         onActionPress={modalType === 'success' ? handleViewBooking : () => setModalVisible(false)}
       />
-    </View>
+      </LinearGradient>
+      </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.md,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: FONTS.title,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.white,
+  },
+  contentContainer:{
+    marginBottom: SPACING.huge
   },
   vehicleCard: {
     flexDirection: 'row',
@@ -569,6 +580,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     padding: SPACING.md,
+    paddingVertical: SPACING.xxl,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     ...SHADOWS.md,
@@ -578,6 +590,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+    marginTop: -SPACING.sm,
   },
   priceLabel: {
     fontSize: FONTS.body,

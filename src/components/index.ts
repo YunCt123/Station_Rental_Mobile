@@ -17,5 +17,14 @@ export { default as BookingCard } from './booking/BookingCard';
 export { default as EmptyState } from './booking/EmptyState';
 export { default as BookingFilterTabs } from './booking/BookingFilterTabs';
 
+// Details Components
+export { default as VehicleInfoCard } from './details/VehicleInfoCard';
+export { default as PricingCard } from './details/PricingCard';
+export { default as FeaturesCard } from './details/FeaturesCard';
+export { default as SpecsCard } from './details/SpecsCard';
+export { default as DescriptionCard } from './details/DescriptionCard';
+export { default as BatteryIndicator } from './details/BatteryIndicator';
+export { default as StatusBanner } from './details/StatusBanner';
+
 // Shared Components
 export { default as VehicleCard } from './common/VehicleCard';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS } from '../../utils/theme';
 import { SearchHeader, RecentSearches, FilterTabs, VehicleCard } from '../../components';
 import { RootStackParamList } from '../../types/navigation';
@@ -28,6 +30,7 @@ const SearchScreen = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<VehicleData[]>([]);
   const [allVehicles, setAllVehicles] = useState<VehicleData[]>([]);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const filterOptions: FilterOption[] = [
     { id: 'all', title: 'Tất cả', selected: true },
@@ -49,9 +52,28 @@ const SearchScreen = () => {
     setSearchResults(mockVehicles);
   }, []);
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    
+  // Debounce effect for search with 1 seconds delay
+  useEffect(() => {
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set new timeout for 2 seconds
+    debounceTimeoutRef.current = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 1000);
+
+    // Cleanup function
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Function to perform actual search
+  const performSearch = (query: string) => {
     if (query.trim() === '') {
       setSearchResults(allVehicles);
       return;
@@ -65,6 +87,11 @@ const SearchScreen = () => {
     );
     
     setSearchResults(filtered);
+  };
+
+  // Handle search input change (immediate update for UI)
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
   const handleFilterPress = (filterId: string) => {
@@ -86,64 +113,85 @@ const SearchScreen = () => {
 
   const handleRecentSearchPress = (searchTerm: string) => {
     setSearchQuery(searchTerm);
-    handleSearch(searchTerm);
+    // Clear any pending debounce
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    // Perform search immediately for recent searches
+    performSearch(searchTerm);
     setIsSearchFocused(false);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Search Header */}
-      <SearchHeader
-        searchQuery={searchQuery}
-        onSearchChange={handleSearch}
-        onFocus={() => setIsSearchFocused(true)}
-        onBlur={() => setIsSearchFocused(false)}
-        onFilterPress={() => console.log('Filter pressed')}
-      />
-
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Recent Searches - Only show when search is focused */}
-        {isSearchFocused && searchQuery === '' && (
-          <RecentSearches
-            searches={recentSearches}
-            onSearchPress={handleRecentSearchPress}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
+        {/* Sticky Search Header */}
+        <View style={styles.stickyHeader}>
+          <SearchHeader
+            searchQuery={searchQuery}
+            onSearchChange={handleSearch}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            onFilterPress={() => console.log('Filter pressed')}
           />
-        )}
 
-        {/* Filter Tabs */}
-        {!isSearchFocused && (
-          <FilterTabs
-            filters={filterOptions}
-            activeFilter={activeFilter}
-            onFilterPress={handleFilterPress}
-          />
-        )}
+          {/* Sticky Filter Tabs */}
+          {!isSearchFocused && (
+            <FilterTabs
+              filters={filterOptions}
+              activeFilter={activeFilter}
+              onFilterPress={handleFilterPress}
+            />
+          )}
+        </View>
 
-        {/* Search Results or Featured Vehicles */}
-        {!isSearchFocused && (
-          <View style={styles.resultsSection}>
-            <Text style={styles.sectionTitle}>
-              {searchQuery ? `Kết quả tìm kiếm (${searchResults.length})` : 'Xe phổ biến'}
-            </Text>
-            
-            {searchResults.map((vehicle) => (
-              <VehicleCard
-                key={vehicle.id}
-                vehicle={vehicle}
-                onPress={handleVehiclePress}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Recent Searches - Only show when search is focused and no query */}
+          {isSearchFocused && searchQuery === '' && (
+            <RecentSearches
+              searches={recentSearches}
+              onSearchPress={handleRecentSearchPress}
+            />
+          )}
+
+          {/* Search Results - Show when there's a query or when not focused */}
+          {(searchQuery !== '' || !isSearchFocused) && (
+            <View style={styles.resultsSection}>
+              <Text style={styles.sectionTitle}>
+                {searchQuery ? `Kết quả tìm kiếm (${searchResults.length})` : 'Xe phổ biến'}
+              </Text>
+              
+              {searchResults.map((vehicle) => (
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  onPress={handleVehiclePress}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.primary,
+  },
+  gradientBackground: {
+    flex: 1,
+  },
+  stickyHeader: {
+    backgroundColor: COLORS.gradient_4[0],
+    zIndex: 1000,
   },
   resultsSection: {
     paddingHorizontal: SPACING.screenPadding,
@@ -153,6 +201,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: SPACING.md,
+    marginTop: SPACING.md,
   },
 });
 
