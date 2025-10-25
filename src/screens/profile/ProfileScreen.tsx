@@ -104,20 +104,20 @@ const ProfileScreen = () => {
         colors={COLORS.gradient_4}
         style={styles.gradientBackground}
       >
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-        >
+       
           {/* Profile Header */}
           <ProfileHeader 
             userInfo={userInfo}
           />
-
+         <ScrollView 
+          showsVerticalScrollIndicator={false}
+        >
           {/* User Stats */}
           <StatsGrid stats={userStats} />
 
           {/* Menu Items */}
           <ProfileMenu menuItems={menuItems} />
-
+      
           {/* Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
@@ -135,6 +135,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.primary,
   },
   gradientBackground: {
     flex: 1,

@@ -53,7 +53,7 @@ const BottomTabNavigator = () => {
           paddingBottom: 25, // Increased padding to avoid system navigation bar
           paddingTop: SPACING.sm,
           height: 85, // Increased height to accommodate safe area
-          
+          ...SHADOWS.sm
         },
         tabBarLabelStyle: {
           fontSize: FONTS.caption,

@@ -32,8 +32,7 @@ export const COLORS = {
     // Background colors
     background: '#F5F5F5', // Light mode background
     backgroundSecondary: '#FFFFFF',
-    backgroundDark: '#121212', // Dark mode background
-    surface: '#FFFFFF',
+
     
     // Text colors
     text: '#212121',

@@ -42,7 +42,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.screenPadding,
     backgroundColor: COLORS.primary,
-    marginBottom: SPACING.lg,
+    paddingBottom: SPACING.md,
+    paddingTop: SPACING.md,
     ...SHADOWS.md,
   },
   avatarContainer: {

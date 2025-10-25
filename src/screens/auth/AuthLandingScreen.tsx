@@ -26,10 +26,8 @@ const AuthLandingScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} translucent={false} />
       
       <LinearGradient
-        colors={[COLORS.secondary, COLORS.primary, COLORS.accent]}
+        colors={COLORS.gradient_3}
         style={styles.gradientBackground}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
       >
         {/* Logo and Branding */}
         <View style={styles.logoContainer}>
@@ -140,7 +138,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   appSlogan: {
-    fontSize: FONTS.bodyLarge,
+    fontSize: FONTS.title,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     lineHeight: 24,
