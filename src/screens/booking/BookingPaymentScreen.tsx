@@ -15,7 +15,6 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import mockVehicles from '../../data/vehicles';
 import StatusModal from '../../components/common/StatusModal';
 
 type BookingPaymentRouteProp = RouteProp<RootStackParamList, 'BookingPayment'>;
@@ -25,9 +24,7 @@ const BookingPaymentScreen = () => {
   const route = useRoute<BookingPaymentRouteProp>();
   const navigation = useNavigation<BookingPaymentNavigationProp>();
   const { vehicleId } = route.params;
-  
-  const vehicle = mockVehicles.find(v => v.id === vehicleId);
-  
+  const vehicle = searchVehicles.find(v => v.id === vehicleId);
   const [selectedPayment, setSelectedPayment] = useState<'station' | 'payos' | null>(null);
   const [rentalHours, setRentalHours] = useState('4');
   const [pickupTime, setPickupTime] = useState(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));

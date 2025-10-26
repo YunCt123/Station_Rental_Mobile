@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
 import BatteryIndicator from './BatteryIndicator';
+import { UIVehicle } from '../../services/vehicleService';
 
 interface VehicleInfoCardProps {
-  vehicle: VehicleData;
+  vehicle: UIVehicle;
 }
 
 const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ vehicle }) => {
@@ -26,37 +26,10 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ vehicle }) => {
           <Ionicons name="star" size={16} color={COLORS.warning} />
           <Text style={styles.rating}>{vehicle.rating}</Text>
           <Text style={styles.reviewCount}>({vehicle.reviewCount})</Text>
-        </View>
-
-        <View style={styles.statusLocationContainer}>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor:
-                  vehicle.status === "Available"
-                    ? COLORS.success + "20"
-                    : COLORS.error + "20",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusText,
-                {
-                  color:
-                    vehicle.status === "Available"
-                      ? COLORS.success
-                      : COLORS.error,
-                },
-              ]}
-            >
-              {vehicle.status === "Available" ? "Có sẵn" : "Bảo trì"}
-            </Text>
-          </View>
+          
           <View style={styles.locationInfo}>
-            <Ionicons name="location" size={16} color={COLORS.primary} />
-            <Text style={styles.locationText}>{vehicle.location}</Text>
+            <Ionicons name="location" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.locationText} numberOfLines={1}>{vehicle.station_name}</Text>
           </View>
         </View>
       </View>
@@ -75,15 +48,15 @@ const styles = StyleSheet.create({
   },
   vehicleImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     borderRadius: RADII.md,
   },
   imageContainer: {
     position: 'relative',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   vehicleInfo: {
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   vehicleName: {
     fontSize: FONTS.title,
@@ -97,39 +70,31 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.xs,
   },
   rating: {
-    fontSize: FONTS.bodyLarge,
+    fontSize: FONTS.body,
     fontWeight: '600',
     color: COLORS.text,
+    marginRight: SPACING.xs,
   },
   reviewCount: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-  },
-  statusLocationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  statusBadge: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADII.button,
-  },
-  statusText: {
-    fontSize: FONTS.body,
-    fontWeight: '600',
+    marginRight: SPACING.md,
   },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flex: 1,
   },
   locationText: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
+    flex: 1,
   },
 });
 

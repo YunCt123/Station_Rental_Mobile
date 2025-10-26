@@ -2,34 +2,40 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { Vehicle } from '../../services';
 
 interface SpecsCardProps {
-  vehicle: VehicleData;
+  vehicle: Vehicle;
 }
 
 const SpecsCard: React.FC<SpecsCardProps> = ({ vehicle }) => {
-  const renderSpec = ([key, value]: [string, string], index: number) => (
+  const specs = [
+    { label: 'Năm sản xuất', value: vehicle.year?.toString(), icon: 'calendar-outline' },
+    { label: 'Số ghế', value: `${vehicle.seats || 2}`, icon: 'people-outline' },
+    { label: 'Phạm vi', value: `${vehicle.range || 0} km`, icon: 'speedometer-outline' },
+    { label: 'Mức pin', value: `${vehicle.batteryLevel || 0}%`, icon: 'battery-half-outline' },
+    { label: 'Tình trạng', value: vehicle.condition || 'excellent', icon: 'construct-outline' },
+    { label: 'Quãng đường', value: `${vehicle.mileage || 0} km`, icon: 'car-outline' },
+    { label: 'Tiêu thụ', value: `${vehicle.consumption_wh_per_km || 0} Wh/km`, icon: 'flash-outline' },
+  ];
+
+  const renderSpec = (item: typeof specs[number], index: number) => (
     <View key={index} style={styles.specItem}>
       <View style={styles.specIconContainer}>
-        <Ionicons name="settings-outline" size={16} color={COLORS.primary} />
+        <Ionicons name={item.icon as any} size={18} color={COLORS.primary} />
       </View>
       <View style={styles.specInfo}>
-        <Text style={styles.specLabel}>{key}</Text>
-        <Text style={styles.specValue}>{value}</Text>
+        <Text style={styles.specLabel} numberOfLines={1}>{item.label}</Text>
+        <Text style={styles.specValue} numberOfLines={1}>{item.value}</Text>
       </View>
     </View>
   );
-
-  if (!vehicle.specs || Object.keys(vehicle.specs).length === 0) {
-    return null;
-  }
 
   return (
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>Thông số kỹ thuật</Text>
       <View style={styles.specsContainer}>
-        {Object.entries(vehicle.specs).map(renderSpec)}
+        {specs.map(renderSpec)}
       </View>
     </View>
   );
@@ -39,7 +45,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
     padding: SPACING.md,
     borderRadius: RADII.card,
     ...SHADOWS.sm,
@@ -48,18 +54,20 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   specsContainer: {
-    gap: SPACING.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
   },
   specItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.xs,
+    width: '48%',
   },
   specIconContainer: {
     width: 32,
@@ -73,9 +81,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   specLabel: {
-    fontSize: FONTS.body,
+    fontSize: FONTS.sm,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    marginBottom: 2,
   },
   specValue: {
     fontSize: FONTS.body,

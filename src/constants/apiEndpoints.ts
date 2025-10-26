@@ -38,8 +38,8 @@ export const STATION_ENDPOINTS = {
 export const VEHICLE_ENDPOINTS = {
   LIST: '/vehicles',
   BY_ID: (id: string) => `/vehicles/${id}`,
-  AVAILABLE: '/vehicles/available',
-  BY_STATION: (stationId: string) => `/vehicles/station/${stationId}`,
+  SEARCH: '/vehicles/search',
+  BY_STATION: (stationId: string) => `/vehicles/stations/${stationId}/available`,
 };
 
 /**

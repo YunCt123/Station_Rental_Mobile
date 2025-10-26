@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
 import VehicleCard from '../common/VehicleCard';
+import { Vehicle } from '../../services';
 
 interface AvailableVehiclesProps {
-  vehicles: VehicleData[];
+  vehicles: Vehicle[];
   onVehiclePress: (vehicleId: string) => void;
 }
 
@@ -13,7 +13,7 @@ const AvailableVehicles: React.FC<AvailableVehiclesProps> = ({
   vehicles, 
   onVehiclePress 
 }) => {
-  const renderVehicleItem = ({ item }: { item: VehicleData }) => (
+  const renderVehicleItem = ({ item }: { item: Vehicle }) => (
     <VehicleCard 
       vehicle={item} 
       onPress={onVehiclePress}
@@ -31,9 +31,9 @@ const AvailableVehicles: React.FC<AvailableVehiclesProps> = ({
       </View>
       
       <FlatList
-        data={vehicles.filter(vehicle => vehicle.status === 'Available')}
+        data={vehicles.filter(vehicle => vehicle.status === 'AVAILABLE')}
         renderItem={renderVehicleItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

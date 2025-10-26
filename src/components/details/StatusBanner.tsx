@@ -2,26 +2,32 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { UIVehicle } from '../../services/vehicleService';
 
 interface StatusBannerProps {
-  vehicle: VehicleData;
+  vehicle: UIVehicle;
 }
 
 const StatusBanner: React.FC<StatusBannerProps> = ({ vehicle }) => {
   const getStatusInfo = () => {
     switch (vehicle.status) {
-      case 'Available':
+      case 'AVAILABLE':
         return {
           label: 'Có sẵn',
           color: COLORS.success,
           icon: 'checkmark-circle',
         };
-      case 'Maintenance Due':
+      case 'MAINTENANCE':
         return {
           label: 'Bảo trì',
           color: COLORS.error,
           icon: 'warning',
+        };
+      case 'RENTED':
+        return {
+          label: 'Đang cho thuê',
+          color: COLORS.warning,
+          icon: 'time',
         };
       default:
         return {

@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { UIVehicle } from '../../services/vehicleService';
 
 interface DescriptionCardProps {
-  vehicle: VehicleData;
+  vehicle: UIVehicle;
 }
 
 const DescriptionCard: React.FC<DescriptionCardProps> = ({ vehicle }) => {
@@ -17,7 +17,7 @@ const DescriptionCard: React.FC<DescriptionCardProps> = ({ vehicle }) => {
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>Mô tả</Text>
       <View style={styles.descriptionContainer}>
-        <Ionicons name="document-text-outline" size={20} color={COLORS.primary} />
+        <Ionicons name="document-text-outline" size={18} color={COLORS.primary} />
         <Text style={styles.description}>{vehicle.description}</Text>
       </View>
     </View>
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
     padding: SPACING.md,
     borderRadius: RADII.card,
     ...SHADOWS.sm,
@@ -37,18 +37,18 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   descriptionContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   description: {
     flex: 1,
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
+    color: COLORS.black,
+    lineHeight: 20,
   },
 });
 

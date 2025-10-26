@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { COLORS, SPACING, SHADOWS } from '../../utils/theme';
+import { Vehicle } from '../../services';
 
 interface BatteryIndicatorProps {
-  vehicle: VehicleData;
+  vehicle: Vehicle;
 }
 
 const BatteryIndicator: React.FC<BatteryIndicatorProps> = ({ vehicle }) => {
@@ -16,11 +16,11 @@ const BatteryIndicator: React.FC<BatteryIndicatorProps> = ({ vehicle }) => {
   };
 
   const getBatteryIcon = (level: number) => {
-    if (level >= 80) return 'battery-full';
-    if (level >= 50) return 'battery-half';
-    if (level >= 20) return 'battery-quarter';
-    return 'battery-dead';
-  };
+  if (level > 80) return 'battery-full';
+  if (level > 40) return 'battery-half';
+  if (level > 10) return 'battery-dead';
+  return 'battery-dead';
+};
 
   return (
     <View style={styles.batteryIndicator}>
@@ -39,12 +39,12 @@ const BatteryIndicator: React.FC<BatteryIndicatorProps> = ({ vehicle }) => {
 const styles = StyleSheet.create({
   batteryIndicator: {
     position: 'absolute',
-    top: SPACING.lg,
-    right: SPACING.lg,
+    top: SPACING.md,
+    right: SPACING.md,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

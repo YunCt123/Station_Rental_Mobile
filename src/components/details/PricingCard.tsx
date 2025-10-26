@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { Vehicle } from '../../services';
 
 interface PricingCardProps {
-  vehicle: VehicleData;
+  vehicle: Vehicle;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({ vehicle }) => {
@@ -16,12 +16,12 @@ const PricingCard: React.FC<PricingCardProps> = ({ vehicle }) => {
       <View style={styles.priceContainer}>
         <View style={styles.priceItem}>
           <View style={styles.priceIconContainer}>
-            <Ionicons name="time-outline" size={20} color={COLORS.primary} />
+            <Ionicons name="time-outline" size={18} color={COLORS.primary} />
           </View>
           <View style={styles.priceInfo}>
             <Text style={styles.priceLabel}>Giá theo giờ</Text>
             <Text style={styles.priceValue}>
-              {vehicle.hourlyRate.toLocaleString()}đ/h
+              {vehicle.pricePerHour.toLocaleString()}$/h
             </Text>
           </View>
         </View>
@@ -30,12 +30,12 @@ const PricingCard: React.FC<PricingCardProps> = ({ vehicle }) => {
 
         <View style={styles.priceItem}>
           <View style={styles.priceIconContainer}>
-            <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+            <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
           </View>
           <View style={styles.priceInfo}>
             <Text style={styles.priceLabel}>Giá theo ngày</Text>
             <Text style={styles.priceValue}>
-              {vehicle.dailyRate.toLocaleString()}đ/ngày
+              {vehicle.pricePerDay.toLocaleString()}$/ngày
             </Text>
           </View>
         </View>
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
     padding: SPACING.md,
     borderRadius: RADII.card,
     ...SHADOWS.sm,
@@ -57,20 +57,20 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   priceContainer: {
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   priceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   priceIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
@@ -91,7 +91,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginVertical: SPACING.sm,
   },
 });
 

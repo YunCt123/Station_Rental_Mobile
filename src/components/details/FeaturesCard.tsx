@@ -2,17 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { UIVehicle } from '../../services/vehicleService';
 
 interface FeaturesCardProps {
-  vehicle: VehicleData;
+  vehicle: UIVehicle;
 }
 
 const FeaturesCard: React.FC<FeaturesCardProps> = ({ vehicle }) => {
   const renderFeature = (feature: string, index: number) => (
     <View key={index} style={styles.featureItem}>
       <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-      <Text style={styles.featureText}>{feature}</Text>
+      <Text style={styles.featureText} numberOfLines={1}>{feature}</Text>
     </View>
   );
 
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
     padding: SPACING.md,
     borderRadius: RADII.card,
     ...SHADOWS.sm,
@@ -43,19 +43,24 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   featuresContainer: {
-    gap: SPACING.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.xs,
+    width: '48%',
+    paddingVertical: SPACING.xs,
   },
   featureText: {
     fontSize: FONTS.body,
     color: COLORS.text,
+    flex: 1,
   },
 });
 

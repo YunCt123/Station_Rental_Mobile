@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,22 +14,22 @@ import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import { VehicleData } from "../../data/vehicles";
-import mockVehicles from "../../data/vehicles";
+import { UIVehicle } from "../../services/vehicleService";
+import { vehicleService, mapVehicleToUI } from "../../services/vehicleService";
 import { 
   VehicleInfoCard, 
   PricingCard, 
   FeaturesCard, 
   SpecsCard, 
   DescriptionCard,
-  StatusBanner
+  StatusBanner,
 } from "../../components/index";
 
 type DetailScreenRouteProp = RouteProp<RootStackParamList, "VehicleDetails">;
 type DetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface DetailScreenProps {
-  vehicle?: VehicleData;
+  vehicle?: UIVehicle;
 }
 
 const DetailScreen: React.FC<DetailScreenProps> = ({
@@ -36,13 +37,36 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
 }) => {
   const route = useRoute<DetailScreenRouteProp>();
   const navigation = useNavigation<DetailScreenNavigationProp>();
-
-  // Find vehicle by ID from mock data
   const vehicleId = route.params?.vehicleId || "1";
-  const foundVehicle = mockVehicles.find((v) => v.id === vehicleId);
+  const [vehicle, setVehicle] = useState<UIVehicle | null>(propVehicle || null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fallback to first vehicle if not found
-  const vehicle = propVehicle || foundVehicle || mockVehicles[0];
+  useEffect(() => {
+    if (propVehicle) {
+      setVehicle(propVehicle);
+      setLoading(false);
+    } else {
+      loadVehicleDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId]);
+
+  const loadVehicleDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const vehicleData = await vehicleService.getVehicleById(vehicleId);
+      const mappedVehicle = mapVehicleToUI(vehicleData);
+      setVehicle(mappedVehicle);
+    } catch (err) {
+      console.error('Error loading vehicle details:', err);
+      setError('Không thể tải thông tin xe');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -61,43 +85,61 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
           <Text style={styles.headerTitle}>Chi tiết xe</Text>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Status Banner */}
-          {/* <StatusBanner vehicle={vehicle} /> */}
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.white} />
+              <Text style={styles.loadingText}>Đang tải thông tin xe...</Text>
+            </View>
+          ) : !vehicle ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Không tìm thấy thông tin xe</Text>
+            </View>
+          ) : (
+            <>
+              {/* Status Banner */}
+              <StatusBanner vehicle={vehicle} />
 
-          {/* Vehicle Info Card */}
-          <VehicleInfoCard vehicle={vehicle} />
+              {/* Vehicle Info Card */}
+              <VehicleInfoCard vehicle={vehicle} />
 
-          {/* Pricing Card */}
-          <PricingCard vehicle={vehicle} />
+              {/* Pricing Card */}
+              <PricingCard vehicle={vehicle} />
 
-          {/* Description Card */}
-          <DescriptionCard vehicle={vehicle} />
+              {/* Specifications Card */}
+                <SpecsCard vehicle={vehicle} />
 
-          {/* Features Card */}
-          <FeaturesCard vehicle={vehicle} />
+              {/* Features Card */}
+              <FeaturesCard vehicle={vehicle} />
 
-          {/* Specifications Card */}
-          <SpecsCard vehicle={vehicle} />
+              {/* Description Card */}
+              <DescriptionCard vehicle={vehicle} />
 
-          <View style={{ height: 100 }} />
+              <View style={{ height: 80 }} />
+            </>
+          )}
         </ScrollView>
       {/* </LinearGradient> */}
         {/* Bottom Action Button */}
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            style={[
-              styles.rentButton,
-              { opacity: vehicle.status === "Available" ? 1 : 0.5 },
-            ]}
-            disabled={vehicle.status !== "Available"}
-            onPress={() =>
-              navigation.navigate("BookingPayment", { vehicleId: vehicle.id })
-            }
-          >
-            <Text style={styles.rentButtonText}>Đặt xe ngay</Text>
-          </TouchableOpacity>
-        </View>
+        {vehicle && (
+          <View style={styles.bottomContainer}>
+            <TouchableOpacity
+              style={[
+                styles.rentButton,
+                { opacity: vehicle.status === "AVAILABLE" ? 1 : 0.5 },
+              ]}
+              disabled={vehicle.status !== "AVAILABLE"}
+              onPress={() =>
+                navigation.navigate("BookingPayment", { vehicleId: vehicle.id })
+              }
+            >
+              <Text style={styles.rentButtonText}>Đặt xe ngay</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -158,6 +200,21 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+    minHeight: 400,
+  },
+  loadingText: {
+    color: COLORS.white,
+    marginTop: SPACING.md,
+    fontSize: FONTS.body,
+  },
+  scrollContent: {
+    paddingBottom: SPACING.xxl,
   },
 });
 

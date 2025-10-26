@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
 import VehicleCard from '../common/VehicleCard';
+import { Vehicle } from '../../services';
 
 interface FeaturedVehiclesProps {
-  vehicles: VehicleData[];
+  vehicles: Vehicle[];
   onVehiclePress: (vehicleId: string) => void;
 }
 
@@ -13,9 +13,9 @@ const FeaturedVehicles: React.FC<FeaturedVehiclesProps> = ({
   vehicles, 
   onVehiclePress 
 }) => {
-  const renderVehicleCard = (vehicle: VehicleData) => (
+  const renderVehicleCard = (vehicle: Vehicle) => (
     <VehicleCard 
-      key={vehicle.id}
+      key={vehicle._id}
       vehicle={vehicle}
       onPress={onVehiclePress}
       variant="vertical"

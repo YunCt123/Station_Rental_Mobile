@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,8 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
 import { FeaturedVehicles, AvailableVehicles } from '../../components';
 import { RootStackParamList } from '../../types/navigation';
-import { VehicleData } from '../../data/vehicles';
-import mockVehicles from '../../data/vehicles';
+import { UIVehicle } from '../../services/vehicleService';
+import { vehicleService, mapVehiclesToUI } from '../../services/vehicleService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -28,8 +29,10 @@ interface VehicleCategory {
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [greeting, setGreeting] = useState('');
-  const [availableVehicles, setAvailableVehicles] = useState<VehicleData[]>([]);
-  const [featuredVehicles, setFeaturedVehicles] = useState<VehicleData[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<UIVehicle[]>([]);
+  const [featuredVehicles, setFeaturedVehicles] = useState<UIVehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -37,10 +40,30 @@ const HomeScreen = () => {
     else if (hour < 18) setGreeting('Chào buổi chiều');
     else setGreeting('Chào buổi tối');
 
-    // Use mock data from vehicles.ts
-    setAvailableVehicles(mockVehicles);
-    setFeaturedVehicles(mockVehicles.slice(0, 3));
+    loadVehicles();
   }, []);
+
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all available vehicles
+      const available = await vehicleService.getAvailableVehicles();
+      const availableData = mapVehiclesToUI(available);
+      setAvailableVehicles(availableData);
+
+      // Fetch featured vehicles (top rated)
+      const featured = await vehicleService.getFeaturedVehicles(3);
+      const featuredData = mapVehiclesToUI(featured);
+      setFeaturedVehicles(featuredData);
+    } catch (err) {
+      console.error('Error loading vehicles:', err);
+      setError('Không thể tải danh sách xe');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleVehiclePress = (vehicleId: string) => {
     navigation.navigate('VehicleDetails', { vehicleId });
@@ -63,17 +86,26 @@ const HomeScreen = () => {
         <ScrollView 
           showsVerticalScrollIndicator={false}
         >
-          {/* Featured Vehicles */}
-          <FeaturedVehicles 
-            vehicles={featuredVehicles} 
-            onVehiclePress={handleVehiclePress} 
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.white} />
+              <Text style={styles.loadingText}>Đang tải xe...</Text>
+            </View>
+          ) : (
+            <>
+              {/* Featured Vehicles */}
+              <FeaturedVehicles 
+                vehicles={featuredVehicles} 
+                onVehiclePress={handleVehiclePress} 
+              />
 
-          {/* Available Vehicles */}
-          <AvailableVehicles 
-            vehicles={availableVehicles} 
-            onVehiclePress={handleVehiclePress} 
-          />
+              {/* Available Vehicles */}
+              <AvailableVehicles 
+                vehicles={availableVehicles} 
+                onVehiclePress={handleVehiclePress} 
+              />
+            </>
+          )}
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -107,6 +139,17 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginTop: SPACING.xs,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+  },
+  loadingText: {
+    color: COLORS.white,
+    marginTop: SPACING.md,
+    fontSize: FONTS.body,
   },
 });
 

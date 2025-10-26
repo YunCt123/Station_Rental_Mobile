@@ -37,10 +37,6 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
           </TouchableOpacity>
         )}
       </View>
-      
-      <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
-        <Ionicons name="options-outline" size={20} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -69,13 +65,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     color: COLORS.text,
     marginLeft: SPACING.sm,
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: RADII.button,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 
