@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,19 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import StatsGrid from '../../components/profile/StatsGrid';
 import ProfileMenu from '../../components/profile/ProfileMenu';
+import EditProfileModal from '../../components/profile/EditProfileModal';
+import { authApi } from '../../api/authApi';
+import { User } from '../../types/auth';
 
 interface MenuItem {
   id: string;
@@ -29,20 +35,65 @@ interface UserStats {
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   
-  const [userInfo] = useState({
-    name: 'Nguyễn Văn An',
-    email: 'nguyenvanan@email.com',
-    phone: '+84 123 456 789',
-    memberSince: 'Thành viên từ 2024',
-    avatar: 'https://via.placeholder.com/150',
-    isVerified: true,
+  const [userInfo, setUserInfo] = useState({
+    name: 'Loading...',
+    email: 'Loading...',
+    phone: '',
+    dateOfBirth: '',
+    isVerified: false,
   });
 
   const [userStats] = useState<UserStats>({
     totalRides: 42,
     totalDistance: '156.8 km',
   });
+
+  // Load user data khi component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      // Thử lấy user từ storage trước
+      const storedUser = await authApi.getStoredUser();
+      if (storedUser) {
+        updateUserInfo(storedUser);
+        setUser(storedUser);
+      }
+      
+      // Sau đó fetch user mới nhất từ API
+      const currentUser = await authApi.getCurrentUser();
+      updateUserInfo(currentUser);
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Load user error:', error);
+      // Nếu lỗi, dùng stored user
+      const storedUser = await authApi.getStoredUser();
+      if (storedUser) {
+        updateUserInfo(storedUser);
+        setUser(storedUser);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserInfo = (userData: User) => {
+    setUserInfo({
+      name: userData.name || userData.fullName || 'Người dùng',
+      email: userData.email,
+      phone: userData.phone || '',
+      dateOfBirth: userData.dateOfBirth || '',
+      isVerified: userData.isVerified || false,
+    });
+  };
 
   const menuItems: MenuItem[] = [
     {
@@ -67,7 +118,7 @@ const ProfileScreen = () => {
       id: 'settings',
       title: 'Cài đặt',
       icon: 'settings-outline',
-      onPress: () => navigation.navigate('EditProfile' as never),
+      onPress: () => setEditModalVisible(true),
     },
     {
       id: 'help',
@@ -89,7 +140,26 @@ const ProfileScreen = () => {
       'Bạn có chắc chắn muốn đăng xuất?',
       [
         { text: 'Hủy', style: 'cancel' },
-        { text: 'Đăng xuất', style: 'destructive', onPress: () => console.log('Logout') },
+        { 
+          text: 'Đăng xuất', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              setLoggingOut(true);
+              await authApi.logout();
+              // Navigate to auth screen
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'AuthLanding' as never }],
+              });
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+            } finally {
+              setLoggingOut(false);
+            }
+          },
+        },
       ]
     );
   };
@@ -97,36 +167,63 @@ const ProfileScreen = () => {
 
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <ProfileHeader 
-          userInfo={userInfo}
-        />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
+       
+          {/* Profile Header */}
+          <ProfileHeader 
+            userInfo={userInfo}
+          />
+         <ScrollView 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* User Stats */}
+          <StatsGrid stats={userStats} />
 
-        {/* User Stats */}
-        <StatsGrid stats={userStats} />
+          {/* Menu Items */}
+          <ProfileMenu menuItems={menuItems} />
+      
+          {/* Logout Button */}
+          <TouchableOpacity 
+            style={[styles.logoutButton, loggingOut && styles.logoutButtonDisabled]} 
+            onPress={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? (
+              <ActivityIndicator size="small" color={COLORS.error} />
+            ) : (
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+            )}
+            <Text style={styles.logoutText}>
+              {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+            </Text>
+          </TouchableOpacity>
 
-        {/* Menu Items */}
-        <ProfileMenu menuItems={menuItems} />
+          {/* App Version */}
+          <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
+        </ScrollView>
+      </LinearGradient>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-          <Text style={styles.logoutText}>Đăng xuất</Text>
-        </TouchableOpacity>
-
-        {/* App Version */}
-        <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
-      </ScrollView>
-    </View>
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        onUpdate={loadUserData}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.primary,
+  },
+  gradientBackground: {
+    flex: 1,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -180,7 +277,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryLight + '20',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -213,7 +310,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primaryLight + '20',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -256,7 +353,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryLight + '15',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.lg,
@@ -288,6 +385,9 @@ const styles = StyleSheet.create({
     borderRadius: RADII.button,
     gap: SPACING.sm,
     ...SHADOWS.sm,
+  },
+  logoutButtonDisabled: {
+    opacity: 0.6,
   },
   logoutText: {
     fontSize: FONTS.bodyLarge,

@@ -6,6 +6,8 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
@@ -84,18 +86,24 @@ const RentalHistoryScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử thuê xe</Text>
-        <View style={styles.placeholder} />
-      </View>
+    
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        
+        {/* Header */}
+        <LinearGradient
+      colors={COLORS.gradient_4}
+      style={styles.container}
+    >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Lịch sử thuê xe</Text>
+          <View style={styles.placeholder} />
+        </View>
 
       {/* Stats Summary */}
       <View style={styles.statsContainer}>
@@ -136,14 +144,19 @@ const RentalHistoryScreen = () => {
           <EmptyState type="history" />
         )}
       </View>
-    </View>
+      </LinearGradient>
+      </SafeAreaView>
+   
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
   },
   header: {
     flexDirection: 'row',
@@ -151,22 +164,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.primary,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: FONTS.title,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   placeholder: {
     width: 40,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
+import { COLORS, SPACING, FONTS, RADII, SHADOWS, GREEN } from '../../utils/theme';
 
 interface FilterOption {
   id: string;
@@ -46,20 +46,21 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
-    marginBottom: SPACING.lg,
   },
   filterTab: {
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     marginHorizontal: SPACING.xs,
     borderRadius: RADII.button,
-    backgroundColor: COLORS.background,
-    marginLeft: SPACING.screenPadding,
+    backgroundColor: COLORS.white,
   },
   activeFilterTab: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: GREEN.green700,
+    borderWidth: 1,
+    borderColor: COLORS.white,
   },
   filterText: {
     fontSize: FONTS.body,

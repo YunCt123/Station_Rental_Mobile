@@ -1,32 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
-import BottomTabNavigator from './BottomTabNavigator';
-import DetailScreen from '../screens/details/DetailScreen';
-import BookingPaymentScreen from '../screens/booking/BookingPaymentScreen';
-import ActiveBookingDetailScreen from '../screens/booking/ActiveBookingDetailScreen';
-import HistoryBookingDetailScreen from '../screens/booking/HistoryBookingDetailScreen';
-import RentalHistoryScreen from '../screens/booking/RentalHistoryScreen';
-import PayOSWebViewScreen from '../screens/payment/PayOSWebViewScreen';
-import VerifyAccountScreen from '../screens/profile/VerifyAccountScreen';
-import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import { COLORS, FONTS, RADII, SPACING } from '../utils/theme';
-import AuthLandingScreen from '../screens/auth/AuthLandingScreen';
-import LoginScreen from '../screens/auth/LoginScreen';
-import RegisterScreen from '../screens/auth/RegisterScreen';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../types/navigation";
+import BottomTabNavigator from "./BottomTabNavigator";
+import DetailScreen from "../screens/details/DetailScreen";
+import BookingPaymentScreen from "../screens/booking/BookingPaymentScreen";
+import ActiveBookingDetailScreen from "../screens/booking/ActiveBookingDetailScreen";
+import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailScreen";
+import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
+import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
+import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
+import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
+import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
+import LoginScreen from "../screens/auth/LoginScreen";
+import RegisterScreen from "../screens/auth/RegisterScreen";
+import MapScreen from "../screens/map/MapScreen";
+import { StationDetailScreen } from "../screens/details/StationDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MainNavigator = () => {
-  const isAuthenticated = true; 
+  const isAuthenticated = true;
 
   return (
     <NavigationContainer>
       <Stack.Navigator
         id={undefined}
-        initialRouteName={'AuthLanding'}
+        initialRouteName={"AuthLanding"}
         screenOptions={{
           headerShown: false,
         }}
@@ -47,14 +48,14 @@ const MainNavigator = () => {
           component={RegisterScreen}
           options={{ headerShown: false }}
         />
-        
+
         {/* Main App */}
         <Stack.Screen
           name="MainTabs"
           component={BottomTabNavigator}
           options={{ headerShown: false }}
         />
-        
+
         {/* Other Screens */}
         <Stack.Screen
           name="VehicleDetails"
@@ -106,11 +107,14 @@ const MainNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="EditProfile"
-          component={EditProfileScreen}
-          options={{
-            headerShown: false,
-          }}
+          name="MapView"
+          component={MapScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="StationDetail"
+          component={StationDetailScreen}
+          options={{ headerShown: false }}
         />
         {/* <Stack.Screen
           name="UserInfo"
@@ -141,16 +145,16 @@ const styles = StyleSheet.create({
   authContent: {
     flex: 1,
     paddingHorizontal: SPACING.screenPadding,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   logoContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   appName: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginTop: SPACING.xl,
     marginBottom: SPACING.md,
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
   appSlogan: {
     fontSize: FONTS.bodyLarge,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
   },
   authButtons: {
@@ -169,34 +173,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: SPACING.lg,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.white,
   },
   secondaryButton: {
     backgroundColor: COLORS.white,
     paddingVertical: SPACING.lg,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
   secondaryButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.primary,
   },
   guestButton: {
     paddingVertical: SPACING.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   guestButtonText: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
   screenContainer: {
     flex: 1,
@@ -204,21 +208,21 @@ const styles = StyleSheet.create({
   },
   screenContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: SPACING.screenPadding,
   },
   screenTitle: {
     fontSize: FONTS.header,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   screenSubtitle: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
   },
 });

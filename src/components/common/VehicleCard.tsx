@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { VehicleData } from '../../data/vehicles';
+import { Vehicle } from '../../services';
 
 interface VehicleCardProps {
-  vehicle: VehicleData;
+  vehicle: Vehicle;
   onPress: (vehicleId: string) => void;
   variant?: 'horizontal' | 'vertical';
 }
@@ -19,7 +19,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
     return (
       <TouchableOpacity
         style={styles.verticalCard}
-        onPress={() => onPress(vehicle.id)}
+        onPress={() => onPress(vehicle._id)}
       >
         <View style={styles.verticalImageContainer}>
           <Image source={{ uri: vehicle.image }} style={styles.verticalImage} />
@@ -50,21 +50,21 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
             
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
-              <Text style={styles.detailText}>{vehicle.hourlyRate.toLocaleString()}đ/h</Text>
+              <Text style={styles.detailText}>{vehicle.pricePerHour.toLocaleString()}$/h</Text>
             </View>
           </View>
           
-          <Text style={styles.stationName} numberOfLines={1}>{vehicle.location}</Text>
+          <Text style={styles.stationName} numberOfLines={1}>{vehicle.station_name}</Text>
           
           <View style={[
             styles.availabilityBadge,
-            { backgroundColor: vehicle.status === 'Available' ? COLORS.success + '20' : COLORS.error + '20' }
+            { backgroundColor: vehicle.status === 'AVAILABLE' ? COLORS.success + '20' : COLORS.error + '20' }
           ]}>
             <Text style={[
               styles.availabilityText,
-              { color: vehicle.status === 'Available' ? COLORS.success : COLORS.error }
+              { color: vehicle.status === 'AVAILABLE' ? COLORS.success : COLORS.error }
             ]}>
-              {vehicle.status === 'Available' ? 'Có sẵn' : 'Bảo trì'}
+              {vehicle.status === 'AVAILABLE' ? 'Có sẵn' : vehicle.status === 'RESERVED' ? 'Đã đặt' : vehicle.status === 'RENTED' ? 'Đang cho thuê' : vehicle.status === 'MAINTENANCE' ? 'Bảo trì' : 'Không xác định'}
             </Text>
           </View>
         </View>
@@ -76,7 +76,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   return (
     <TouchableOpacity
       style={styles.horizontalCard}
-      onPress={() => onPress(vehicle.id)}
+      onPress={() => onPress(vehicle._id)}
     >
       <View style={styles.horizontalImageContainer}>
         <Image source={{ uri: vehicle.image }} style={styles.horizontalImage} />
@@ -107,21 +107,21 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           
           <View style={styles.detailItem}>
             <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{vehicle.hourlyRate.toLocaleString()}đ/h</Text>
+            <Text style={styles.detailText}>{vehicle.pricePerHour.toLocaleString()}$/h</Text>
           </View>
         </View>
         
-        <Text style={styles.stationName}>{vehicle.location}</Text>
+        <Text style={styles.stationName}>{vehicle.station_name}</Text>
         
         <View style={[
           styles.availabilityBadge,
-          { backgroundColor: vehicle.status === 'Available' ? COLORS.success + '20' : COLORS.error + '20' }
+          { backgroundColor: vehicle.status === 'AVAILABLE' ? COLORS.success + '20' : COLORS.error + '20' }
         ]}>
           <Text style={[
             styles.availabilityText,
-            { color: vehicle.status === 'Available' ? COLORS.success : COLORS.error }
+            { color: vehicle.status === 'AVAILABLE' ? COLORS.success : COLORS.error }
           ]}>
-            {vehicle.status === 'Available' ? 'Có sẵn' : 'Bảo trì'}
+            {vehicle.status === 'AVAILABLE' ? 'Có sẵn' : vehicle.status === 'RESERVED' ? 'Đã đặt' : vehicle.status === 'RENTED' ? 'Đang thuê' : 'Bảo trì'}
           </Text>
         </View>
       </View>
@@ -137,9 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: RADII.card,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    ...SHADOWS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
   },
   horizontalImageContainer: {
     position: 'relative',
@@ -174,12 +172,13 @@ const styles = StyleSheet.create({
     borderRadius: RADII.card,
     padding: SPACING.md,
     marginRight: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderDark,
+    ...SHADOWS.md,
+    marginBottom: SPACING.sm,
   },
   verticalImageContainer: {
     position: 'relative',
     marginBottom: SPACING.sm,
+    borderRadius: RADII.md,
   },
   verticalImage: {
     width: '100%',

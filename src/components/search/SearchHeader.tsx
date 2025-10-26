@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -21,7 +21,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
+        <Ionicons name="search-outline" size={20} color={COLORS.primary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Tìm kiếm xe điện..."
@@ -33,14 +33,10 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => onSearchChange('')}>
-            <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
+            <Ionicons name="close-circle" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         )}
       </View>
-      
-      <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
-        <Ionicons name="options-outline" size={20} color={COLORS.primary} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -51,8 +47,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.primary,
     gap: SPACING.md,
+    ...SHADOWS.md,
   },
   searchContainer: {
     flex: 1,
@@ -68,14 +65,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     color: COLORS.text,
     marginLeft: SPACING.sm,
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: RADII.button,
-    backgroundColor: COLORS.primaryLight + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

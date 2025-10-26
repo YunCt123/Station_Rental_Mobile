@@ -1,14 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface UserInfo {
   name: string;
   email: string;
   phone: string;
-  memberSince: string;
-  avatar: string;
   isVerified: boolean;
 }
 
@@ -19,19 +17,17 @@ interface ProfileHeaderProps {
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo }) => {
   return (
     <View style={styles.profileHeader}>
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: userInfo.avatar }} style={styles.avatar} />
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>Name: {userInfo.name}</Text>
+        <Text style={styles.userEmail}>Email: {userInfo.email}</Text>
+      </View>
+      {/* <View style={styles.avatarContainer}>
         {userInfo.isVerified && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark" size={12} color={COLORS.white} />
           </View>
         )}
-      </View>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{userInfo.name}</Text>
-        <Text style={styles.userEmail}>{userInfo.email}</Text>
-        <Text style={styles.memberSince}>{userInfo.memberSince}</Text>
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -41,8 +37,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.screenPadding,
-    backgroundColor: COLORS.white,
-    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.primary,
+    paddingBottom: SPACING.md,
+    paddingTop: SPACING.md,
+    ...SHADOWS.md,
   },
   avatarContainer: {
     position: 'relative',
@@ -73,17 +71,17 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: FONTS.title,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.white,
     marginBottom: SPACING.xs,
   },
   userEmail: {
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
     marginBottom: SPACING.xs,
   },
   memberSince: {
     fontSize: FONTS.caption,
-    color: COLORS.textTertiary,
+    color: COLORS.white,
   },
 });
 

@@ -21,7 +21,7 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => (
   <View style={styles.statCard}>
     <View style={styles.statIconContainer}>
-      <Ionicons name={icon as any} size={20} color={COLORS.primary} />
+      <Ionicons name={icon as any} size={30} color={COLORS.primary} />
     </View>
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statTitle}>{title}</Text>
@@ -51,6 +51,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
 const styles = StyleSheet.create({
   statsSection: {
     marginBottom: SPACING.xl,
+    marginTop: SPACING.xl,
   },
   sectionTitle: {
     fontSize: FONTS.bodyLarge,
@@ -75,10 +76,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   statIconContainer: {
-    width: 36, // Smaller icon container
+    width: 36, 
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm, // Reduced margin

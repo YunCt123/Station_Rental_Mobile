@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
@@ -232,18 +234,23 @@ const VerifyAccountScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Xác minh tài khoản</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <LinearGradient
+      colors={COLORS.gradient_4}
+      style={styles.container}
+    >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Xác minh tài khoản</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
       <ScrollView 
         style={styles.content}
@@ -309,37 +316,39 @@ const VerifyAccountScreen = () => {
         actionButtonText="OK"
         onActionPress={handleModalClose}
       />
-    </View>
+       </LinearGradient>
+      </SafeAreaView>
+   
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.md,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: FONTS.title,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.white,
   },
   content: {
     flex: 1,
@@ -491,6 +500,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     padding: SPACING.md,
+    paddingVertical: SPACING.xxl,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     ...SHADOWS.md,
@@ -504,6 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.sm,
     ...SHADOWS.sm,
+    marginTop: -SPACING.sm,
   },
   submitButtonText: {
     fontSize: FONTS.bodyLarge,

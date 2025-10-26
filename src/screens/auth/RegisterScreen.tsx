@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,62 +6,107 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { RootStackParamList } from '../../types/navigation';
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import { RootStackParamList } from "../../types/navigation";
+import { authApi } from "../../api/authApi";
 
 type RegisterNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const RegisterScreen = () => {
   const navigation = useNavigation<RegisterNavigationProp>();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    // Handle registration logic here
-    navigation.navigate('MainTabs');
+  const handleRegister = async () => {
+    // Validation đơn giản
+    if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    if (!agreeTerms) {
+      Alert.alert("Lỗi", "Vui lòng đồng ý với điều khoản sử dụng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await authApi.register({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phoneNumber: phone.trim(),
+        password: password.trim(),
+        dateOfBirth: dateOfBirth.trim(),
+      },
+    );
+
+      console.log("Register success:", response.data.user);
+      Alert.alert("Thành công", "Đăng ký thành công! Chào mừng bạn.", [
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("MainTabs"),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Register error:", error);
+      const errorMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-            </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Đăng ký</Text>
-              <Text style={styles.headerSubtitle}>
-                Tạo tài khoản mới để bắt đầu
-              </Text>
-            </View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
+        {/* Sticky Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Đăng ký</Text>
+            <Text style={styles.headerSubtitle}>
+              Tạo tài khoản mới để bắt đầu
+            </Text>
           </View>
+        </View>
 
+        {/* Content */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
           {/* Registration Form */}
           <View style={styles.formContainer}>
             {/* Full Name Input */}
@@ -130,6 +175,26 @@ const RegisterScreen = () => {
               </View>
             </View>
 
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Ngày sinh</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={COLORS.textSecondary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Chọn ngày sinh"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                />
+              </View>
+            </View>
+
+            
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Mật khẩu</Text>
@@ -154,7 +219,7 @@ const RegisterScreen = () => {
                   style={styles.eyeIcon}
                 >
                   <Ionicons
-                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
                     size={20}
                     color={COLORS.textSecondary}
                   />
@@ -186,7 +251,9 @@ const RegisterScreen = () => {
                   style={styles.eyeIcon}
                 >
                   <Ionicons
-                    name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                    name={
+                      showConfirmPassword ? "eye-outline" : "eye-off-outline"
+                    }
                     size={20}
                     color={COLORS.textSecondary}
                   />
@@ -197,7 +264,8 @@ const RegisterScreen = () => {
             {/* Password Requirements */}
             <View style={styles.passwordRequirements}>
               <Text style={styles.requirementText}>
-                Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số
+                Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và
+                số
               </Text>
             </View>
 
@@ -206,17 +274,16 @@ const RegisterScreen = () => {
               style={styles.termsContainer}
               onPress={() => setAgreeTerms(!agreeTerms)}
             >
-              <View style={[
-                styles.checkbox,
-                agreeTerms && styles.checkboxChecked
-              ]}>
+              <View
+                style={[styles.checkbox, agreeTerms && styles.checkboxChecked]}
+              >
                 {agreeTerms && (
                   <Ionicons name="checkmark" size={16} color={COLORS.white} />
                 )}
               </View>
               <Text style={styles.termsText}>
-                Tôi đồng ý với{' '}
-                <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
+                Tôi đồng ý với{" "}
+                <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{" "}
                 <Text style={styles.termsLink}>Chính sách bảo mật</Text>
               </Text>
             </TouchableOpacity>
@@ -225,12 +292,16 @@ const RegisterScreen = () => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                !agreeTerms && styles.registerButtonDisabled
+                (!agreeTerms || loading) && styles.registerButtonDisabled,
               ]}
               onPress={handleRegister}
-              disabled={!agreeTerms}
+              disabled={!agreeTerms || loading}
             >
-              <Text style={styles.registerButtonText}>Đăng ký</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.registerButtonText}>Đăng ký</Text>
+              )}
             </TouchableOpacity>
 
             {/* Divider */}
@@ -256,21 +327,35 @@ const RegisterScreen = () => {
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Đã có tài khoản? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login' as any)}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Login" as any)}
+              >
                 <Text style={styles.loginLink}>Đăng nhập ngay</Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.lg,
+    backgroundColor: COLORS.primary,
   },
   keyboardView: {
     flex: 1,
@@ -278,32 +363,27 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: SPACING.screenPadding,
-    paddingBottom: SPACING.xl,
-  },
-  header: {
-    paddingTop: SPACING.xl,
-    marginBottom: SPACING.xl,
+    paddingVertical: SPACING.xl,
+    paddingBottom: SPACING.huge,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTextContainer: {
-    gap: SPACING.xs,
+    flex: 1,
+    marginLeft: SPACING.md,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.text,
+    fontSize: FONTS.title,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   headerSubtitle: {
-    fontSize: FONTS.bodyLarge,
-    color: COLORS.textSecondary,
+    fontSize: FONTS.body,
+    color: COLORS.white,
   },
   formContainer: {
     gap: SPACING.lg,
@@ -313,13 +393,13 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADII.input,
     borderWidth: 1,
@@ -351,8 +431,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: SPACING.sm,
   },
   checkbox: {
@@ -361,8 +441,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 2,
   },
   checkboxChecked: {
@@ -377,13 +457,13 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     color: COLORS.secondary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   registerButton: {
     backgroundColor: COLORS.secondary,
     paddingVertical: SPACING.lg,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: SPACING.md,
     ...SHADOWS.md,
   },
@@ -393,12 +473,12 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: SPACING.lg,
   },
   divider: {
@@ -412,8 +492,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: SPACING.lg,
   },
   socialButton: {
@@ -421,15 +501,15 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: SPACING.lg,
   },
   loginText: {
@@ -439,7 +519,7 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: FONTS.body,
     color: COLORS.secondary,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
 

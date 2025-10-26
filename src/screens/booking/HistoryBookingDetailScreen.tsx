@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
@@ -125,22 +127,27 @@ const HistoryBookingDetailScreen = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chi tiết lịch sử</Text>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={handleReportIssue}
-        >
-          <Ionicons name="ellipsis-vertical" size={24} color={COLORS.text} />
-        </TouchableOpacity>
+    
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <LinearGradient
+      colors={COLORS.gradient_4}
+      style={styles.container}
+    >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Chi tiết lịch sử</Text>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={handleReportIssue}
+          >
+            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.white} />
+          </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -342,7 +349,7 @@ const HistoryBookingDetailScreen = () => {
       <InvoiceModal
         visible={invoiceModalVisible}
         onClose={() => setInvoiceModalVisible(false)}
-        bookingCode={booking.bookingCode}
+        bookingCode={booking.bookingCode} 
         vehicleName={booking.vehicleName}
         vehicleModel={booking.vehicleModel}
         startDate={booking.startDate}
@@ -359,45 +366,45 @@ const HistoryBookingDetailScreen = () => {
         paymentMethod={booking.paymentMethod}
         location={booking.location}
       />
-    </View>
+      </LinearGradient>
+      </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.white,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.primary,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: FONTS.title,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.white,
   },
   statusBanner: {
     flexDirection: 'row',
@@ -584,9 +591,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.white,
+    paddingVertical: SPACING.xxl,
     padding: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
     ...SHADOWS.md,
   },
   bookAgainButton: {
@@ -597,6 +603,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
     backgroundColor: COLORS.primary,
+    marginTop: -SPACING.md,
     ...SHADOWS.sm,
   },
   bookAgainButtonText: {
