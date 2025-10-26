@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.xxl,
     ...SHADOWS.md,
   },
   headerTitle: {

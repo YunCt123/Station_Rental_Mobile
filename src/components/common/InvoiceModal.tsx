@@ -10,12 +10,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
-interface InvoiceItem {
-  label: string;
-  value: string;
-  isHighlight?: boolean;
-}
-
 interface InvoiceModalProps {
   visible: boolean;
   onClose: () => void;

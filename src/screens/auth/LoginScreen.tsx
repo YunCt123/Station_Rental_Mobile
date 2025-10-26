@@ -8,6 +8,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +18,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { RootStackParamList } from "../../types/navigation";
+import { authApi } from "../../api/authApi";
 
 type LoginNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,10 +28,36 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Handle login logic here
-    navigation.navigate("MainTabs");
+  const handleLogin = async () => {
+    // Validation đơn giản
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await authApi.login({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      console.log("Login success:", response.data.user);
+      Alert.alert("Thành công", "Đăng nhập thành công!", [
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("MainTabs"),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      const errorMessage = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,6 +110,7 @@ const LoginScreen = () => {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
+                    editable={!loading}
                   />
                 </View>
               </View>
@@ -104,6 +134,7 @@ const LoginScreen = () => {
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoComplete="password"
+                    editable={!loading}
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
@@ -148,10 +179,15 @@ const LoginScreen = () => {
 
               {/* Login Button */}
               <TouchableOpacity
-                style={styles.loginButton}
+                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                 onPress={handleLogin}
+                disabled={loading}
               >
-                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                )}
               </TouchableOpacity>
 
               {/* Divider */}
@@ -307,6 +343,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: SPACING.md,
     ...SHADOWS.md,
+  },
+  loginButtonDisabled: {
+    backgroundColor: COLORS.textSecondary,
+    opacity: 0.6,
   },
   loginButtonText: {
     fontSize: FONTS.bodyLarge,

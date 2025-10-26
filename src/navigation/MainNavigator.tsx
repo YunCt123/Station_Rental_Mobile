@@ -11,7 +11,6 @@ import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailS
 import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
-import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
 import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -103,13 +102,6 @@ const MainNavigator = () => {
         <Stack.Screen
           name="RentalHistory"
           component={RentalHistoryScreen}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="EditProfile"
-          component={EditProfileScreen}
           options={{
             headerShown: false,
           }}

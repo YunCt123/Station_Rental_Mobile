@@ -6,9 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { RootStackParamList } from "../../types/navigation";
+import { authApi } from "../../api/authApi";
 
 type RegisterNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,13 +29,54 @@ const RegisterScreen = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    // Handle registration logic here
-    navigation.navigate("MainTabs");
+  const handleRegister = async () => {
+    // Validation đơn giản
+    if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    if (!agreeTerms) {
+      Alert.alert("Lỗi", "Vui lòng đồng ý với điều khoản sử dụng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await authApi.register({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phoneNumber: phone.trim(),
+        password: password.trim(),
+        dateOfBirth: dateOfBirth.trim(),
+      },
+    );
+
+      console.log("Register success:", response.data.user);
+      Alert.alert("Thành công", "Đăng ký thành công! Chào mừng bạn.", [
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("MainTabs"),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Register error:", error);
+      const errorMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -132,6 +175,26 @@ const RegisterScreen = () => {
               </View>
             </View>
 
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Ngày sinh</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={COLORS.textSecondary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Chọn ngày sinh"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                />
+              </View>
+            </View>
+
+            
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Mật khẩu</Text>
@@ -229,12 +292,16 @@ const RegisterScreen = () => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                !agreeTerms && styles.registerButtonDisabled,
+                (!agreeTerms || loading) && styles.registerButtonDisabled,
               ]}
               onPress={handleRegister}
-              disabled={!agreeTerms}
+              disabled={!agreeTerms || loading}
             >
-              <Text style={styles.registerButtonText}>Đăng ký</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.registerButtonText}>Đăng ký</Text>
+              )}
             </TouchableOpacity>
 
             {/* Divider */}

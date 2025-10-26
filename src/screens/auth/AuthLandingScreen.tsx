@@ -23,10 +23,8 @@ const AuthLandingScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} translucent={false} />
-      
       <LinearGradient
-        colors={COLORS.gradient_3}
+        colors={COLORS.gradient_2}
         style={styles.gradientBackground}
       >
         {/* Logo and Branding */}
