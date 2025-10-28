@@ -2,7 +2,7 @@
  * API Configuration
  */
 export const API_CONFIG = {
-  BASE_URL: 'http://192.168.1.82:3000/api/v1',
+  BASE_URL: 'http://172.20.10.2:3000/api/v1',
   TIMEOUT: 30000, // 30 seconds
   VERSION: 'v1',
 };
@@ -16,9 +16,6 @@ export const AUTH_ENDPOINTS = {
   LOGOUT: '/auth/logout',
   REFRESH: '/auth/refresh',
   ME: '/auth/me',
-  VERIFY_EMAIL: '/auth/verify-email',
-  FORGOT_PASSWORD: '/auth/forgot-password',
-  RESET_PASSWORD: '/auth/reset-password',
 };
 
 /**
@@ -46,35 +43,39 @@ export const VEHICLE_ENDPOINTS = {
  * Booking Endpoints
  */
 export const BOOKING_ENDPOINTS = {
-  CREATE: '/bookings',
   LIST: '/bookings',
+  CREATE: '/bookings',
   BY_ID: (id: string) => `/bookings/${id}`,
-  ACTIVE: '/bookings/active',
-  HISTORY: '/bookings/history',
+  CONFIRM: (id: string) => `/bookings/${id}/confirm`,
   CANCEL: (id: string) => `/bookings/${id}/cancel`,
   COMPLETE: (id: string) => `/bookings/${id}/complete`,
+  CALCULATE_PRICE: '/bookings/calculate-price',
+  ACTIVE: '/bookings/active',
+  HISTORY: '/bookings/history',
 };
 
-/**
- * User Endpoints
- */
-export const USER_ENDPOINTS = {
-  PROFILE: '/users/profile',
-  UPDATE_PROFILE: '/users/profile',
-  UPLOAD_AVATAR: '/users/avatar',
-  VERIFICATION_STATUS: '/users/verification-status',
-  UPLOAD_DOCUMENTS: '/users/verification/documents',
-};
 
 /**
  * Payment Endpoints
  */
+
 export const PAYMENT_ENDPOINTS = {
+  LIST: '/payments',
   CREATE: '/payments',
   BY_ID: (id: string) => `/payments/${id}`,
+  CHECK_STATUS: (id: string) => `/payments/${id}/status`,
   VERIFY: '/payments/verify',
   METHODS: '/payments/methods',
   ADD_METHOD: '/payments/methods',
   REMOVE_METHOD: (id: string) => `/payments/methods/${id}`,
+  CREATE_DEPOSIT: (bookingId: string) => `/payments/${bookingId}/deposit`,
+  CREATE_PAYOS: '/payments/payos/create',
+  BY_BOOKING: (bookingId: string) => `/payments/booking/${bookingId}`,
+  CREATE_FINAL: (rentalId: string) => `/payments/rental/${rentalId}/final`,
+  BY_RENTAL: (rentalId: string) => `/payments/rental/${rentalId}`,
+  REFUND: (id: string) => `/payments/${id}/refund`,
+  HISTORY: '/payments/history',
+  PAYOS_CALLBACK: '/payments/payos/callback',
+  PAYOS_CLIENT_CALLBACK: '/payments/payos/client-callback',
+  VNPAY_CALLBACK: '/payments/vnpay/callback',
 };
-

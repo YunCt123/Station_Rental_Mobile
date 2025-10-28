@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,141 +7,326 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types/navigation';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import StatusModal from '../../components/common/StatusModal';
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../types/navigation";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import StatusModal from "../../components/common/StatusModal";
+import { CreatePayOSPaymentResponse } from "../../types/payment";
+import { paymentService } from "../../services/paymentService";
+import { bookingService } from "../../services/bookingService";
+import { Vehicle } from "../../types/vehicle";
+import { CreateBookingRequest } from "../../types/booking";
+import { vehicleService } from "../../services/vehicleService";
+import { authService } from "../../services/authService";
 
-type BookingPaymentRouteProp = RouteProp<RootStackParamList, 'BookingPayment'>;
-type BookingPaymentNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type BookingPaymentRouteProp = RouteProp<RootStackParamList, "BookingPayment">;
+type BookingPaymentNavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
 
 const BookingPaymentScreen = () => {
   const route = useRoute<BookingPaymentRouteProp>();
   const navigation = useNavigation<BookingPaymentNavigationProp>();
   const { vehicleId } = route.params;
-  const vehicle = searchVehicles.find(v => v.id === vehicleId);
-  const [selectedPayment, setSelectedPayment] = useState<'station' | 'payos' | null>(null);
-  const [rentalHours, setRentalHours] = useState('4');
-  const [pickupTime, setPickupTime] = useState(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState<
+    "vnpay" | "payos" | null
+  >(null);
+  const [rentalHours, setRentalHours] = useState("4");
+  const [pickupTime, setPickupTime] = useState(
+    new Date().toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error'>('success');
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState<"success" | "error">("success");
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
-  if (!vehicle) {
-    return (
-      <View style={styles.container}>
-        <Text>Không tìm thấy xe</Text>
-      </View>
-    );
-  }
+  // Check authentication on mount
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
 
-  const calculateTotal = () => {
-    const hours = parseInt(rentalHours) || 0;
-    return hours * vehicle.hourlyRate;
+  // Load vehicle details
+  useEffect(() => {
+    loadVehicleDetails();
+  }, [vehicleId]);
+
+  const checkAuthentication = async () => {
+    const isAuth = await authService.isAuthenticated();
+    if (!isAuth) {
+      Alert.alert(
+        "Yêu cầu đăng nhập",
+        "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
+        [
+          {
+            text: "Đăng nhập",
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+          {
+            text: "Hủy",
+            style: "cancel",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    }
   };
 
-  const handlePayOSPayment = async () => {
-    setIsProcessing(true);
-    
+  const loadVehicleDetails = async () => {
     try {
-      const paymentData = {
-        amount: calculateTotal(),
-        description: `Thuê xe ${vehicle.name} - ${rentalHours} giờ`,
-        orderCode: `BOOK${Date.now()}`,
-        returnUrl: 'myapp://payment-success',
-        cancelUrl: 'myapp://payment-cancel',
+      setLoading(true);
+      const vehicleData = await vehicleService.getVehicleById(vehicleId);
+      setVehicle(vehicleData);
+    } catch (error) {
+      console.error("Error loading vehicle:", error);
+      Alert.alert("Lỗi", "Không thể tải thông tin xe");
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate total price
+  const calculateTotal = () => {
+    if (!vehicle) return 0;
+    const hours = parseInt(rentalHours) || 0;
+    const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
+    return hours * hourlyRate;
+  };
+
+  // Calculate booking times
+  const calculateBookingTimes = () => {
+    const now = new Date();
+    const [hours, minutes] = pickupTime.split(":").map(Number);
+
+    const startAt = new Date(now);
+    startAt.setHours(hours, minutes, 0, 0);
+
+    // If pickup time is in the past, set it to tomorrow
+    if (startAt < now) {
+      startAt.setDate(startAt.getDate() + 1);
+    }
+
+    const endAt = new Date(startAt);
+    endAt.setHours(endAt.getHours() + parseInt(rentalHours));
+
+    return {
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+    };
+  };
+
+  /** --- CREATE BOOKING FIRST --- **/
+  const createBooking = async (): Promise<string | null> => {
+    try {
+      if (!vehicle || !vehicle.station_id) {
+        throw new Error("Thông tin xe hoặc trạm không hợp lệ");
+      }
+
+      // Check if vehicle is still available
+      if (vehicle.status !== 'AVAILABLE') {
+        throw new Error(`Xe không còn khả dụng. Trạng thái hiện tại: ${vehicle.status}`);
+      }
+
+      const { startAt, endAt } = calculateBookingTimes();
+
+      const bookingData: CreateBookingRequest = {
+        vehicleId: vehicleId,
+        stationId: vehicle.station_id,
+        startAt,
+        endAt,
+        agreement: {
+          accepted: true,
+        },
       };
 
-      // TODO: Replace with your actual PayOS API call
-      // See PAYOS_INTEGRATION.md for detailed instructions
+      const booking = await bookingService.createBooking(bookingData);
       
-      // OPTION 1: Call your backend API (RECOMMENDED - when ready)
-      // const response = await fetch('https://your-backend.com/api/create-payment', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(paymentData),
-      // });
-      // const { checkoutUrl } = await response.json();
+      // Verify booking was created successfully
+      if (!booking || !booking._id) {
+        throw new Error("Booking không được tạo thành công");
+      }
       
-      // OPTION 2: Demo mode - Simulate success without WebView
-      setIsProcessing(false);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setModalType('success');
-      setModalTitle('Thanh toán thành công!');
-      setModalMessage(`Đã đặt xe ${vehicle.name} thành công. (Demo mode - Chưa tích hợp backend PayOS)`);
-      setModalVisible(true);
-      return;
-      
-      // OPTION 3: Test WebView with a working URL (uncomment when you have real PayOS URL)
-      // const paymentUrl = checkoutUrl; // from API response
-      // navigation.navigate('PayOSWebView', {
-      //   paymentUrl: paymentUrl,
-      //   bookingId: paymentData.orderCode,
-      //   amount: paymentData.amount,
-      //   vehicleName: vehicle.name,
-      // });
-      
-    } catch (error) {
-      setIsProcessing(false);
-      setModalType('error');
-      setModalTitle('Thanh toán thất bại');
-      setModalMessage('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.');
-      setModalVisible(true);
+      console.log('Booking created:', booking);
+      return booking._id;
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message || error.message || "Không thể tạo booking";
+      throw new Error(errorMessage);
     }
   };
 
-  const handleStationPayment = async () => {
+  /** --- HANDLE PAYOS PAYMENT --- **/
+  const handlePayOSPayment = async () => {
     setIsProcessing(true);
-    
     try {
-      // Simulate booking API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Step 1: Create booking with status HELD
+      const bookingId = await createBooking();
+      if (!bookingId) {
+        throw new Error("Không thể tạo booking");
+      }
       
-      // Success
-      setIsProcessing(false);
-      setModalType('success');
-      setModalTitle('Đặt xe thành công!');
-      setModalMessage(`Vui lòng đến trạm để thanh toán và nhận xe ${vehicle.name}.`);
-      setModalVisible(true);
+      setCreatedBookingId(bookingId);
+
+      // Step 2: Create PayOS payment (NOT VNPay!)
+      const amount = calculateTotal();
+      console.log('[handlePayOSPayment] Creating PayOS payment with amount:', amount);
       
-    } catch (error) {
+      const response = await paymentService.createPayOSPayment({
+        bookingId: bookingId,
+        amount: amount,
+        returnUrl: `myapp://payment/result?bookingId=${bookingId}`,
+        cancelUrl: `myapp://payment/cancel?bookingId=${bookingId}`,
+      });
+
+      console.log('[handlePayOSPayment] Full payment response:', JSON.stringify(response, null, 2));
+      
+      // Backend returns: { payment, checkoutUrl, transaction_ref }
+      const checkoutUrl = response?.checkoutUrl;
+
+      console.log('[handlePayOSPayment] Checkout URL:', checkoutUrl);
+
+      // Step 3: Navigate to PayOS WebView
+      if (checkoutUrl) {
+        setIsProcessing(false);
+        
+        console.log('[handlePayOSPayment] Navigating to PayOSWebView with URL:', checkoutUrl);
+        
+        navigation.navigate("PayOSWebView", {
+          paymentUrl: checkoutUrl,
+          bookingId: bookingId,
+          amount: amount,
+          vehicleName: vehicle?.name || "Xe",
+        });
+      } else {
+        console.error('[handlePayOSPayment] No checkoutUrl in response:', response);
+        throw new Error("Không nhận được URL thanh toán từ PayOS");
+      }
+    } catch (error: any) {
+      console.error("[handlePayOSPayment] Error:", error);
+      console.error("[handlePayOSPayment] Error response:", error.response?.data);
+      console.error("[handlePayOSPayment] Error message:", error.message);
       setIsProcessing(false);
-      setModalType('error');
-      setModalTitle('Đặt xe thất bại');
-      setModalMessage('Có lỗi xảy ra. Vui lòng thử lại.');
+      
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message || error.message || "Không thể khởi tạo thanh toán";
+      
+      setModalType("error");
+      setModalTitle("Thanh toán thất bại");
+      setModalMessage(errorMessage);
       setModalVisible(true);
     }
   };
 
+  /** --- HANDLE VNPAY PAYMENT --- **/
+  const handleVNPAYPayment = async () => {
+    setIsProcessing(true);
+    try {
+      const bookingId = await createBooking();
+      if (!bookingId) throw new Error("Không thể tạo booking");
+      setCreatedBookingId(bookingId);
+
+      const amount = calculateTotal();
+
+      const response = await paymentService.createVNPAYDeposit(
+        bookingId,
+        amount
+      );
+
+      console.log('[handleVNPAYPayment] Response:', response);
+
+      if (response?.checkoutUrl) {
+        setIsProcessing(false);
+        // @ts-ignore - navigation type issue
+        navigation.navigate("VNPAYWebView", {
+          paymentUrl: response.checkoutUrl,
+          bookingId,
+          amount: amount,
+          vehicleName: vehicle?.name || "Xe",
+        });
+      } else {
+        throw new Error("Không nhận được URL thanh toán");
+      }
+    } catch (error: any) {
+      console.error("Lỗi VNPAY:", error);
+      setIsProcessing(false);
+      setModalType("error");
+      setModalTitle("Thanh toán thất bại");
+      setModalMessage(error.message || "Không thể khởi tạo thanh toán.");
+      setModalVisible(true);
+    }
+  };
+
+  /** --- HANDLE CONFIRM --- **/
   const handleConfirmBooking = async () => {
+    // Kiểm tra authentication trước
+    const isAuth = await authService.isAuthenticated();
+    if (!isAuth) {
+      Alert.alert(
+        "Yêu cầu đăng nhập",
+        "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
+        [
+          {
+            text: "Đăng nhập",
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+        ]
+      );
+      return;
+    }
+
     if (!selectedPayment) {
-      setModalType('error');
-      setModalTitle('Thiếu thông tin');
-      setModalMessage('Vui lòng chọn phương thức thanh toán');
+      setModalType("error");
+      setModalTitle("Thiếu thông tin");
+      setModalMessage("Vui lòng chọn phương thức thanh toán");
       setModalVisible(true);
       return;
     }
 
-    if (selectedPayment === 'payos') {
+    if (selectedPayment === "payos") {
       await handlePayOSPayment();
     } else {
-      await handleStationPayment();
+      await handleVNPAYPayment();
     }
   };
 
+  /** --- MODAL HANDLING --- **/
   const handleModalClose = () => {
     setModalVisible(false);
-    if (modalType === 'success') {
-      // Navigate to bookings screen after success
+    if (modalType === "success") {
       setTimeout(() => {
-        navigation.navigate('MainTabs' as any, { screen: 'Bookings' });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainTabs" }],
+        });
       }, 300);
     }
   };
@@ -149,18 +334,44 @@ const BookingPaymentScreen = () => {
   const handleViewBooking = () => {
     setModalVisible(false);
     setTimeout(() => {
-      navigation.navigate('MainTabs' as any, { screen: 'Bookings' });
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "MainTabs" }],
+      });
     }, 300);
   };
 
+  // Show loading state
+  if (loading || !vehicle) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Đặt xe & Thanh toán</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.white} />
+            <Text style={styles.loadingText}>Đang tải thông tin...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
+  const stationLocation = vehicle.station_name || "Chưa xác định";
+
   return (
-    
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <LinearGradient
-      colors={COLORS.gradient_4}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
+        {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -172,193 +383,201 @@ const BookingPaymentScreen = () => {
           <View style={{ width: 40 }} />
         </View>
 
-      <ScrollView style={styles.contentContainer} 
-      showsVerticalScrollIndicator={false}>
-        {/* Vehicle Info */}
-        <View style={styles.vehicleCard}>
-          <Image source={{ uri: vehicle.image }} style={styles.vehicleImage} />
-          <View style={styles.vehicleInfo}>
-            <Text style={styles.vehicleName}>{vehicle.name}</Text>
-            <Text style={styles.vehicleModel}>{vehicle.brand} • {vehicle.year}</Text>
-            <View style={styles.rateContainer}>
-              <Text style={styles.rateText}>{vehicle.hourlyRate.toLocaleString('vi-VN')}đ</Text>
-              <Text style={styles.rateUnit}>/giờ</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Rental Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Thời gian thuê (giờ)</Text>
-            <TextInput
-              style={styles.input}
-              value={rentalHours}
-              onChangeText={setRentalHours}
-              keyboardType="numeric"
-              placeholder="Nhập số giờ"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Thời gian nhận xe</Text>
-            <TextInput
-              style={styles.input}
-              value={pickupTime}
-              onChangeText={setPickupTime}
-              placeholder="HH:MM"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location" size={20} color={COLORS.primary} />
-              <Text style={styles.locationText}>{vehicle.location}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'station' && styles.paymentOptionSelected
-            ]}
-            onPress={() => setSelectedPayment('station')}
-          >
-            <View style={styles.paymentIconContainer}>
-              <Ionicons 
-                name="business" 
-                size={24} 
-                color={selectedPayment === 'station' ? COLORS.primary : COLORS.textSecondary} 
-              />
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={[
-                styles.paymentTitle,
-                selectedPayment === 'station' && styles.paymentTitleSelected
-              ]}>
-                Thanh toán tại trạm
-              </Text>
-              <Text style={styles.paymentDesc}>
-                Thanh toán trực tiếp khi nhận xe
-              </Text>
-            </View>
-            <View style={[
-              styles.radioButton,
-              selectedPayment === 'station' && styles.radioButtonSelected
-            ]}>
-              {selectedPayment === 'station' && (
-                <View style={styles.radioButtonInner} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'payos' && styles.paymentOptionSelected
-            ]}
-            onPress={() => setSelectedPayment('payos')}
-          >
-            <View style={styles.paymentIconContainer}>
-              <Ionicons 
-                name="card" 
-                size={24} 
-                color={selectedPayment === 'payos' ? COLORS.primary : COLORS.textSecondary} 
-              />
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={[
-                styles.paymentTitle,
-                selectedPayment === 'payos' && styles.paymentTitleSelected
-              ]}>
-                PayOS
-              </Text>
-              <Text style={styles.paymentDesc}>
-                Thanh toán online qua ví điện tử
-              </Text>
-            </View>
-            <View style={[
-              styles.radioButton,
-              selectedPayment === 'payos' && styles.radioButtonSelected
-            ]}>
-              {selectedPayment === 'payos' && (
-                <View style={styles.radioButtonInner} />
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Price Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tổng kết</Text>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Đơn giá</Text>
-            <Text style={styles.summaryValue}>
-              {vehicle.hourlyRate.toLocaleString('vi-VN')}đ/giờ
-            </Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Thời gian thuê</Text>
-            <Text style={styles.summaryValue}>{rentalHours} giờ</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Tổng cộng</Text>
-            <Text style={styles.totalValue}>
-              {calculateTotal().toLocaleString('vi-VN')}đ
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.priceLabel}>Tổng thanh toán</Text>
-          <Text style={styles.priceValue}>
-            {calculateTotal().toLocaleString('vi-VN')}đ
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            (!selectedPayment || isProcessing) && styles.confirmButtonDisabled
-          ]}
-          onPress={handleConfirmBooking}
-          disabled={!selectedPayment || isProcessing}
+        {/* CONTENT */}
+        <ScrollView
+          style={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.confirmButtonText}>
-            {isProcessing ? 'Đang xử lý...' : 'Xác nhận đặt xe'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {/* VEHICLE INFO */}
+          <View style={styles.vehicleCard}>
+            <Image
+              source={{ uri: vehicle.image }}
+              style={styles.vehicleImage}
+            />
+            <View style={styles.vehicleInfo}>
+              <Text style={styles.vehicleName}>{vehicle.name}</Text>
+              <Text style={styles.vehicleModel}>
+                {vehicle.brand} • {vehicle.year}
+              </Text>
+              <View style={styles.rateContainer}>
+                <Text style={styles.rateText}>
+                  {hourlyRate.toLocaleString("vi-VN")}đ
+                </Text>
+                <Text style={styles.rateUnit}>/giờ</Text>
+              </View>
+            </View>
+          </View>
 
-      {/* Status Modal */}
-      <StatusModal
-        visible={modalVisible}
-        type={modalType}
-        title={modalTitle}
-        message={modalMessage}
-        onClose={handleModalClose}
-        actionButtonText={modalType === 'success' ? 'Xem đặt chỗ' : 'Thử lại'}
-        onActionPress={modalType === 'success' ? handleViewBooking : () => setModalVisible(false)}
-      />
+          {/* RENTAL DETAILS */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Thời gian thuê (giờ)</Text>
+              <TextInput
+                style={styles.input}
+                value={rentalHours}
+                onChangeText={setRentalHours}
+                keyboardType="numeric"
+                placeholder="Nhập số giờ"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Thời gian nhận xe</Text>
+              <TextInput
+                style={styles.input}
+                value={pickupTime}
+                onChangeText={setPickupTime}
+                placeholder="HH:MM"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={20} color={COLORS.primary} />
+                <Text style={styles.locationText}>{stationLocation}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* PAYMENT METHOD */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+
+            {/* PAYOS */}
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                selectedPayment === "payos" && styles.paymentOptionSelected,
+              ]}
+              onPress={() => setSelectedPayment("payos")}
+            >
+              <Ionicons
+                name="card"
+                size={28}
+                color={
+                  selectedPayment === "payos"
+                    ? COLORS.primary
+                    : COLORS.textSecondary
+                }
+              />
+              <View style={styles.paymentInfo}>
+                <Text
+                  style={[
+                    styles.paymentTitle,
+                    selectedPayment === "payos" && styles.paymentTitleSelected,
+                  ]}
+                >
+                  PayOS
+                </Text>
+                <Text style={styles.paymentDesc}>
+                  Thanh toán online qua ví điện tử
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* VNPAY */}
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                selectedPayment === "vnpay" && styles.paymentOptionSelected,
+              ]}
+              onPress={() => setSelectedPayment("vnpay")}
+            >
+              <Ionicons
+                name="logo-usd"
+                size={28}
+                color={
+                  selectedPayment === "vnpay"
+                    ? COLORS.primary
+                    : COLORS.textSecondary
+                }
+              />
+              <View style={styles.paymentInfo}>
+                <Text
+                  style={[
+                    styles.paymentTitle,
+                    selectedPayment === "vnpay" && styles.paymentTitleSelected,
+                  ]}
+                >
+                  VNPAY
+                </Text>
+                <Text style={styles.paymentDesc}>
+                  Thanh toán nhanh qua cổng VNPAY
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* SUMMARY */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tổng kết</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Đơn giá</Text>
+              <Text style={styles.summaryValue}>
+                {hourlyRate.toLocaleString("vi-VN")}đ/giờ
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Thời gian thuê</Text>
+              <Text style={styles.summaryValue}>{rentalHours} giờ</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.totalLabel}>Tổng cộng</Text>
+              <Text style={styles.totalValue}>
+                {calculateTotal().toLocaleString("vi-VN")}đ
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+
+        {/* BOTTOM BUTTON */}
+        <View style={styles.bottomContainer}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>Tổng thanh toán</Text>
+            <Text style={styles.priceValue}>
+              {calculateTotal().toLocaleString("vi-VN")}đ
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.confirmButton,
+              (!selectedPayment || isProcessing) &&
+                styles.confirmButtonDisabled,
+            ]}
+            onPress={handleConfirmBooking}
+            disabled={!selectedPayment || isProcessing}
+          >
+            {isProcessing ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* MODAL */}
+        <StatusModal
+          visible={modalVisible}
+          type={modalType}
+          title={modalTitle}
+          message={modalMessage}
+          onClose={handleModalClose}
+          actionButtonText={modalType === "success" ? "Xem đặt chỗ" : "Thử lại"}
+          onActionPress={
+            modalType === "success"
+              ? handleViewBooking
+              : () => setModalVisible(false)
+          }
+        />
       </LinearGradient>
-      </SafeAreaView>
+    </SafeAreaView>
   );
 };
 
@@ -371,9 +590,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.primary,
@@ -382,19 +601,19 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
-  contentContainer:{
-    marginBottom: SPACING.huge
+  contentContainer: {
+    marginBottom: SPACING.huge,
   },
   vehicleCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: COLORS.white,
     padding: SPACING.md,
     margin: SPACING.md,
@@ -409,11 +628,11 @@ const styles = StyleSheet.create({
   vehicleInfo: {
     flex: 1,
     marginLeft: SPACING.md,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   vehicleName: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -423,12 +642,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   rateContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   rateText: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   rateUnit: {
@@ -445,7 +664,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.md,
   },
@@ -454,7 +673,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -469,8 +688,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADII.input,
     borderWidth: 1,
@@ -485,8 +704,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   paymentOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: SPACING.md,
     borderRadius: RADII.md,
     borderWidth: 2,
@@ -495,15 +714,15 @@ const styles = StyleSheet.create({
   },
   paymentOptionSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(41, 121, 255, 0.05)',
+    backgroundColor: "rgba(41, 121, 255, 0.05)",
   },
   paymentIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   paymentInfo: {
     flex: 1,
@@ -511,7 +730,7 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -528,8 +747,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   radioButtonSelected: {
     borderColor: COLORS.primary,
@@ -541,9 +760,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: SPACING.sm,
   },
   summaryLabel: {
@@ -552,7 +771,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
   },
   divider: {
@@ -562,16 +781,16 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
   },
   totalValue: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   bottomContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -583,9 +802,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.md,
   },
   priceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: SPACING.md,
     marginTop: -SPACING.sm,
   },
@@ -595,14 +814,14 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: SPACING.lg,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.sm,
   },
   confirmButtonDisabled: {
@@ -611,13 +830,24 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   processingText: {
     fontSize: FONTS.body,
     color: COLORS.white,
     marginTop: SPACING.xs,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: SPACING.xxl,
+  },
+  loadingText: {
+    color: COLORS.white,
+    fontSize: FONTS.body,
+    marginTop: SPACING.md,
   },
 });
 

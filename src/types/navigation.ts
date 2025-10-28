@@ -12,6 +12,7 @@ export type RootStackParamList = {
   VehicleDetails: { vehicleId: string };
   BookingPayment: { vehicleId: string };
   PayOSWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
+  VNPAYWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
   StationDetails: { stationId: string };
   StationDetail: { stationId: string };
   BookingDetails: { bookingId: string };

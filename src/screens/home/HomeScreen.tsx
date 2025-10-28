@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,14 +19,6 @@ import { vehicleService, mapVehiclesToUI } from '../../services/vehicleService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface VehicleCategory {
-  id: string;
-  name: string;
-  icon: string;
-  count: number;
-  color: string;
-}
-
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [greeting, setGreeting] = useState('');
@@ -33,19 +26,26 @@ const HomeScreen = () => {
   const [featuredVehicles, setFeaturedVehicles] = useState<UIVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Set greeting based on time of day
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Chào buổi sáng');
     else if (hour < 18) setGreeting('Chào buổi chiều');
     else setGreeting('Chào buổi tối');
-
-    loadVehicles();
   }, []);
 
-  const loadVehicles = async () => {
+  // Reload vehicles every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadVehicles();
+    }, [])
+  );
+
+  const loadVehicles = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError(null);
 
       // Fetch all available vehicles
@@ -54,16 +54,23 @@ const HomeScreen = () => {
       setAvailableVehicles(availableData);
 
       // Fetch featured vehicles (top rated)
-      const featured = await vehicleService.getFeaturedVehicles(3);
+      const featured = await vehicleService.getFeaturedVehicles(4);
       const featuredData = mapVehiclesToUI(featured);
       setFeaturedVehicles(featuredData);
     } catch (err) {
       console.error('Error loading vehicles:', err);
       setError('Không thể tải danh sách xe');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
+
+  // Handle pull to refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadVehicles(false); // Don't show loading spinner when refreshing
+    setRefreshing(false);
+  }, []);
 
   const handleVehiclePress = (vehicleId: string) => {
     navigation.navigate('VehicleDetails', { vehicleId });
@@ -85,6 +92,15 @@ const HomeScreen = () => {
 
         <ScrollView 
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.white}
+              colors={[COLORS.white]}
+              progressBackgroundColor={COLORS.primary}
+            />
+          }
         >
           {loading ? (
             <View style={styles.loadingContainer}>

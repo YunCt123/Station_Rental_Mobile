@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Modal,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -51,6 +52,7 @@ const SearchScreen = () => {
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
     { id: "all", title: "Tất cả", selected: true },
   ]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const recentSearches = [
     "Tesla Model 3",
@@ -65,12 +67,17 @@ const SearchScreen = () => {
     return () => {
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadAllVehicles = async () => {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadAllVehicles(false); 
+    setRefreshing(false);
+  }, []);
+
+  const loadAllVehicles = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const vehicles = await vehicleService.getVehicles();
       const vehiclesData = mapVehiclesToUI(vehicles);
       setAllVehicles(vehiclesData);
@@ -90,85 +97,80 @@ const SearchScreen = () => {
     } catch (err) {
       console.error("Error loading vehicles:", err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   // performSearch is stable with useCallback
   const performSearch = useCallback(
-  async (query: string) => {
-    const q = query.trim().toLowerCase();
-    const lowerFilter = activeFilter.toLowerCase();
+    async (query: string) => {
+      const q = query.trim().toLowerCase();
+      const lowerFilter = activeFilter.toLowerCase();
 
-    // Nếu input rỗng → chỉ hiển thị theo filter
-    if (q === "") {
-      const filtered =
-        lowerFilter === "all"
-          ? allVehicles
-          : allVehicles.filter(
-              (v) => v.brand.toLowerCase() === lowerFilter
-            );
-      setSearchResults(filtered);
-      return;
-    }
+      // Nếu input rỗng → chỉ hiển thị theo filter
+      if (q === "") {
+        const filtered =
+          lowerFilter === "all"
+            ? allVehicles
+            : allVehicles.filter((v) => v.brand.toLowerCase() === lowerFilter);
+        setSearchResults(filtered);
+        return;
+      }
 
-    // Local filtering (nếu query ngắn)
-    if (q.length < MIN_QUERY_LENGTH_FOR_REMOTE) {
-      const filtered = allVehicles.filter((vehicle) => {
-        const matchQuery =
-          vehicle.name.toLowerCase().includes(q) ||
-          vehicle.type.toLowerCase().includes(q) ||
-          (vehicle.station_name &&
-            vehicle.station_name.toLowerCase().includes(q)) ||
-          vehicle.brand.toLowerCase().includes(q);
-        const matchFilter =
-          lowerFilter === "all" ||
-          vehicle.brand.toLowerCase() === lowerFilter;
-        return matchQuery && matchFilter;
-      });
+      // Local filtering (nếu query ngắn)
+      if (q.length < MIN_QUERY_LENGTH_FOR_REMOTE) {
+        const filtered = allVehicles.filter((vehicle) => {
+          const matchQuery =
+            vehicle.name.toLowerCase().includes(q) ||
+            vehicle.type.toLowerCase().includes(q) ||
+            (vehicle.station_name &&
+              vehicle.station_name.toLowerCase().includes(q)) ||
+            vehicle.brand.toLowerCase().includes(q);
+          const matchFilter =
+            lowerFilter === "all" ||
+            vehicle.brand.toLowerCase() === lowerFilter;
+          return matchQuery && matchFilter;
+        });
 
-      setSearchResults(filtered);
-      return;
-    }
+        setSearchResults(filtered);
+        return;
+      }
 
-    // Remote search
-    try {
-      setSearchLoading(true);
-      const vehicles = await vehicleService.searchVehicles(q);
-      const vehiclesData = mapVehiclesToUI(vehicles);
+      // Remote search
+      try {
+        setSearchLoading(true);
+        const vehicles = await vehicleService.searchVehicles(q);
+        const vehiclesData = mapVehiclesToUI(vehicles);
 
-      // Lọc theo filter sau khi gọi API
-      const filtered =
-        lowerFilter === "all"
-          ? vehiclesData
-          : vehiclesData.filter(
-              (v) => v.brand.toLowerCase() === lowerFilter
-            );
+        // Lọc theo filter sau khi gọi API
+        const filtered =
+          lowerFilter === "all"
+            ? vehiclesData
+            : vehiclesData.filter((v) => v.brand.toLowerCase() === lowerFilter);
 
-      setSearchResults(filtered);
-    } catch (err) {
-      console.error("Error searching vehicles (remote):", err);
-      // fallback local filter
-      const filtered = allVehicles.filter((vehicle) => {
-        const matchQuery =
-          vehicle.name.toLowerCase().includes(q) ||
-          vehicle.type.toLowerCase().includes(q) ||
-          (vehicle.station_name &&
-            vehicle.station_name.toLowerCase().includes(q)) ||
-          vehicle.brand.toLowerCase().includes(q);
-        const matchFilter =
-          lowerFilter === "all" ||
-          vehicle.brand.toLowerCase() === lowerFilter;
-        return matchQuery && matchFilter;
-      });
-      setSearchResults(filtered);
-    } finally {
-      setSearchLoading(false);
-    }
-  },
-  [allVehicles, activeFilter]
-);
-
+        setSearchResults(filtered);
+      } catch (err) {
+        console.error("Error searching vehicles (remote):", err);
+        // fallback local filter
+        const filtered = allVehicles.filter((vehicle) => {
+          const matchQuery =
+            vehicle.name.toLowerCase().includes(q) ||
+            vehicle.type.toLowerCase().includes(q) ||
+            (vehicle.station_name &&
+              vehicle.station_name.toLowerCase().includes(q)) ||
+            vehicle.brand.toLowerCase().includes(q);
+          const matchFilter =
+            lowerFilter === "all" ||
+            vehicle.brand.toLowerCase() === lowerFilter;
+          return matchQuery && matchFilter;
+        });
+        setSearchResults(filtered);
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [allVehicles, activeFilter]
+  );
 
   // Debounce searchQuery changes but skip the very first render
   useEffect(() => {
@@ -196,7 +198,7 @@ const SearchScreen = () => {
 
   const handleFilterPress = async (filterId: string) => {
     const query = searchQuery.trim();
-    
+
     // Set filter trước
     setActiveFilter(filterId);
 
@@ -204,7 +206,7 @@ const SearchScreen = () => {
     if (query !== "") {
       // Set flag để skip useEffect search
       skipSearchEffectRef.current = true;
-      
+
       const q = query.toLowerCase();
       const lowerFilter = filterId.toLowerCase();
 
@@ -322,8 +324,18 @@ const SearchScreen = () => {
           )}
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Loading State */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.white}
+              colors={[COLORS.white]}
+              progressBackgroundColor={COLORS.primary}
+            />
+          }
+        >
           {(loading || searchLoading) && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={COLORS.white} />
