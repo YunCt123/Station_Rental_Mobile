@@ -148,16 +148,43 @@ const BookingPaymentScreen = () => {
 
       const { startAt, endAt } = calculateBookingTimes();
 
+      // Extract pricing information from vehicle
+      const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
+      const dailyRate = vehicle.pricing?.daily || vehicle.pricePerDay || 0;
+      const currency = vehicle.pricing?.currency || "VND";
+
+      // Calculate total price
+      const hours = parseInt(rentalHours) || 0;
+      const totalPrice = calculateTotal();
+
       const bookingData: CreateBookingRequest = {
         vehicleId: vehicleId,
         stationId: vehicle.station_id,
         startAt,
         endAt,
+        pricing_snapshot: {
+          hourly_rate: hourlyRate,
+          daily_rate: dailyRate,
+          currency: currency,
+          deposit: 0, // Set appropriate deposit if needed
+          total_price: totalPrice,
+          base_price: totalPrice,
+          insurance_price: 0,
+          taxes: 0,
+          details: {
+            rawBase: totalPrice,
+            rentalType: "hourly",
+            hours: hours,
+            days: 0,
+          },
+          policy_version: "1.0",
+        },
         agreement: {
           accepted: true,
         },
       };
 
+      console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
       const booking = await bookingService.createBooking(bookingData);
       
       // Verify booking was created successfully

@@ -136,9 +136,6 @@ const VNPAYWebView = () => {
         
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Thanh toán VNPAY</Text>
-          <Text style={styles.headerSubtitle}>
-            {amount.toLocaleString('vi-VN')}$
-          </Text>
         </View>
 
         <TouchableOpacity
@@ -276,12 +273,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
     marginTop: SPACING.md,
-  },
-  headerSubtitle: {
-    fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginTop: 2,
   },
   securityBanner: {
     flexDirection: 'row',
