@@ -10,6 +10,7 @@ import ActiveBookingDetailScreen from "../screens/booking/ActiveBookingDetailScr
 import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailScreen";
 import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
+import VNPAYWebView from "../screens/payment/VNPAYWebView";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
 import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
 import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
@@ -74,6 +75,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="PayOSWebView"
           component={PayOSWebViewScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="VNPAYWebView"
+          component={VNPAYWebView}
           options={{
             headerShown: false,
           }}

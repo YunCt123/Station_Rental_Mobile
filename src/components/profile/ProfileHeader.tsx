@@ -20,14 +20,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo }) => {
       <View style={styles.userInfo}>
         <Text style={styles.userName}>Name: {userInfo.name}</Text>
         <Text style={styles.userEmail}>Email: {userInfo.email}</Text>
+        <Text style={styles.userPhone}>Phone: {userInfo.phone}</Text>
       </View>
-      {/* <View style={styles.avatarContainer}>
-        {userInfo.isVerified && (
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark" size={12} color={COLORS.white} />
-          </View>
-        )}
-      </View> */}
     </View>
   );
 };
@@ -45,25 +39,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.borderLight,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
   userInfo: {
     flex: 1,
     marginLeft: SPACING.lg,
@@ -78,6 +53,11 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     color: COLORS.white,
     marginBottom: SPACING.xs,
+  },
+  userPhone:{
+    fontSize: FONTS.body, 
+    color: COLORS.white,
+    
   },
   memberSince: {
     fontSize: FONTS.caption,

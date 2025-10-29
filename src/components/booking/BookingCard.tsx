@@ -14,7 +14,7 @@ interface Booking {
   totalHours: number;
   totalPrice: number;
   location: string;
-}
+} 
 
 interface BookingCardProps {
   booking: Booking;

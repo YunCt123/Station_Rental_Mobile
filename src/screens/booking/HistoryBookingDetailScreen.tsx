@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import StatusModal from '../../components/common/StatusModal';
 import InvoiceModal from '../../components/common/InvoiceModal';
+import { bookingService } from '../../services/bookingService';
+import { Booking } from '../../types/booking';
 
 interface RouteParams {
   bookingId: string;
@@ -28,37 +31,98 @@ const HistoryBookingDetailScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error'>('success');
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data
-  const booking = {
-    id: bookingId,
-    vehicleName: 'BMW iX3',
-    vehicleModel: '2023 Impressive',
-    vehicleImage: 'https://images.unsplash.com/photo-1617654112274-64cb6d55efbe?w=400',
-    status: 'completed',
-    bookingCode: 'BOOK1729088400000',
-    startDate: '20/10/2025',
-    startTime: '10:00',
-    endDate: '20/10/2025',
-    endTime: '16:00',
-    actualStartTime: '10:15',
-    actualEndTime: '15:50',
-    totalHours: 6,
-    actualHours: 5.58,
-    hourlyRate: 100000,
-    totalPrice: 600000,
-    actualPrice: 558000,
-    location: 'Trạm Bitexco',
-    locationAddress: '2 Hải Triều, Quận 1, TP.HCM',
-    paymentMethod: 'Tại trạm',
-    paymentStatus: 'completed',
-    vehicleDetails: {
-      licensePlate: '51B-67890',
-      startBattery: 100,
-      endBattery: 72,
-      distance: '45 km',
-    },
-    rating: 0,
+  // Load booking details from API
+  useEffect(() => {
+    loadBookingDetails();
+  }, [bookingId]);
+
+  const loadBookingDetails = async () => {
+    try {
+      setLoading(true);
+      console.log('[HistoryBookingDetail] Loading booking:', bookingId);
+      const data = await bookingService.getBookingById(bookingId);
+      console.log('[HistoryBookingDetail] Booking data:', data);
+      setBooking(data);
+    } catch (error: any) {
+      console.error('[HistoryBookingDetail] Error loading booking:', error);
+      Alert.alert(
+        "Lỗi",
+        "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper functions to extract data from booking
+  const getVehicleImage = () => {
+    if (!booking) return "https://via.placeholder.com/400x200?text=Vehicle";
+    return (
+      (booking.vehicle_snapshot as any)?.image ||
+      (booking.vehicle_id as any)?.image ||
+      (booking.vehicle_id as any)?.images?.[0] ||
+      "https://via.placeholder.com/400x200?text=Vehicle"
+    );
+  };
+
+  const getVehicleName = () => {
+    if (!booking) return "";
+    return (
+      booking.vehicle_snapshot?.name ||
+      (booking.vehicle_id as any)?.name ||
+      "Xe điện"
+    );
+  };
+
+  const getVehicleModel = () => {
+    if (!booking) return "";
+    const brand = booking.vehicle_snapshot?.brand || (booking.vehicle_id as any)?.brand || "";
+    const model = booking.vehicle_snapshot?.model || (booking.vehicle_id as any)?.model || "";
+    return `${brand} ${model}`.trim();
+  };
+
+  const getStationName = () => {
+    if (!booking) return "";
+    return (
+      booking.station_snapshot?.name ||
+      (booking.station_id as any)?.name ||
+      "Trạm sạc"
+    );
+  };
+
+  const getStationAddress = () => {
+    if (!booking) return "";
+    const snapshot = booking.station_snapshot;
+    const stationObj = booking.station_id as any;
+    
+    if (snapshot?.address) {
+      return `${snapshot.address}, ${snapshot.city || ""}`.trim();
+    }
+    if (stationObj?.address) {
+      return `${stationObj.address}, ${stationObj.city || ""}`.trim();
+    }
+    return "";
+  };
+
+  const formatDateTime = (isoString?: string) => {
+    if (!isoString) return { date: "", time: "" };
+    const date = new Date(isoString);
+    return {
+      date: date.toLocaleDateString("vi-VN"),
+      time: date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+    };
+  };
+
+  const calculateHours = () => {
+    if (!booking || !booking.start_at || !booking.end_at) return 0;
+    const start = new Date(booking.start_at);
+    const end = new Date(booking.end_at);
+    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    return Math.round(hours * 10) / 10; // Round to 1 decimal
   };
 
   const handleRateBooking = () => {
@@ -83,7 +147,7 @@ const HistoryBookingDetailScreen = () => {
     // Navigate to payment screen with vehicle info
     setTimeout(() => {
       (navigation as any).navigate('BookingPayment', { 
-        vehicleId: '2', // Mock vehicle ID - should match the booked vehicle
+        vehicleId: booking?.vehicle_id || '2', // Use actual vehicle ID if available
       });
     }, 300);
   };
@@ -102,18 +166,26 @@ const HistoryBookingDetailScreen = () => {
   };
 
   const getStatusInfo = () => {
+    if (!booking) return { label: "", color: COLORS.textSecondary, icon: "information-circle" };
+    
     switch (booking.status) {
-      case 'completed':
-        return {
-          label: 'Hoàn thành',
-          color: COLORS.success,
-          icon: 'checkmark-circle',
-        };
-      case 'cancelled':
+      case 'CANCELLED':
         return {
           label: 'Đã hủy',
           color: COLORS.error,
           icon: 'close-circle',
+        };
+      case 'EXPIRED':
+        return {
+          label: 'Đã hết hạn',
+          color: COLORS.textSecondary,
+          icon: 'alert-circle',
+        };
+      case 'CONFIRMED':
+        return {
+          label: 'Hoàn thành',
+          color: COLORS.success,
+          icon: 'checkmark-circle',
         };
       default:
         return {
@@ -124,7 +196,57 @@ const HistoryBookingDetailScreen = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Chi tiết lịch sử</Text>
+            <View style={styles.menuButton} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.white} />
+            <Text style={styles.loadingText}>Đang tải...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Chi tiết lịch sử</Text>
+            <View style={styles.menuButton} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Không tìm thấy thông tin đặt chỗ</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
   const statusInfo = getStatusInfo();
+  const startDateTime = formatDateTime(booking.start_at || booking.startAt);
+  const endDateTime = formatDateTime(booking.end_at || booking.endAt);
+  const totalHours = calculateHours();
+  const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
+  const totalPrice = booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
 
   return (
     
@@ -161,22 +283,28 @@ const HistoryBookingDetailScreen = () => {
 
         {/* Vehicle Card */}
         <View style={styles.card}>
-          <Image source={{ uri: booking.vehicleImage }} style={styles.vehicleImage} />
+          <Image source={{ uri: getVehicleImage() }} style={styles.vehicleImage} />
           <View style={styles.vehicleInfo}>
-            <Text style={styles.vehicleName}>{booking.vehicleName}</Text>
-            <Text style={styles.vehicleModel}>{booking.vehicleModel}</Text>
+            <Text style={styles.vehicleName}>{getVehicleName()}</Text>
+            <Text style={styles.vehicleModel}>{getVehicleModel()}</Text>
             <View style={styles.detailRow}>
               <Ionicons name="car-outline" size={16} color={COLORS.textSecondary} />
-              <Text style={styles.detailText}>{booking.vehicleDetails.licensePlate}</Text>
+              <Text style={styles.detailText}>
+                {(booking.vehicle_id as any)?.license_plate || "N/A"}
+              </Text>
             </View>
-            <View style={styles.detailRow}>
-              <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.detailText}>Quãng đường: {booking.vehicleDetails.distance}</Text>
-            </View>
+            {booking.vehicle_snapshot?.battery_kWh && (
+              <View style={styles.detailRow}>
+                <Ionicons name="battery-charging-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.detailText}>
+                  Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Rating Section */}
-          {booking.status === 'completed' && (
+          {/* Rating Section - For completed bookings only */}
+          {booking.status === 'CONFIRMED' && (
             <>
               <View style={styles.divider} />
               <TouchableOpacity style={styles.ratingButton} onPress={handleRateBooking}>
@@ -184,14 +312,14 @@ const HistoryBookingDetailScreen = () => {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Ionicons
                       key={star}
-                      name={booking.rating >= star ? 'star' : 'star-outline'}
+                      name={'star-outline'}
                       size={24}
-                      color={booking.rating >= star ? COLORS.warning : COLORS.textTertiary}
+                      color={COLORS.textTertiary}
                     />
                   ))}
                 </View>
                 <Text style={styles.ratingText}>
-                  {booking.rating > 0 ? 'Sửa đánh giá' : 'Đánh giá phương tiện'}
+                  Đánh giá phương tiện
                 </Text>
               </TouchableOpacity>
             </>
@@ -207,7 +335,7 @@ const HistoryBookingDetailScreen = () => {
               <Ionicons name="barcode-outline" size={20} color={COLORS.primary} />
               <Text style={styles.infoLabelText}>Mã đặt chỗ</Text>
             </View>
-            <Text style={styles.infoValue}>{booking.bookingCode}</Text>
+            <Text style={styles.infoValue}>{booking._id.slice(-8).toUpperCase()}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -221,11 +349,13 @@ const HistoryBookingDetailScreen = () => {
               <View style={styles.timeContent}>
                 <Text style={styles.timeLabel}>Bắt đầu</Text>
                 <Text style={styles.timeValue}>
-                  {booking.startDate} {booking.actualStartTime || booking.startTime}
+                  {startDateTime.date} {startDateTime.time}
                 </Text>
-                <Text style={styles.batteryInfo}>
-                  Pin: {booking.vehicleDetails.startBattery}%
-                </Text>
+                {booking.vehicle_snapshot?.battery_kWh && (
+                  <Text style={styles.batteryInfo}>
+                    Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -236,10 +366,7 @@ const HistoryBookingDetailScreen = () => {
               <View style={styles.timeContent}>
                 <Text style={styles.timeLabel}>Kết thúc</Text>
                 <Text style={styles.timeValue}>
-                  {booking.endDate} {booking.actualEndTime || booking.endTime}
-                </Text>
-                <Text style={styles.batteryInfo}>
-                  Pin: {booking.vehicleDetails.endBattery}%
+                  {endDateTime.date} {endDateTime.time}
                 </Text>
               </View>
             </View>
@@ -253,7 +380,7 @@ const HistoryBookingDetailScreen = () => {
               <Text style={styles.infoLabelText}>Thời gian thuê</Text>
             </View>
             <Text style={styles.infoValue}>
-              {booking.actualHours ? booking.actualHours.toFixed(1) : booking.totalHours} giờ
+              {totalHours} giờ
             </Text>
           </View>
 
@@ -264,9 +391,9 @@ const HistoryBookingDetailScreen = () => {
               <Ionicons name="location-outline" size={20} color={COLORS.primary} />
               <Text style={styles.infoLabelText}>Trạm</Text>
             </View>
-            <Text style={[styles.infoValue, styles.locationText]}>{booking.location}</Text>
+            <Text style={[styles.infoValue, styles.locationText]}>{getStationName()}</Text>
           </View>
-          <Text style={styles.addressText}>{booking.locationAddress}</Text>
+          <Text style={styles.addressText}>{getStationAddress()}</Text>
         </View>
 
         {/* Payment Details */}
@@ -275,33 +402,24 @@ const HistoryBookingDetailScreen = () => {
           
           <View style={styles.paymentRow}>
             <Text style={styles.paymentLabel}>Phương thức</Text>
-            <Text style={styles.paymentValue}>{booking.paymentMethod}</Text>
+            <Text style={styles.paymentValue}>{booking.payment?.method || "Chưa thanh toán"}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.paymentRow}>
             <Text style={styles.paymentLabel}>
-              Giá thuê ({booking.actualHours ? booking.actualHours.toFixed(1) : booking.totalHours}h x {booking.hourlyRate.toLocaleString('vi-VN')}đ)
+              Giá thuê ({totalHours}h x {hourlyRate.toLocaleString('vi-VN')}đ)
             </Text>
             <Text style={styles.paymentValue}>
-              {(booking.actualPrice || booking.totalPrice).toLocaleString('vi-VN')}đ
+              {totalPrice.toLocaleString('vi-VN')}đ
             </Text>
           </View>
-
-          {booking.actualPrice !== booking.totalPrice && (
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Giảm giá (trả sớm)</Text>
-              <Text style={[styles.paymentValue, { color: COLORS.success }]}>
-                -{(booking.totalPrice - booking.actualPrice).toLocaleString('vi-VN')}đ
-              </Text>
-            </View>
-          )}
 
           <View style={styles.paymentRow}>
             <Text style={styles.totalLabel}>Tổng cộng</Text>
             <Text style={styles.totalValue}>
-              {(booking.actualPrice || booking.totalPrice).toLocaleString('vi-VN')}đ
+              {totalPrice.toLocaleString('vi-VN')}đ
             </Text>
           </View>
         </View>
@@ -321,8 +439,8 @@ const HistoryBookingDetailScreen = () => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Action */}
-      {booking.status === 'completed' && (
+      {/* Bottom Action - Only for cancelled/expired bookings to rebook */}
+      {(booking.status === 'CANCELLED' || booking.status === 'EXPIRED') && (
         <View style={styles.bottomContainer}>
           <TouchableOpacity
             style={styles.bookAgainButton}
@@ -349,22 +467,22 @@ const HistoryBookingDetailScreen = () => {
       <InvoiceModal
         visible={invoiceModalVisible}
         onClose={() => setInvoiceModalVisible(false)}
-        bookingCode={booking.bookingCode} 
-        vehicleName={booking.vehicleName}
-        vehicleModel={booking.vehicleModel}
-        startDate={booking.startDate}
-        endDate={booking.endDate}
-        startTime={booking.startTime}
-        endTime={booking.endTime}
-        actualStartTime={booking.actualStartTime}
-        actualEndTime={booking.actualEndTime}
-        hourlyRate={booking.hourlyRate}
-        totalHours={booking.totalHours}
-        actualHours={booking.actualHours}
-        totalPrice={booking.totalPrice}
-        actualPrice={booking.actualPrice}
-        paymentMethod={booking.paymentMethod}
-        location={booking.location}
+        bookingCode={booking._id.slice(-8).toUpperCase()} 
+        vehicleName={getVehicleName()}
+        vehicleModel={getVehicleModel()}
+        startDate={startDateTime.date}
+        endDate={endDateTime.date}
+        startTime={startDateTime.time}
+        endTime={endDateTime.time}
+        actualStartTime={startDateTime.time}
+        actualEndTime={endDateTime.time}
+        hourlyRate={hourlyRate}
+        totalHours={totalHours}
+        actualHours={totalHours}
+        totalPrice={totalPrice}
+        actualPrice={totalPrice}
+        paymentMethod={booking.payment?.method || "Chưa thanh toán"}
+        location={getStationName()}
       />
       </LinearGradient>
       </SafeAreaView>
@@ -610,6 +728,18 @@ const styles = StyleSheet.create({
     fontSize: FONTS.bodyLarge,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: SPACING.xxl * 2,
+  },
+  loadingText: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "600",
+    color: COLORS.white,
+    marginTop: SPACING.md,
   },
 });
 
