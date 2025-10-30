@@ -18,7 +18,6 @@ import { Station } from "../../types/station";
 import { stationApi } from "../../api/stationApi";
 import { StationMarkerCard } from "../../components";
 
-
 const { width, height } = Dimensions.get("window");
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;

@@ -26,6 +26,7 @@ export interface Station {
     vehicles_in_use: number;
     utilization_rate: number;
   };
+  staff_ids?: string;
   image?: string;
 }
 
