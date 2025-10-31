@@ -89,7 +89,7 @@ const ProfileScreen = () => {
     setUserInfo({
       name: userData.name || userData.fullName || 'Người dùng',
       email: userData.email,
-      phone: userData.phone || '',
+      phone: userData.phoneNumber || '',
       dateOfBirth: userData.dateOfBirth || '',
       isVerified: userData.isVerified || false,
     });

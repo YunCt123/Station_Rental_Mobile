@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   phone?: string;
+  phoneNumber?: string; // API might return phoneNumber instead of phone
   name?: string;
   fullName?: string;
   dateOfBirth?: string;

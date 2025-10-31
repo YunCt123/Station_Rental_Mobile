@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
-    marginLeft: SPACING.lg,
   },
   userName: {
     fontSize: FONTS.title,
@@ -54,10 +53,15 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginBottom: SPACING.xs,
   },
-  userPhone:{
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.xs,
+  },
+  userPhone: {
     fontSize: FONTS.body, 
     color: COLORS.white,
-    
   },
   memberSince: {
     fontSize: FONTS.caption,
