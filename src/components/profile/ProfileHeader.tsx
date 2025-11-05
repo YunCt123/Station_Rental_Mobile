@@ -6,7 +6,7 @@ import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 interface UserInfo {
   name: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   isVerified: boolean;
 }
 
@@ -20,7 +20,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userInfo }) => {
       <View style={styles.userInfo}>
         <Text style={styles.userName}>Name: {userInfo.name}</Text>
         <Text style={styles.userEmail}>Email: {userInfo.email}</Text>
-        <Text style={styles.userPhone}>Phone: {userInfo.phone}</Text>
+        <Text style={styles.userPhone}>Phone: {userInfo.phoneNumber}</Text>
       </View>
     </View>
   );

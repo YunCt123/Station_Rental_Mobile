@@ -81,7 +81,6 @@ const StatusModal: React.FC<StatusModalProps> = ({
               style={styles.closeButton}
               onPress={onClose}
             >
-              <Text style={styles.closeButtonText}>Đóng</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -148,6 +147,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     paddingVertical: SPACING.sm,
+    marginBottom: -SPACING.md
   },
   closeButtonText: {
     fontSize: FONTS.body,

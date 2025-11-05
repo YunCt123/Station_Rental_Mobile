@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   mapContainer: {
-    height: height * 0.45, // 45% of screen height
+    height: height * 0.45, 
     margin: SPACING.screenPadding,
     borderRadius: RADII.card,
     backgroundColor: COLORS.white,

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
@@ -12,6 +12,7 @@ import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
 import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -103,6 +104,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="VerifyAccount"
           component={VerifyAccountScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
           options={{
             headerShown: false,
           }}

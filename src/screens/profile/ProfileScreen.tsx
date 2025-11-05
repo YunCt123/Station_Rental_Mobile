@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
   Text,
   StyleSheet,
   ScrollView,
@@ -16,7 +15,6 @@ import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import StatsGrid from '../../components/profile/StatsGrid';
 import ProfileMenu from '../../components/profile/ProfileMenu';
-import EditProfileModal from '../../components/profile/EditProfileModal';
 import { authApi } from '../../api/authApi';
 import { User } from '../../types/auth';
 
@@ -36,14 +34,13 @@ interface UserStats {
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [, setLoading] = useState(true);
+  const [, setUser] = useState<User | null>(null);
   
   const [userInfo, setUserInfo] = useState({
     name: 'Loading...',
     email: 'Loading...',
-    phone: '',
+    phoneNumber: '',
     dateOfBirth: '',
     isVerified: false,
   });
@@ -89,7 +86,7 @@ const ProfileScreen = () => {
     setUserInfo({
       name: userData.name || userData.fullName || 'Người dùng',
       email: userData.email,
-      phone: userData.phoneNumber || '',
+      phoneNumber: userData.phoneNumber || '',
       dateOfBirth: userData.dateOfBirth || '',
       isVerified: userData.isVerified || false,
     });
@@ -109,16 +106,10 @@ const ProfileScreen = () => {
       onPress: () => navigation.navigate('RentalHistory' as never),
     },
     {
-      id: 'payment',
-      title: 'Phương thức thanh toán',
-      icon: 'card-outline',
-      onPress: () => console.log('Payment methods'),
-    },
-    {
       id: 'settings',
-      title: 'Cài đặt',
-      icon: 'settings-outline',
-      onPress: () => setEditModalVisible(true),
+      title: 'Chỉnh sửa thông tin',
+      icon: 'person-outline',
+      onPress: () => navigation.navigate('EditProfile' as never),
     },
     {
       id: 'help',
@@ -206,13 +197,6 @@ const ProfileScreen = () => {
           <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
         </ScrollView>
       </LinearGradient>
-
-      {/* Edit Profile Modal */}
-      <EditProfileModal
-        visible={editModalVisible}
-        onClose={() => setEditModalVisible(false)}
-        onUpdate={loadUserData}
-      />
     </SafeAreaView>
   );
 };

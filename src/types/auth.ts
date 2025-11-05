@@ -8,7 +8,25 @@ export interface User {
   dateOfBirth?: string;
   role: 'customer' | 'staff' | 'admin';
   isVerified?: boolean;
-  verificationStatus?: 'pending' | 'approved' | 'rejected';
+  
+  // Driver's License Information
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  licenseClass?: string;
+  
+  // Verification images
+  idCardFront?: string;
+  idCardBack?: string;
+  driverLicense?: string;
+  selfiePhoto?: string;
+  
+  // Verification status
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  verificationSubmittedAt?: string;
+  
   createdAt?: string;
   updatedAt?: string;
 }

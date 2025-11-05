@@ -2,7 +2,7 @@
    * API Configuration
    */
   export const API_CONFIG = {
-    BASE_URL: 'http://172.20.10.2:3000/api/v1',
+    BASE_URL: 'http://192.168.100.190:3000/api/v1',
     TIMEOUT: 30000, // 30 seconds
     VERSION: 'v1',
   };
