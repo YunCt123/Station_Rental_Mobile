@@ -143,66 +143,12 @@ const BookingsScreen = () => {
             <FlatList
               data={bookings}
               keyExtractor={(item) => item._id}
-              renderItem={({ item }) => {
-                console.log('[BookingCard] Rendering booking:', {
-                  id: item._id,
-                  status: item.status,
-                  vehicle_snapshot: item.vehicle_snapshot,
-                  vehicle_id: typeof item.vehicle_id === 'object' ? item.vehicle_id : 'string id',
-                  has_vehicle_image: !!(item.vehicle_snapshot as any)?.image || !!((item.vehicle_id as any)?.image),
-                });
-
-                const vehicleImage = 
-                  (item.vehicle_snapshot as any)?.image ||
-                  (typeof item.vehicle_id === 'object' && (item.vehicle_id as any)?.image) ||
-                  (item.vehicle_snapshot as any)?.imageUrl ||
-                  (typeof item.vehicle_id === 'object' && (item.vehicle_id as any)?.imageUrl) ||
-                  (typeof item.vehicle_id === 'object' && (item.vehicle_id as any)?.images?.[0]) ||
-                  'https://via.placeholder.com/150';
-
-                console.log('[BookingCard] Final image URL:', vehicleImage);
-
-                return (
-                  <BookingCard
-                    booking={{
-                      id: item._id,
-                      vehicleName: item.vehicle_snapshot?.name || "Xe điện",
-                      vehicleModel: `${item.vehicle_snapshot?.brand || ""} ${item.vehicle_snapshot?.model || ""}`.trim(),
-                      vehicleImage,
-                      status:
-                        item.status === "CONFIRMED"
-                          ? "active"
-                          : item.status === "HELD"
-                          ? "upcoming"
-                          : item.status === "EXPIRED"
-                          ? "cancelled"
-                          : "cancelled",
-                      startDate: new Date(item.start_at || item.startAt || '').toLocaleString("vi-VN", {
-                        day: '2-digit',
-                        month: '2-digit', 
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }),
-                      endDate: new Date(item.end_at || item.endAt || '').toLocaleString("vi-VN", {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric', 
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }),
-                      totalHours:
-                        item.pricing_snapshot?.details?.hours ||
-                        (item.pricing_snapshot?.details?.days ? item.pricing_snapshot.details.days * 24 : 0) ||
-                        0,
-                      totalPrice:
-                        item.pricing_snapshot?.total_price || 0,
-                      location: item.station_snapshot?.name || "Không xác định",
-                    }}
-                    onPress={() => handleBookingPress(item)}
-                  />
-                );
-              }}
+              renderItem={({ item }) => (
+                <BookingCard
+                  booking={item}
+                  onPress={handleBookingPress}
+                />
+              )}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}

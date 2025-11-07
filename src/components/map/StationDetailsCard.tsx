@@ -6,12 +6,11 @@ import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface StationDetailsCardProps {
   station: Station;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const StationDetailsCard: React.FC<StationDetailsCardProps> = ({
   station,
-  onClose,
 }) => {
   const getUtilizationColor = (rate: number) => {
     if (rate >= 80) return COLORS.error;
@@ -26,22 +25,19 @@ const StationDetailsCard: React.FC<StationDetailsCardProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{station.name}</Text>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="close-circle" size={24} color={COLORS.textSecondary} />
-        </TouchableOpacity>
+      {/* Station Name */}
+      <View style={styles.stationNameContainer}>
+        <Text style={styles.stationName}>{station.name}</Text>
       </View>
 
       {/* Address */}
       <View style={styles.infoRow}>
-        <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+        <Ionicons name="location-outline" size={20} color={COLORS.primary} />
         <Text style={styles.infoText}>{station.address}</Text>
       </View>
 
       <View style={styles.infoRow}>
-        <Ionicons name="business-outline" size={18} color={COLORS.primary} />
+        <Ionicons name="business-outline" size={20} color={COLORS.primary} />
         <Text style={styles.infoText}>{station.city}</Text>
       </View>
 
@@ -111,9 +107,14 @@ const StationDetailsCard: React.FC<StationDetailsCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.card,
-    padding: SPACING.lg,
-    ...SHADOWS.lg,
+  },
+  stationNameContainer: {
+    marginBottom: SPACING.lg,
+  },
+  stationName: {
+    fontSize: FONTS.header,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   header: {
     flexDirection: 'row',

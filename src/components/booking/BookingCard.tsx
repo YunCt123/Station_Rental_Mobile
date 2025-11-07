@@ -1,20 +1,10 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-
-interface Booking {
-  id: string;
-  vehicleName: string;
-  vehicleModel: string;
-  vehicleImage: string;
-  status: 'active' | 'completed' | 'cancelled' | 'upcoming';
-  startDate: string;
-  endDate: string;
-  totalHours: number;
-  totalPrice: number;
-  location: string;
-} 
+import { Booking } from '../../types/booking';
+import { Vehicle } from '../../types/vehicle';
+import { vehicleService } from '../../services/vehicleService';
 
 interface BookingCardProps {
   booking: Booking;
@@ -22,35 +12,61 @@ interface BookingCardProps {
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [loadingVehicle, setLoadingVehicle] = useState(false);
+
+  // Fetch vehicle data nếu vehicle_id là string
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      try {
+        // Kiểm tra nếu vehicle_id là string (chưa được populate)
+        if (typeof booking.vehicle_id === 'string') {
+          setLoadingVehicle(true);
+          const vehicleData = await vehicleService.getVehicleById(booking.vehicle_id);
+          setVehicle(vehicleData);
+        } else if (booking.vehicle_id && typeof booking.vehicle_id === 'object') {
+          // Nếu đã được populate thì dùng luôn
+          setVehicle(booking.vehicle_id as any as Vehicle);
+        }
+      } catch (error) {
+        console.error('[BookingCard] Error fetching vehicle:', error);
+      } finally {
+        setLoadingVehicle(false);
+      }
+    };
+
+    fetchVehicle();
+  }, [booking.vehicle_id]);
+
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'HELD':
+        return {
+          color: COLORS.warning,
+          bgColor: COLORS.warning + '15',
+          icon: 'time',
+          text: 'Đang giữ chỗ'
+        };
+      case 'CONFIRMED':
         return {
           color: COLORS.success,
           bgColor: COLORS.success + '15',
-          icon: 'play-circle',
-          text: 'Đang thuê'
-        };
-      case 'completed':
-        return {
-          color: COLORS.primary,
-          bgColor: COLORS.primary + '15',
           icon: 'checkmark-circle',
-          text: 'Hoàn thành'
+          text: 'Đã xác nhận'
         };
-      case 'cancelled':
+      case 'CANCELLED':
         return {
           color: COLORS.error,
           bgColor: COLORS.error + '15',
           icon: 'close-circle',
           text: 'Đã hủy'
         };
-      case 'upcoming':
+      case 'EXPIRED':
         return {
-          color: COLORS.warning,
-          bgColor: COLORS.warning + '15',
-          icon: 'time',
-          text: 'Sắp tới'
+          color: COLORS.textSecondary,
+          bgColor: COLORS.textSecondary + '15',
+          icon: 'ban',
+          text: 'Hết hạn'
         };
       default:
         return {
@@ -64,6 +80,43 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
 
   const statusInfo = getStatusInfo(booking.status);
 
+  // Lấy thông tin hiển thị
+  const vehicleName = booking.vehicle_snapshot?.name || vehicle?.name || 'Xe điện';
+  const vehicleModel = booking.vehicle_snapshot 
+    ? `${booking.vehicle_snapshot.brand} ${booking.vehicle_snapshot.model}`.trim()
+    : vehicle 
+    ? `${vehicle.brand} ${vehicle.model || ''}`.trim()
+    : '';
+  
+  // Ưu tiên lấy ảnh từ vehicle, fallback về snapshot hoặc placeholder
+  const vehicleImage = vehicle?.image || 
+    (booking.vehicle_snapshot as any)?.image ||
+    (booking.vehicle_snapshot as any)?.imageUrl ||
+    'https://via.placeholder.com/400x200?text=No+Image';
+
+  const startDate = new Date(booking.start_at || booking.startAt || '').toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const endDate = new Date(booking.end_at || booking.endAt || '').toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const totalHours = booking.pricing_snapshot?.details?.hours ||
+    (booking.pricing_snapshot?.details?.days ? booking.pricing_snapshot.details.days * 24 : 0) ||
+    0;
+
+  const totalPrice = booking.pricing_snapshot?.total_price || 0;
+  const location = booking.station_snapshot?.name || 'Không xác định';
+
   return (
     <TouchableOpacity 
       style={styles.card}
@@ -72,7 +125,13 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
     >
       {/* Image Container with Status Badge */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: booking.vehicleImage }} style={styles.image} />
+        {loadingVehicle ? (
+          <View style={[styles.image, styles.loadingContainer]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        ) : (
+          <Image source={{ uri: vehicleImage }} style={styles.image} />
+        )}
         <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
           <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
           <Text style={[styles.statusText, { color: statusInfo.color }]}>
@@ -86,12 +145,12 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text style={styles.vehicleName}>{booking.vehicleName}</Text>
-            <Text style={styles.vehicleModel}>{booking.vehicleModel}</Text>
+            <Text style={styles.vehicleName}>{vehicleName}</Text>
+            <Text style={styles.vehicleModel}>{vehicleModel}</Text>
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.priceValue}>
-              {booking.totalPrice.toLocaleString('vi-VN')}đ
+              {totalPrice.toLocaleString('vi-VN')}đ
             </Text>
             <Text style={styles.priceLabel}>Tổng cộng</Text>
           </View>
@@ -106,7 +165,10 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Ngày thuê</Text>
               <Text style={styles.detailValue}>
-                {booking.startDate} - {booking.endDate}
+                {startDate}
+              </Text>
+              <Text style={styles.detailValue}>
+                {endDate}
               </Text>
             </View>
           </View>
@@ -117,7 +179,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             </View>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Thời gian</Text>
-              <Text style={styles.detailValue}>{booking.totalHours} giờ</Text>
+              <Text style={styles.detailValue}>{totalHours} giờ</Text>
             </View>
           </View>
 
@@ -127,7 +189,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             </View>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Trạm</Text>
-              <Text style={styles.detailValue}>{booking.location}</Text>
+              <Text style={styles.detailValue}>{location}</Text>
             </View>
           </View>
         </View>
@@ -161,6 +223,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusBadge: {
     position: 'absolute',

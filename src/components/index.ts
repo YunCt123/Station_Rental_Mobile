@@ -29,6 +29,7 @@ export { default as StatusBanner } from './details/StatusBanner';
 // Map Components
 export { default as StationDetailsCard } from './map/StationDetailsCard';
 export { default as StationMarkerCard } from './map/StationMarkerCard';
+export { default as NearbyStations } from './map/NearbyStations';
 
 // Shared Components
 export { default as VehicleCard } from './common/VehicleCard';

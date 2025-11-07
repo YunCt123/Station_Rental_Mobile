@@ -8,17 +8,18 @@ import {
   Alert,
   Dimensions,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 import { Station } from '../../types/station';
 import { stationService } from '../../services/stationService';
 import StationDetailsCard from '../../components/map/StationDetailsCard';
+import NearbyStations from '../../components/map/NearbyStations';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -26,9 +27,9 @@ const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 const MapScreen = () => {
-  const navigation = useNavigation();
   const mapRef = useRef<MapView>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [nearbyStations, setNearbyStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{
@@ -131,71 +132,15 @@ const MapScreen = () => {
     animateToStation(station);
   };
 
+  const handleViewDetails = (station: Station) => {
+    setSelectedStation(station);
+    setDetailsModalVisible(true);
+  };
+
   const handleMarkerPress = (station: Station) => {
     setSelectedStation(station);
     animateToStation(station);
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return COLORS.success;
-      case 'UNDER_MAINTENANCE': return COLORS.warning;
-      case 'INACTIVE': return COLORS.error;
-      default: return COLORS.textSecondary;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'Hoạt động';
-      case 'UNDER_MAINTENANCE': return 'Bảo trì';
-      case 'INACTIVE': return 'Tạm ngưng';
-      default: return 'Không xác định';
-    }
-  };
-
-  const renderStationCard = (station: Station) => (
-    <TouchableOpacity
-      key={station._id}
-      style={[
-        styles.stationCard,
-        selectedStation?._id === station._id && styles.selectedStationCard
-      ]}
-      onPress={() => handleStationCardPress(station)}
-    >
-      <View style={styles.stationHeader}>
-        <View style={styles.stationInfo}>
-          <Text style={styles.stationName}>{station.name}</Text>
-          <Text style={styles.stationAddress}>{station.address}</Text>
-        </View>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(station.status) + '20' }
-        ]}>
-          <Text style={[
-            styles.statusText,
-            { color: getStatusColor(station.status) }
-          ]}>
-            {getStatusText(station.status)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.stationDetails}>
-        <View style={styles.detailRow}>
-          <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.detailText}>{station.city}</Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Ionicons name="car-outline" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.detailText}>
-            Tổng: {station.metrics.vehicles_total} xe
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -211,12 +156,7 @@ const MapScreen = () => {
           </View>
         </View>
 
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-
-        {/* Real Map */}
+        {/* Real Map - Enlarged */}
         <View style={styles.mapContainer}>
           {loading ? (
             <View style={styles.mapPlaceholder}>
@@ -293,49 +233,54 @@ const MapScreen = () => {
         </View>
 
         {/* Nearby Stations */}
-        <View>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {userLocation ? 'Trạm gần bạn' : 'Tất cả trạm'}
-            </Text>
-            <TouchableOpacity onPress={handleRefresh}>
-              <Text style={styles.seeAllText}>Làm mới</Text>
-            </TouchableOpacity>
-          </View>
+        <NearbyStations
+          stations={nearbyStations}
+          loading={loading}
+          userLocation={userLocation}
+          selectedStationId={selectedStation?._id || null}
+          onStationPress={handleStationCardPress}
+          onViewDetails={handleViewDetails}
+          onRefresh={handleRefresh}
+        />
 
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-          ) : nearbyStations.length > 0 ? (
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.stationsList}
-            >
-              {nearbyStations.map(renderStationCard)}
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="location-outline" size={48} color={COLORS.textSecondary} />
-              <Text style={styles.emptyText}>Không tìm thấy trạm nào</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-                <Text style={styles.retryButtonText}>Thử lại</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-          {/* Selected Station Details - Below Cards */}
-          {selectedStation && (
-            <View style={styles.detailsSection}>
-              <StationDetailsCard
-                station={selectedStation}
-                onClose={() => setSelectedStation(null)}
+        {/* Station Details Modal - Overlay */}
+        {selectedStation && (
+          <Modal
+            visible={detailsModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setDetailsModalVisible(false)}
+            statusBarTranslucent
+          >
+            <View style={styles.modalOverlay}>
+              <TouchableOpacity 
+                style={styles.modalBackdrop} 
+                activeOpacity={1}
+                onPress={() => setDetailsModalVisible(false)}
               />
+              <View style={styles.modalContainer}>
+                {/* Modal Header */}
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Chi tiết trạm</Text>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setDetailsModalVisible(false)}
+                  >
+                    <Ionicons name="close" size={24} color={COLORS.text} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Scrollable Content */}
+                <ScrollView 
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.modalScrollContent}
+                >
+                  <StationDetailsCard station={selectedStation} />
+                </ScrollView>
+              </View>
             </View>
-          )}
-        </ScrollView>
+          </Modal>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -348,9 +293,6 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Space for bottom tabs
   },
   header: {
     flexDirection: 'row',
@@ -373,14 +315,8 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginTop: SPACING.xs,
   },
-  filterButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   mapContainer: {
-    height: 300,
+    height: height * 0.45, 
     margin: SPACING.screenPadding,
     borderRadius: RADII.card,
     backgroundColor: COLORS.white,
@@ -399,12 +335,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textSecondary,
     marginTop: SPACING.md,
-  },
-  mapPlaceholderSubtext: {
-    fontSize: FONTS.body,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    textAlign: 'center',
   },
   mapControls: {
     position: 'absolute',
@@ -451,130 +381,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: SPACING.xs,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenPadding,
-    marginBottom: SPACING.md,
-  },
-  sectionTitle: {
-    fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  seeAllText: {
-    fontSize: FONTS.body,
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-  stationsList: {
-    paddingHorizontal: SPACING.screenPadding,
-    marginBottom: SPACING.md, 
-  },
-  stationCard: {
-    width: width * 0.8,
-    backgroundColor: COLORS.white,
-    borderRadius: RADII.card,
-    padding: SPACING.lg,
-    marginRight: SPACING.md,
-    ...SHADOWS.md,
-  },
-  selectedStationCard: {
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-  },
-  stationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  stationInfo: {
+  modalOverlay: {
     flex: 1,
-    marginRight: SPACING.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  stationName: {
-    fontSize: FONTS.bodyLarge,
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: RADII.card * 2,
+    borderTopRightRadius: RADII.card * 2,
+    maxHeight: height * 0.85,
+    ...SHADOWS.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.screenPadding,
+    paddingVertical: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+  },
+  modalTitle: {
+    fontSize: FONTS.title,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SPACING.xs,
   },
-  stationAddress: {
-    fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+  closeButton: {
+    padding: SPACING.xs,
   },
-  statusBadge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADII.button,
-  },
-  statusText: {
-    fontSize: FONTS.caption,
-    fontWeight: '600',
-  },
-  stationDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  detailText: {
-    fontSize: FONTS.caption,
-    color: COLORS.textSecondary,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  metricText: {
-    fontSize: FONTS.caption,
-    fontWeight: '600',
-  },
-  detailsSection: {
-    paddingHorizontal: SPACING.screenPadding,
-    paddingBottom: SPACING.xl,
-  },
-  loadingContainer: {
-    padding: SPACING.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    },
-  emptyContainer: {
-    padding: SPACING.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: SPACING.screenPadding,
-  },
-  emptyText: {
-    fontSize: FONTS.body,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xl,
-    borderRadius: RADII.button,
-  },
-  retryButtonText: {
-    fontSize: FONTS.body,
-    fontWeight: '600',
-    color: COLORS.white,
+  modalScrollContent: {
+    padding: SPACING.screenPadding,
+    paddingBottom: SPACING.xl * 2,
   },
 });
 
