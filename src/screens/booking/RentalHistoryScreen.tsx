@@ -1,88 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { COLORS, SPACING, FONTS, RADII } from '../../utils/theme';
 import BookingCard from '../../components/booking/BookingCard';
 import EmptyState from '../../components/booking/EmptyState';
-
-interface Booking {
-  id: string;
-  vehicleName: string;
-  vehicleModel: string;
-  vehicleImage: string;
-  status: 'active' | 'completed' | 'cancelled' | 'upcoming';
-  startDate: string;
-  endDate: string;
-  totalHours: number;
-  totalPrice: number;
-  location: string;
-}
+import { Booking } from '../../types/booking';
+import { bookingService } from '../../services/bookingService';
 
 const RentalHistoryScreen = () => {
   const navigation = useNavigation();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const mockBookings: Booking[] = [
-    {
-      id: '1',
-      vehicleName: 'BMW iX3',
-      vehicleModel: '2023 Impressive',
-      vehicleImage: 'https://images.unsplash.com/photo-1617654112274-64cb6d55efbe?w=400',
-      status: 'completed',
-      startDate: '20/10/2025 10:00',
-      endDate: '20/10/2025 16:00',
-      totalHours: 6,
-      totalPrice: 600000,
-      location: 'Trạm Bitexco',
-    },
-    {
-      id: '2',
-      vehicleName: 'Audi e-tron',
-      vehicleModel: '2024 Sportback',
-      vehicleImage: 'https://images.unsplash.com/photo-1614200187524-dc4b892acf16?w=400',
-      status: 'completed',
-      startDate: '18/10/2025 13:00',
-      endDate: '18/10/2025 18:00',
-      totalHours: 5,
-      totalPrice: 550000,
-      location: 'Trạm Vincom Center',
-    },
-    {
-      id: '3',
-      vehicleName: 'Tesla Model 3',
-      vehicleModel: '2024 Standard Range',
-      vehicleImage: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400',
-      status: 'completed',
-      startDate: '15/10/2025 09:00',
-      endDate: '15/10/2025 15:00',
-      totalHours: 6,
-      totalPrice: 720000,
-      location: 'Trạm FPT University',
-    },
-    {
-      id: '4',
-      vehicleName: 'VinFast VF8',
-      vehicleModel: '2024 Eco',
-      vehicleImage: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
-      status: 'cancelled',
-      startDate: '12/10/2025 14:00',
-      endDate: '12/10/2025 18:00',
-      totalHours: 4,
-      totalPrice: 360000,
-      location: 'Trạm Landmark 81',
-    },
-  ];
+  /** Lấy danh sách booking lịch sử (CANCELLED, EXPIRED) */
+  const fetchHistoryBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      console.log('[RentalHistoryScreen] Fetching history bookings');
+
+      // Lấy bookings với status CANCELLED và EXPIRED
+      const params = {
+        status: 'CANCELLED,EXPIRED,CONFIRMED',
+        limit: 50,
+      };
+
+      console.log('[RentalHistoryScreen] Calling bookingService.getUserBookings with params:', params);
+      const result = await bookingService.getUserBookings(params);
+
+      console.log(`[RentalHistoryScreen] Final result: ${result?.length || 0} history bookings`);
+      if (result && result.length > 0) {
+        console.log('[RentalHistoryScreen] First booking:', result[0]);
+      }
+
+      // Nếu backend trả về rỗng với filter, thử lấy tất cả và filter client-side
+      if ((!result || result.length === 0) && params.status) {
+        console.warn('[RentalHistoryScreen] No bookings returned for filtered request. Falling back to fetch all and filter client-side.');
+        const all = await bookingService.getUserBookings();
+        const statusList = (params.status as string).split(',').map(s => s.trim().toUpperCase());
+        const filtered = (all || []).filter(b => statusList.includes((b.status || '').toString().toUpperCase()));
+        console.log(`[RentalHistoryScreen] Fallback filtered result: ${filtered.length}`);
+        setBookings(filtered);
+      } else {
+        setBookings(result || []);
+      }
+    } catch (error: any) {
+      console.error("❌ Error fetching history bookings:", error);
+      console.error("❌ Error response:", error.response?.data);
+      
+      Alert.alert(
+        "Lỗi",
+        error.response?.data?.message || "Không thể tải danh sách lịch sử thuê xe"
+      );
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Reload khi screen được focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistoryBookings();
+    }, [fetchHistoryBookings])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchHistoryBookings();
+    setRefreshing(false);
+  };
 
   const handleBookingPress = (booking: Booking) => {
-    (navigation as any).navigate('HistoryBookingDetail', { bookingId: booking.id });
+    console.log('[RentalHistoryScreen] Booking pressed:', {
+      id: booking._id,
+      status: booking.status,
+    });
+
+    console.log('[RentalHistoryScreen] Navigating to HistoryBookingDetail with bookingId:', booking._id);
+
+    try {
+      (navigation as any).navigate('HistoryBookingDetail', { bookingId: booking._id });
+    } catch (error) {
+      console.error('[RentalHistoryScreen] Navigation error:', error);
+      Alert.alert('Lỗi', 'Không thể mở chi tiết booking');
+    }
   };
 
   return (
@@ -109,20 +124,20 @@ const RentalHistoryScreen = () => {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Ionicons name="car-outline" size={24} color={COLORS.primary} />
-          <Text style={styles.statValue}>{mockBookings.length}</Text>
+          <Text style={styles.statValue}>{bookings.length}</Text>
           <Text style={styles.statLabel}>Tổng chuyến</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.success} />
           <Text style={styles.statValue}>
-            {mockBookings.filter(b => b.status === 'completed').length}
+            {bookings.filter(b => b.status === 'CONFIRMED').length}
           </Text>
-          <Text style={styles.statLabel}>Hoàn thành</Text>
+          <Text style={styles.statLabel}>Đã xác nhận</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="close-circle-outline" size={24} color={COLORS.error} />
           <Text style={styles.statValue}>
-            {mockBookings.filter(b => b.status === 'cancelled').length}
+            {bookings.filter(b => b.status === 'CANCELLED').length}
           </Text>
           <Text style={styles.statLabel}>Đã hủy</Text>
         </View>
@@ -130,13 +145,29 @@ const RentalHistoryScreen = () => {
 
       {/* Bookings List */}
       <View style={styles.content}>
-        {mockBookings.length > 0 ? (
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={COLORS.primary}
+            style={{ marginTop: 40 }}
+          />
+        ) : bookings.length > 0 ? (
           <FlatList
-            data={mockBookings}
-            keyExtractor={(item) => item.id}
+            data={bookings}
+            keyExtractor={(item) => item._id}
             renderItem={({ item }) => (
-              <BookingCard booking={item} onPress={handleBookingPress} />
+              <BookingCard
+                booking={item}
+                onPress={handleBookingPress}
+              />
             )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={COLORS.primary}
+              />
+            }
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
           />
