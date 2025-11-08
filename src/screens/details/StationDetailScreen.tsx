@@ -16,6 +16,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { Station, StationVehicle } from "../../types/station";
 import { stationApi } from "../../api/stationApi";
+import StatusModal from "../../components/common/StatusModal";
 
 export const StationDetailScreen = () => {
   const route = useRoute();
@@ -25,6 +26,8 @@ export const StationDetailScreen = () => {
   const [station, setStation] = useState<Station | null>(null);
   const [vehicles, setVehicles] = useState<StationVehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     fetchStationDetails();
@@ -37,12 +40,13 @@ export const StationDetailScreen = () => {
         stationApi.getStationById(stationId, true),
         stationApi.getStationVehicles(stationId, "AVAILABLE"),
       ]);
-      
+
       setStation(stationData);
       setVehicles(vehiclesData.vehicles);
     } catch (error) {
       console.error("Error fetching station details:", error);
-      Alert.alert("Lỗi", "Không thể tải thông tin trạm");
+      setErrorMessage("Không thể tải thông tin trạm");
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -99,7 +103,10 @@ export const StationDetailScreen = () => {
         >
           {/* Station Image */}
           {station.image && (
-            <Image source={{ uri: station.image }} style={styles.stationImage} />
+            <Image
+              source={{ uri: station.image }}
+              style={styles.stationImage}
+            />
           )}
 
           {/* Station Info */}
@@ -116,8 +123,12 @@ export const StationDetailScreen = () => {
 
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={16} color={COLORS.warning} />
-              <Text style={styles.ratingText}>{station.rating.avg.toFixed(1)}</Text>
-              <Text style={styles.ratingCount}>({station.rating.count} đánh giá)</Text>
+              <Text style={styles.ratingText}>
+                {station.rating.avg.toFixed(1)}
+              </Text>
+              <Text style={styles.ratingCount}>
+                ({station.rating.count} đánh giá)
+              </Text>
             </View>
 
             <View style={styles.addressRow}>
@@ -229,9 +240,7 @@ export const StationDetailScreen = () => {
 
           {/* Available Vehicles */}
           <View style={styles.vehiclesCard}>
-            <Text style={styles.cardTitle}>
-              Xe có sẵn ({vehicles.length})
-            </Text>
+            <Text style={styles.cardTitle}>Xe có sẵn ({vehicles.length})</Text>
             {vehicles.map((vehicle, index) => (
               <TouchableOpacity key={index} style={styles.vehicleItem}>
                 {vehicle.image && (
@@ -246,7 +255,11 @@ export const StationDetailScreen = () => {
                   </Text>
                   <Text style={styles.vehicleType}>{vehicle.type}</Text>
                   <View style={styles.vehicleDetails}>
-                    <Ionicons name="battery-half" size={14} color={COLORS.success} />
+                    <Ionicons
+                      name="battery-half"
+                      size={14}
+                      color={COLORS.success}
+                    />
                     <Text style={styles.vehicleDetailText}>
                       {vehicle.batteryLevel}%
                     </Text>
@@ -266,13 +279,29 @@ export const StationDetailScreen = () => {
         {/* Bottom Action */}
         <View style={styles.bottomAction}>
           <TouchableOpacity style={styles.directionButton}>
-            <Ionicons name="navigate-outline" size={20} color={COLORS.primary} />
+            <Ionicons
+              name="navigate-outline"
+              size={20}
+              color={COLORS.primary}
+            />
             <Text style={styles.directionButtonText}>Chỉ đường</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.rentButton}>
             <Text style={styles.rentButtonText}>Chọn xe thuê</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Error Modal */}
+        <StatusModal
+          visible={errorModalVisible}
+          type="error"
+          title="Lỗi"
+          message={errorMessage}
+          onClose={() => {
+            setErrorModalVisible(false);
+            navigation.goBack();
+          }}
+        />
       </SafeAreaView>
     </LinearGradient>
   );

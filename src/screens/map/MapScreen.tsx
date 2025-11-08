@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,19 +9,20 @@ import {
   Dimensions,
   ScrollView,
   Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import { Station } from '../../types/station';
-import { stationService } from '../../services/stationService';
-import StationDetailsCard from '../../components/map/StationDetailsCard';
-import NearbyStations from '../../components/map/NearbyStations';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import { Station } from "../../types/station";
+import { stationService } from "../../services/stationService";
+import StationDetailsCard from "../../components/map/StationDetailsCard";
+import NearbyStations from "../../components/map/NearbyStations";
+import StatusModal from "../../components/common/StatusModal";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
@@ -36,6 +37,8 @@ const MapScreen = () => {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     initializeScreen();
@@ -45,42 +48,53 @@ const MapScreen = () => {
     try {
       // Try to get user location
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status === 'granted') {
+
+      if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
         setUserLocation({ latitude, longitude });
-        
+
         // Fetch nearby stations based on user location
         await fetchNearbyStations(longitude, latitude);
       } else {
         // If no permission, fetch all stations or use default location (Hanoi)
-        console.log('[MapScreen] Location permission not granted, using default location');
+        console.log(
+          "[MapScreen] Location permission not granted, using default location"
+        );
         await fetchAllStations();
       }
     } catch (error) {
-      console.error('[MapScreen] Error initializing:', error);
+      console.error("[MapScreen] Error initializing:", error);
       // Fallback: fetch all stations
       await fetchAllStations();
     }
   };
 
-  const fetchNearbyStations = async (lng: number, lat: number, radiusKm: number = 50) => {
+  const fetchNearbyStations = async (
+    lng: number,
+    lat: number,
+    radiusKm: number = 50
+  ) => {
     try {
       setLoading(true);
-      console.log('[MapScreen] Fetching nearby stations:', { lng, lat, radiusKm });
-      
+      console.log("[MapScreen] Fetching nearby stations:", {
+        lng,
+        lat,
+        radiusKm,
+      });
+
       const stations = await stationService.getNearbyStations({
         lng,
         lat,
         radiusKm,
       });
-      
-      console.log('[MapScreen] Fetched stations:', stations.length);
+
+      console.log("[MapScreen] Fetched stations:", stations.length);
       setNearbyStations(stations);
     } catch (error: any) {
-      console.error('[MapScreen] Error fetching nearby stations:', error);
-      Alert.alert('Lỗi', 'Không thể tải danh sách trạm gần bạn');
+      console.error("[MapScreen] Error fetching nearby stations:", error);
+      setErrorMessage("Không thể tải danh sách trạm gần bạn");
+      setErrorModalVisible(true);
       // Fallback to all stations
       await fetchAllStations();
     } finally {
@@ -91,15 +105,21 @@ const MapScreen = () => {
   const fetchAllStations = async () => {
     try {
       setLoading(true);
-      console.log('[MapScreen] Fetching all stations');
-      
-      const stations = await stationService.listStations({ status: 'ACTIVE' }, { limit: 50 });
-      
-      console.log('[MapScreen] Fetched all stations:', stations.length);
+      console.log("[MapScreen] Fetching all stations");
+
+      const stations = await stationService.listStations(
+        { status: "ACTIVE" },
+        { limit: 50 }
+      );
+
+      console.log("[MapScreen] Fetched all stations:", stations.length);
       setNearbyStations(stations);
     } catch (error: any) {
-      console.error('[MapScreen] Error fetching all stations:', error);
-      Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tải danh sách trạm');
+      console.error("[MapScreen] Error fetching all stations:", error);
+      setErrorMessage(
+        error.response?.data?.message || "Không thể tải danh sách trạm"
+      );
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -117,13 +137,16 @@ const MapScreen = () => {
     if (mapRef.current) {
       const latitude = station.geo.coordinates[1];
       const longitude = station.geo.coordinates[0];
-      
-      mapRef.current.animateToRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.02, // Zoom in closer
-        longitudeDelta: 0.02,
-      }, 1000); // 1 second animation
+
+      mapRef.current.animateToRegion(
+        {
+          latitude,
+          longitude,
+          latitudeDelta: 0.02, // Zoom in closer
+          longitudeDelta: 0.02,
+        },
+        1000
+      ); // 1 second animation
     }
   };
 
@@ -143,7 +166,7 @@ const MapScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient
         colors={COLORS.gradient_4}
         style={styles.gradientBackground}
@@ -189,16 +212,18 @@ const MapScreen = () => {
                   onPress={() => handleMarkerPress(station)}
                 >
                   <View style={styles.customMarker}>
-                    <View style={[
-                      styles.markerContent,
-                      station.metrics.vehicles_available > 0 
-                        ? styles.markerAvailable 
-                        : styles.markerUnavailable
-                    ]}>
-                      <Ionicons 
-                        name="location" 
-                        size={24} 
-                        color={COLORS.white} 
+                    <View
+                      style={[
+                        styles.markerContent,
+                        station.metrics.vehicles_available > 0
+                          ? styles.markerAvailable
+                          : styles.markerUnavailable,
+                      ]}
+                    >
+                      <Ionicons
+                        name="location"
+                        size={24}
+                        color={COLORS.white}
                       />
                       <Text style={styles.markerText}>
                         {station.metrics.vehicles_available}
@@ -209,25 +234,36 @@ const MapScreen = () => {
               ))}
             </MapView>
           )}
-          
+
           {/* Map Controls */}
           <View style={styles.mapControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.mapControlButton}
               onPress={handleRefresh}
             >
-              <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={COLORS.primary}
+              />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.mapControlButton}
               onPress={() => {
                 // Zoom to user location
                 if (userLocation) {
-                  fetchNearbyStations(userLocation.longitude, userLocation.latitude);
+                  fetchNearbyStations(
+                    userLocation.longitude,
+                    userLocation.latitude
+                  );
                 }
               }}
             >
-              <Ionicons name="locate-outline" size={20} color={COLORS.primary} />
+              <Ionicons
+                name="locate-outline"
+                size={20}
+                color={COLORS.primary}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -253,8 +289,8 @@ const MapScreen = () => {
             statusBarTranslucent
           >
             <View style={styles.modalOverlay}>
-              <TouchableOpacity 
-                style={styles.modalBackdrop} 
+              <TouchableOpacity
+                style={styles.modalBackdrop}
                 activeOpacity={1}
                 onPress={() => setDetailsModalVisible(false)}
               />
@@ -271,7 +307,7 @@ const MapScreen = () => {
                 </View>
 
                 {/* Scrollable Content */}
-                <ScrollView 
+                <ScrollView
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.modalScrollContent}
                 >
@@ -282,6 +318,15 @@ const MapScreen = () => {
           </Modal>
         )}
       </LinearGradient>
+
+      {/* Error Modal */}
+      <StatusModal
+        visible={errorModalVisible}
+        type="error"
+        title="Lỗi"
+        message={errorMessage}
+        onClose={() => setErrorModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -295,9 +340,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.primary,
@@ -307,7 +352,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FONTS.title,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.white,
   },
   headerSubtitle: {
@@ -316,28 +361,28 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   mapContainer: {
-    height: height * 0.45, 
+    height: height * 0.45,
     margin: SPACING.screenPadding,
     borderRadius: RADII.card,
     backgroundColor: COLORS.white,
     ...SHADOWS.lg,
-    position: 'relative',
+    position: "relative",
   },
   mapPlaceholder: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADII.card,
   },
   mapPlaceholderText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textSecondary,
     marginTop: SPACING.md,
   },
   mapControls: {
-    position: 'absolute',
+    position: "absolute",
     top: SPACING.md,
     right: SPACING.md,
     gap: SPACING.sm,
@@ -347,23 +392,23 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...SHADOWS.md,
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: RADII.card,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   customMarker: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   markerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: 20,
@@ -378,16 +423,16 @@ const styles = StyleSheet.create({
   markerText: {
     color: COLORS.white,
     fontSize: FONTS.caption,
-    fontWeight: '700',
+    fontWeight: "700",
     marginLeft: SPACING.xs,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalBackdrop: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -401,9 +446,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.lg,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.lg,
     borderBottomWidth: 1,
@@ -411,7 +456,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: FONTS.title,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
   },
   closeButton: {

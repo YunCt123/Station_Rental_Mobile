@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types/navigation';
-import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
-import StatusModal from '../../components/common/StatusModal';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../types/navigation";
+import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
+import StatusModal from "../../components/common/StatusModal";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface RouteParams {
   paymentUrl: string;
@@ -24,51 +24,67 @@ interface RouteParams {
 }
 
 const VNPAYWebView = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<{ params: RouteParams }, "params">>();
   const { paymentUrl, bookingId, amount, vehicleName } = route.params;
-  
+
   const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error'>('success');
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState<"success" | "error">("success");
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
 
   const handleNavigationStateChange = (navState: any) => {
     setCanGoBack(navState.canGoBack);
     setCanGoForward(navState.canGoForward);
-    
+
     // Check if payment is successful or cancelled based on URL
     const url = navState.url;
-    
-    if (url.includes('vnp_ResponseCode=00') || url.includes('payment-success') || url.includes('success')) {
-      setModalType('success');
-      setModalTitle('Thanh toán thành công!');
-      setModalMessage(`Đã đặt xe ${vehicleName} thành công qua VNPAY. Vui lòng đến trạm để nhận xe.`);
+
+    if (
+      url.includes("vnp_ResponseCode=00") ||
+      url.includes("payment-success") ||
+      url.includes("success")
+    ) {
+      setModalType("success");
+      setModalTitle("Thanh toán thành công!");
+      setModalMessage(
+        `Đã đặt xe ${vehicleName} thành công qua VNPAY. Vui lòng đến trạm để nhận xe.`
+      );
       setModalVisible(true);
-    } else if (url.includes('vnp_ResponseCode=24') || url.includes('cancel') || url.includes('payment-cancel')) {
-      setModalType('error');
-      setModalTitle('Thanh toán đã hủy');
-      setModalMessage('Bạn đã hủy thanh toán. Vui lòng thử lại.');
+    } else if (
+      url.includes("vnp_ResponseCode=24") ||
+      url.includes("cancel") ||
+      url.includes("payment-cancel")
+    ) {
+      setModalType("error");
+      setModalTitle("Thanh toán đã hủy");
+      setModalMessage("Bạn đã hủy thanh toán. Vui lòng thử lại.");
       setModalVisible(true);
-    } else if (url.includes('vnp_ResponseCode') && !url.includes('vnp_ResponseCode=00')) {
-      setModalType('error');
-      setModalTitle('Thanh toán thất bại');
-      setModalMessage('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.');
+    } else if (
+      url.includes("vnp_ResponseCode") &&
+      !url.includes("vnp_ResponseCode=00")
+    ) {
+      setModalType("error");
+      setModalTitle("Thanh toán thất bại");
+      setModalMessage("Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.");
       setModalVisible(true);
     }
   };
 
   const handleWebViewError = (syntheticEvent: any) => {
     const { nativeEvent } = syntheticEvent;
-    console.warn('WebView error: ', nativeEvent);
-    
-    setModalType('error');
-    setModalTitle('Không thể tải trang');
-    setModalMessage('URL thanh toán không hợp lệ hoặc không khả dụng. Vui lòng liên hệ bộ phận hỗ trợ để được trợ giúp.');
+    console.warn("WebView error: ", nativeEvent);
+
+    setModalType("error");
+    setModalTitle("Không thể tải trang");
+    setModalMessage(
+      "URL thanh toán không hợp lệ hoặc không khả dụng. Vui lòng liên hệ bộ phận hỗ trợ để được trợ giúp."
+    );
     setModalVisible(true);
   };
 
@@ -76,14 +92,10 @@ const VNPAYWebView = () => {
     if (canGoBack && webViewRef.current) {
       webViewRef.current.goBack();
     } else {
-      Alert.alert(
-        'Hủy thanh toán',
-        'Bạn có chắc chắn muốn hủy thanh toán?',
-        [
-          { text: 'Không', style: 'cancel' },
-          { text: 'Có', onPress: () => navigation.goBack() }
-        ]
-      );
+      Alert.alert("Hủy thanh toán", "Bạn có chắc chắn muốn hủy thanh toán?", [
+        { text: "Không", style: "cancel" },
+        { text: "Có", onPress: () => navigation.goBack() },
+      ]);
     }
   };
 
@@ -101,141 +113,148 @@ const VNPAYWebView = () => {
 
   const handleClose = () => {
     Alert.alert(
-      'Đóng thanh toán',
-      'Bạn có chắc chắn muốn đóng trang thanh toán?',
+      "Đóng thanh toán",
+      "Bạn có chắc chắn muốn đóng trang thanh toán?",
       [
-        { text: 'Không', style: 'cancel' },
-        { text: 'Có', onPress: () => navigation.goBack() }
+        { text: "Không", style: "cancel" },
+        { text: "Có", onPress: () => navigation.goBack() },
       ]
     );
   };
 
   const handleModalClose = () => {
     setModalVisible(false);
-    if (modalType === 'success') {
+    if (modalType === "success") {
       setTimeout(() => {
         navigation.reset({
           index: 0,
-          routes: [{ name: 'MainTabs' }],
+          routes: [{ name: "MainTabs" }],
         });
       }, 300);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top',]}>
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleBack}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-        
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Thanh toán VNPAY</Text>
+    <SafeAreaView style={styles.safeContainer} edges={["top"]}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Thanh toán VNPAY</Text>
+          </View>
+
+          <TouchableOpacity style={styles.headerButton} onPress={handleClose}>
+            <Ionicons name="close" size={24} color={COLORS.white} />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleClose}
-        >
-          <Ionicons name="close" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
+        {/* Security Banner */}
+        <View style={styles.securityBanner}>
+          <Ionicons name="shield-checkmark" size={16} color={COLORS.success} />
+          <Text style={styles.securityText}>Kết nối bảo mật với VNPAY</Text>
+        </View>
 
-      {/* Security Banner */}
-      <View style={styles.securityBanner}>
-        <Ionicons name="shield-checkmark" size={16} color={COLORS.success} />
-        <Text style={styles.securityText}>Kết nối bảo mật với VNPAY</Text>
-      </View>
+        {/* WebView */}
+        <WebView
+          ref={webViewRef}
+          source={{ uri: paymentUrl }}
+          style={styles.webview}
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+          onNavigationStateChange={handleNavigationStateChange}
+          onError={handleWebViewError}
+          onHttpError={handleWebViewError}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>
+                Đang tải trang thanh toán...
+              </Text>
+            </View>
+          )}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          sharedCookiesEnabled={true}
+          thirdPartyCookiesEnabled={true}
+        />
 
-      {/* WebView */}
-      <WebView
-        ref={webViewRef}
-        source={{ uri: paymentUrl }}
-        style={styles.webview}
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
-        onNavigationStateChange={handleNavigationStateChange}
-        onError={handleWebViewError}
-        onHttpError={handleWebViewError}
-        startInLoadingState={true}
-        renderLoading={() => (
-          <View style={styles.loadingContainer}>
+        {/* Loading Overlay */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Đang tải trang thanh toán...</Text>
+            <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         )}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        sharedCookiesEnabled={true}
-        thirdPartyCookiesEnabled={true}
-      />
 
-      {/* Loading Overlay */}
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Đang tải...</Text>
+        {/* Navigation Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[
+              styles.footerButton,
+              !canGoBack && styles.footerButtonDisabled,
+            ]}
+            onPress={handleBack}
+            disabled={!canGoBack}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={canGoBack ? COLORS.text : COLORS.white}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.footerButton,
+              !canGoForward && styles.footerButtonDisabled,
+            ]}
+            onPress={handleForward}
+            disabled={!canGoForward}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={canGoForward ? COLORS.text : COLORS.white}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.footerButton} onPress={handleRefresh}>
+            <Ionicons name="refresh" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+
+          <View style={styles.footerInfo}>
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.footerInfoText}>Mã: {bookingId}</Text>
+          </View>
         </View>
-      )}
 
-      {/* Navigation Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.footerButton, !canGoBack && styles.footerButtonDisabled]}
-          onPress={handleBack}
-          disabled={!canGoBack}
-        >
-          <Ionicons 
-            name="chevron-back" 
-            size={24} 
-            color={canGoBack ? COLORS.text : COLORS.white} 
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.footerButton, !canGoForward && styles.footerButtonDisabled]}
-          onPress={handleForward}
-          disabled={!canGoForward}
-        >
-          <Ionicons 
-            name="chevron-forward" 
-            size={24} 
-            color={canGoForward ? COLORS.text : COLORS.white} 
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={handleRefresh}
-        >
-          <Ionicons name="refresh" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-
-        <View style={styles.footerInfo}>
-          <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.footerInfoText}>Mã: {bookingId}</Text>
-        </View>
+        {/* Status Modal */}
+        <StatusModal
+          visible={modalVisible}
+          type={modalType}
+          title={modalTitle}
+          message={modalMessage}
+          onClose={handleModalClose}
+          actionButtonText={modalType === "success" ? "Xem đặt chỗ" : "Đóng"}
+          onActionPress={
+            modalType === "success"
+              ? handleModalClose
+              : () => {
+                  setModalVisible(false);
+                  navigation.goBack();
+                }
+          }
+        />
       </View>
-
-      {/* Status Modal */}
-      <StatusModal
-        visible={modalVisible}
-        type={modalType}
-        title={modalTitle}
-        message={modalMessage}
-        onClose={handleModalClose}
-        actionButtonText={modalType === 'success' ? 'Xem đặt chỗ' : 'Đóng'}
-        onActionPress={modalType === 'success' ? handleModalClose : () => {
-          setModalVisible(false);
-          navigation.goBack();
-        }}
-      />
-    </View>
     </SafeAreaView>
   );
 };
@@ -250,9 +269,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xxl,
     backgroundColor: COLORS.primary,
@@ -261,64 +280,64 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerCenter: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
     marginTop: SPACING.md,
   },
   securityBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: SPACING.xs,
-    backgroundColor: COLORS.success + '10',
+    backgroundColor: COLORS.success + "10",
     gap: SPACING.xs,
   },
   securityText: {
     fontSize: FONTS.caption,
     color: COLORS.success,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   webview: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
   loadingContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: COLORS.white,
   },
   loadingOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
   },
   loadingText: {
     marginTop: SPACING.md,
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.primary,
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.lg,
     backgroundColor: COLORS.primary,
@@ -327,17 +346,17 @@ const styles = StyleSheet.create({
   footerButton: {
     width: 44,
     height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   footerButtonDisabled: {
     opacity: 0.4,
   },
   footerInfo: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     gap: SPACING.xs,
   },
   footerInfoText: {

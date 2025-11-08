@@ -1,18 +1,11 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  Animated,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+import React from "react";
+import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 
 interface StatusModalProps {
   visible: boolean;
-  type: 'success' | 'error';
+  type: "success" | "error";
   title: string;
   message: string;
   onClose: () => void;
@@ -26,12 +19,12 @@ const StatusModal: React.FC<StatusModalProps> = ({
   title,
   message,
   onClose,
-  actionButtonText = 'Đóng',
+  actionButtonText = "Đóng",
   onActionPress,
 }) => {
-  const iconName = type === 'success' ? 'checkmark-circle' : 'close-circle';
-  const iconColor = type === 'success' ? COLORS.success : COLORS.error;
-  const primaryColor = type === 'success' ? COLORS.success : COLORS.error;
+  const iconName = type === "success" ? "checkmark-circle" : "close-circle";
+  const iconColor = type === "success" ? COLORS.success : COLORS.error;
+  const primaryColor = type === "success" ? COLORS.success : COLORS.error;
 
   const handleActionPress = () => {
     if (onActionPress) {
@@ -50,15 +43,20 @@ const StatusModal: React.FC<StatusModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableOpacity 
-          style={styles.overlayBackground} 
+        <TouchableOpacity
+          style={styles.overlayBackground}
           activeOpacity={1}
           onPress={onClose}
         />
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             {/* Icon */}
-            <View style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}>
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: `${iconColor}15` },
+              ]}
+            >
               <Ionicons name={iconName} size={60} color={iconColor} />
             </View>
 
@@ -77,11 +75,11 @@ const StatusModal: React.FC<StatusModalProps> = ({
             </TouchableOpacity>
 
             {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-            >
-            </TouchableOpacity>
+            {onActionPress && (
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Text style={styles.closeButtonText}>Đóng</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -92,67 +90,67 @@ const StatusModal: React.FC<StatusModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   overlayBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   modalContainer: {
-    width: '85%',
+    width: "85%",
     maxWidth: 400,
   },
   modalContent: {
     backgroundColor: COLORS.white,
     borderRadius: RADII.xl,
     padding: SPACING.xl,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.lg,
   },
   iconContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: SPACING.lg,
   },
   title: {
     fontSize: FONTS.header,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   message: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: SPACING.xl,
   },
   actionButton: {
-    width: '100%',
+    width: "100%",
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: SPACING.sm,
     ...SHADOWS.sm,
   },
   actionButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   closeButton: {
     paddingVertical: SPACING.sm,
-    marginBottom: -SPACING.md
+    marginBottom: -SPACING.md,
   },
   closeButtonText: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

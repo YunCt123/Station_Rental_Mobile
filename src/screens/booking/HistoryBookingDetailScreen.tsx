@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,16 +8,16 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
-import StatusModal from '../../components/common/StatusModal';
-import InvoiceModal from '../../components/common/InvoiceModal';
-import { bookingService } from '../../services/bookingService';
-import { Booking } from '../../types/booking';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import StatusModal from "../../components/common/StatusModal";
+import InvoiceModal from "../../components/common/InvoiceModal";
+import { bookingService } from "../../services/bookingService";
+import { Booking } from "../../types/booking";
 
 interface RouteParams {
   bookingId: string;
@@ -25,11 +25,11 @@ interface RouteParams {
 
 const HistoryBookingDetailScreen = () => {
   const navigation = useNavigation();
-  const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
+  const route = useRoute<RouteProp<{ params: RouteParams }, "params">>();
   const { bookingId } = route.params;
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error'>('success');
+  const [modalType, setModalType] = useState<"success" | "error">("success");
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,17 +42,15 @@ const HistoryBookingDetailScreen = () => {
   const loadBookingDetails = async () => {
     try {
       setLoading(true);
-      console.log('[HistoryBookingDetail] Loading booking:', bookingId);
+      console.log("[HistoryBookingDetail] Loading booking:", bookingId);
       const data = await bookingService.getBookingById(bookingId);
-      console.log('[HistoryBookingDetail] Booking data:', data);
+      console.log("[HistoryBookingDetail] Booking data:", data);
       setBooking(data);
     } catch (error: any) {
-      console.error('[HistoryBookingDetail] Error loading booking:', error);
-      Alert.alert(
-        "Lỗi",
-        "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
+      console.error("[HistoryBookingDetail] Error loading booking:", error);
+      Alert.alert("Lỗi", "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -80,8 +78,14 @@ const HistoryBookingDetailScreen = () => {
 
   const getVehicleModel = () => {
     if (!booking) return "";
-    const brand = booking.vehicle_snapshot?.brand || (booking.vehicle_id as any)?.brand || "";
-    const model = booking.vehicle_snapshot?.model || (booking.vehicle_id as any)?.model || "";
+    const brand =
+      booking.vehicle_snapshot?.brand ||
+      (booking.vehicle_id as any)?.brand ||
+      "";
+    const model =
+      booking.vehicle_snapshot?.model ||
+      (booking.vehicle_id as any)?.model ||
+      "";
     return `${brand} ${model}`.trim();
   };
 
@@ -98,7 +102,7 @@ const HistoryBookingDetailScreen = () => {
     if (!booking) return "";
     const snapshot = booking.station_snapshot;
     const stationObj = booking.station_id as any;
-    
+
     if (snapshot?.address) {
       return `${snapshot.address}, ${snapshot.city || ""}`.trim();
     }
@@ -113,7 +117,10 @@ const HistoryBookingDetailScreen = () => {
     const date = new Date(isoString);
     return {
       date: date.toLocaleDateString("vi-VN"),
-      time: date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      time: date.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -127,14 +134,14 @@ const HistoryBookingDetailScreen = () => {
 
   const handleRateBooking = () => {
     Alert.alert(
-      'Đánh giá phương tiện',
-      'Chức năng đánh giá đang được phát triển',
-      [{ text: 'OK' }]
+      "Đánh giá phương tiện",
+      "Chức năng đánh giá đang được phát triển",
+      [{ text: "OK" }]
     );
   };
 
   const handleBookAgain = () => {
-    setModalType('success');
+    setModalType("success");
     setModalVisible(true);
   };
 
@@ -146,59 +153,60 @@ const HistoryBookingDetailScreen = () => {
     setModalVisible(false);
     // Navigate to payment screen with vehicle info
     setTimeout(() => {
-      (navigation as any).navigate('BookingPayment', { 
-        vehicleId: booking?.vehicle_id || '2', // Use actual vehicle ID if available
+      (navigation as any).navigate("BookingPayment", {
+        vehicleId: booking?.vehicle_id || "2", // Use actual vehicle ID if available
       });
     }, 300);
   };
 
   const handleReportIssue = () => {
-    Alert.alert(
-      'Báo cáo vấn đề',
-      'Bạn có vấn đề gì với chuyến đi này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Xe bị hỏng' },
-        { text: 'Tính phí sai' },
-        { text: 'Vấn đề khác' },
-      ]
-    );
+    Alert.alert("Báo cáo vấn đề", "Bạn có vấn đề gì với chuyến đi này?", [
+      { text: "Hủy", style: "cancel" },
+      { text: "Xe bị hỏng" },
+      { text: "Tính phí sai" },
+      { text: "Vấn đề khác" },
+    ]);
   };
 
   const getStatusInfo = () => {
-    if (!booking) return { label: "", color: COLORS.textSecondary, icon: "information-circle" };
-    
+    if (!booking)
+      return {
+        label: "",
+        color: COLORS.textSecondary,
+        icon: "information-circle",
+      };
+
     switch (booking.status) {
-      case 'CANCELLED':
+      case "CANCELLED":
         return {
-          label: 'Đã hủy',
+          label: "Đã hủy",
           color: COLORS.error,
-          icon: 'close-circle',
+          icon: "close-circle",
         };
-      case 'EXPIRED':
+      case "EXPIRED":
         return {
-          label: 'Đã hết hạn',
+          label: "Đã hết hạn",
           color: COLORS.textSecondary,
-          icon: 'alert-circle',
+          icon: "alert-circle",
         };
-      case 'CONFIRMED':
+      case "CONFIRMED":
         return {
-          label: 'Hoàn thành',
+          label: "Hoàn thành",
           color: COLORS.success,
-          icon: 'checkmark-circle',
+          icon: "checkmark-circle",
         };
       default:
         return {
           label: booking.status,
           color: COLORS.textSecondary,
-          icon: 'information-circle',
+          icon: "information-circle",
         };
     }
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity
@@ -211,7 +219,7 @@ const HistoryBookingDetailScreen = () => {
             <View style={styles.menuButton} />
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.white} />
+            <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         </LinearGradient>
@@ -221,7 +229,7 @@ const HistoryBookingDetailScreen = () => {
 
   if (!booking) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity
@@ -234,7 +242,9 @@ const HistoryBookingDetailScreen = () => {
             <View style={styles.menuButton} />
           </View>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Không tìm thấy thông tin đặt chỗ</Text>
+            <Text style={styles.loadingText}>
+              Không tìm thấy thông tin đặt chỗ
+            </Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -246,16 +256,13 @@ const HistoryBookingDetailScreen = () => {
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
   const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
-  const totalPrice = booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
+  const totalPrice =
+    booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
 
   return (
-    
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <LinearGradient
-      colors={COLORS.gradient_4}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Header */}
+      <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -270,222 +277,274 @@ const HistoryBookingDetailScreen = () => {
           >
             <Ionicons name="ellipsis-vertical" size={24} color={COLORS.white} />
           </TouchableOpacity>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Status Banner */}
-        <View style={[styles.statusBanner, { backgroundColor: `${statusInfo.color}15` }]}>
-          <Ionicons name={statusInfo.icon as any} size={24} color={statusInfo.color} />
-          <Text style={[styles.statusText, { color: statusInfo.color }]}>
-            {statusInfo.label}
-          </Text>
         </View>
 
-        {/* Vehicle Card */}
-        <View style={styles.card}>
-          <Image source={{ uri: getVehicleImage() }} style={styles.vehicleImage} />
-          <View style={styles.vehicleInfo}>
-            <Text style={styles.vehicleName}>{getVehicleName()}</Text>
-            <Text style={styles.vehicleModel}>{getVehicleModel()}</Text>
-            <View style={styles.detailRow}>
-              <Ionicons name="car-outline" size={16} color={COLORS.textSecondary} />
-              <Text style={styles.detailText}>
-                {(booking.vehicle_id as any)?.license_plate || "N/A"}
-              </Text>
-            </View>
-            {booking.vehicle_snapshot?.battery_kWh && (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Status Banner */}
+          <View
+            style={[
+              styles.statusBanner,
+              { backgroundColor: `${statusInfo.color}15` },
+            ]}
+          >
+            <Ionicons
+              name={statusInfo.icon as any}
+              size={24}
+              color={statusInfo.color}
+            />
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
+          </View>
+
+          {/* Vehicle Card */}
+          <View style={styles.card}>
+            <Image
+              source={{ uri: getVehicleImage() }}
+              style={styles.vehicleImage}
+            />
+            <View style={styles.vehicleInfo}>
+              <Text style={styles.vehicleName}>{getVehicleName()}</Text>
+              <Text style={styles.vehicleModel}>{getVehicleModel()}</Text>
               <View style={styles.detailRow}>
-                <Ionicons name="battery-charging-outline" size={16} color={COLORS.primary} />
+                <Ionicons
+                  name="car-outline"
+                  size={16}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.detailText}>
-                  Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                  {(booking.vehicle_id as any)?.license_plate || "N/A"}
                 </Text>
               </View>
+              {booking.vehicle_snapshot?.battery_kWh && (
+                <View style={styles.detailRow}>
+                  <Ionicons
+                    name="battery-charging-outline"
+                    size={16}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.detailText}>
+                    Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Rating Section - For completed bookings only */}
+            {booking.status === "CONFIRMED" && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.ratingButton}
+                  onPress={handleRateBooking}
+                >
+                  <View style={styles.starsContainer}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons
+                        key={star}
+                        name={"star-outline"}
+                        size={24}
+                        color={COLORS.textTertiary}
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.ratingText}>Đánh giá phương tiện</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
 
-          {/* Rating Section - For completed bookings only */}
-          {booking.status === 'CONFIRMED' && (
-            <>
-              <View style={styles.divider} />
-              <TouchableOpacity style={styles.ratingButton} onPress={handleRateBooking}>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons
-                      key={star}
-                      name={'star-outline'}
-                      size={24}
-                      color={COLORS.textTertiary}
-                    />
-                  ))}
+          {/* Trip Details */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Thông tin chuyến đi</Text>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons
+                  name="barcode-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.infoLabelText}>Mã đặt chỗ</Text>
+              </View>
+              <Text style={styles.infoValue}>
+                {booking._id.slice(-8).toUpperCase()}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.tripTimeContainer}>
+              <View style={styles.tripTimeRow}>
+                <View style={styles.timePoint}>
+                  <View
+                    style={[
+                      styles.timeDot,
+                      { backgroundColor: COLORS.success },
+                    ]}
+                  />
+                  <View style={styles.timeLine} />
                 </View>
-                <Text style={styles.ratingText}>
-                  Đánh giá phương tiện
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {/* Trip Details */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Thông tin chuyến đi</Text>
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Ionicons name="barcode-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.infoLabelText}>Mã đặt chỗ</Text>
-            </View>
-            <Text style={styles.infoValue}>{booking._id.slice(-8).toUpperCase()}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.tripTimeContainer}>
-            <View style={styles.tripTimeRow}>
-              <View style={styles.timePoint}>
-                <View style={[styles.timeDot, { backgroundColor: COLORS.success }]} />
-                <View style={styles.timeLine} />
-              </View>
-              <View style={styles.timeContent}>
-                <Text style={styles.timeLabel}>Bắt đầu</Text>
-                <Text style={styles.timeValue}>
-                  {startDateTime.date} {startDateTime.time}
-                </Text>
-                {booking.vehicle_snapshot?.battery_kWh && (
-                  <Text style={styles.batteryInfo}>
-                    Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                <View style={styles.timeContent}>
+                  <Text style={styles.timeLabel}>Bắt đầu</Text>
+                  <Text style={styles.timeValue}>
+                    {startDateTime.date} {startDateTime.time}
                   </Text>
-                )}
+                  {booking.vehicle_snapshot?.battery_kWh && (
+                    <Text style={styles.batteryInfo}>
+                      Pin: {booking.vehicle_snapshot.battery_kWh} kWh
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.tripTimeRow}>
+                <View style={styles.timePoint}>
+                  <View
+                    style={[styles.timeDot, { backgroundColor: COLORS.error }]}
+                  />
+                </View>
+                <View style={styles.timeContent}>
+                  <Text style={styles.timeLabel}>Kết thúc</Text>
+                  <Text style={styles.timeValue}>
+                    {endDateTime.date} {endDateTime.time}
+                  </Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.tripTimeRow}>
-              <View style={styles.timePoint}>
-                <View style={[styles.timeDot, { backgroundColor: COLORS.error }]} />
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.infoLabelText}>Thời gian thuê</Text>
               </View>
-              <View style={styles.timeContent}>
-                <Text style={styles.timeLabel}>Kết thúc</Text>
-                <Text style={styles.timeValue}>
-                  {endDateTime.date} {endDateTime.time}
-                </Text>
+              <Text style={styles.infoValue}>{totalHours} giờ</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons
+                  name="location-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.infoLabelText}>Trạm</Text>
               </View>
+              <Text style={[styles.infoValue, styles.locationText]}>
+                {getStationName()}
+              </Text>
+            </View>
+            <Text style={styles.addressText}>{getStationAddress()}</Text>
+          </View>
+
+          {/* Payment Details */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Chi tiết thanh toán</Text>
+
+            <View style={styles.paymentRow}>
+              <Text style={styles.paymentLabel}>Phương thức</Text>
+              <Text style={styles.paymentValue}>
+                {booking.payment?.method || "Chưa thanh toán"}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.paymentRow}>
+              <Text style={styles.paymentLabel}>
+                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}đ)
+              </Text>
+              <Text style={styles.paymentValue}>
+                {totalPrice.toLocaleString("vi-VN")}đ
+              </Text>
+            </View>
+
+            <View style={styles.paymentRow}>
+              <Text style={styles.totalLabel}>Tổng cộng</Text>
+              <Text style={styles.totalValue}>
+                {totalPrice.toLocaleString("vi-VN")}đ
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Ionicons name="time-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.infoLabelText}>Thời gian thuê</Text>
-            </View>
-            <Text style={styles.infoValue}>
-              {totalHours} giờ
-            </Text>
+          {/* Receipt */}
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.receiptButton}
+              onPress={handleViewInvoice}
+            >
+              <Ionicons
+                name="receipt-outline"
+                size={24}
+                color={COLORS.primary}
+              />
+              <Text style={styles.receiptText}>Xem hóa đơn</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={COLORS.textSecondary}
+              />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.divider} />
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Ionicons name="location-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.infoLabelText}>Trạm</Text>
-            </View>
-            <Text style={[styles.infoValue, styles.locationText]}>{getStationName()}</Text>
+        {/* Bottom Action - Only for cancelled/expired bookings to rebook */}
+        {(booking.status === "CANCELLED" || booking.status === "EXPIRED") && (
+          <View style={styles.bottomContainer}>
+            <TouchableOpacity
+              style={styles.bookAgainButton}
+              onPress={handleBookAgain}
+            >
+              <Ionicons name="refresh-outline" size={20} color={COLORS.white} />
+              <Text style={styles.bookAgainButtonText}>Đặt lại xe này</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.addressText}>{getStationAddress()}</Text>
-        </View>
+        )}
 
-        {/* Payment Details */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Chi tiết thanh toán</Text>
-          
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Phương thức</Text>
-            <Text style={styles.paymentValue}>{booking.payment?.method || "Chưa thanh toán"}</Text>
-          </View>
+        {/* Success Modal */}
+        <StatusModal
+          visible={modalVisible}
+          type={modalType}
+          title="Đặt xe thành công!"
+          message="Xe đã được thêm vào giỏ hàng. Vui lòng hoàn tất thanh toán."
+          onClose={() => setModalVisible(false)}
+          actionButtonText="Xem đặt chỗ"
+          onActionPress={handleModalActionPress}
+        />
 
-          <View style={styles.divider} />
-
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>
-              Giá thuê ({totalHours}h x {hourlyRate.toLocaleString('vi-VN')}đ)
-            </Text>
-            <Text style={styles.paymentValue}>
-              {totalPrice.toLocaleString('vi-VN')}đ
-            </Text>
-          </View>
-
-          <View style={styles.paymentRow}>
-            <Text style={styles.totalLabel}>Tổng cộng</Text>
-            <Text style={styles.totalValue}>
-              {totalPrice.toLocaleString('vi-VN')}đ
-            </Text>
-          </View>
-        </View>
-
-        {/* Receipt */}
-        <View style={styles.card}>
-          <TouchableOpacity 
-            style={styles.receiptButton}
-            onPress={handleViewInvoice}
-          >
-            <Ionicons name="receipt-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.receiptText}>Xem hóa đơn</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Bottom Action - Only for cancelled/expired bookings to rebook */}
-      {(booking.status === 'CANCELLED' || booking.status === 'EXPIRED') && (
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            style={styles.bookAgainButton}
-            onPress={handleBookAgain}
-          >
-            <Ionicons name="refresh-outline" size={20} color={COLORS.white} />
-            <Text style={styles.bookAgainButtonText}>Đặt lại xe này</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Success Modal */}
-      <StatusModal
-        visible={modalVisible}
-        type={modalType}
-        title="Đặt xe thành công!"
-        message="Xe đã được thêm vào giỏ hàng. Vui lòng hoàn tất thanh toán."
-        onClose={() => setModalVisible(false)}
-        actionButtonText="Xem đặt chỗ"
-        onActionPress={handleModalActionPress}
-      />
-
-      {/* Invoice Modal */}
-      <InvoiceModal
-        visible={invoiceModalVisible}
-        onClose={() => setInvoiceModalVisible(false)}
-        bookingCode={booking._id.slice(-8).toUpperCase()} 
-        vehicleName={getVehicleName()}
-        vehicleModel={getVehicleModel()}
-        startDate={startDateTime.date}
-        endDate={endDateTime.date}
-        startTime={startDateTime.time}
-        endTime={endDateTime.time}
-        actualStartTime={startDateTime.time}
-        actualEndTime={endDateTime.time}
-        hourlyRate={hourlyRate}
-        totalHours={totalHours}
-        actualHours={totalHours}
-        totalPrice={totalPrice}
-        actualPrice={totalPrice}
-        paymentMethod={booking.payment?.method || "Chưa thanh toán"}
-        location={getStationName()}
-      />
+        {/* Invoice Modal */}
+        <InvoiceModal
+          visible={invoiceModalVisible}
+          onClose={() => setInvoiceModalVisible(false)}
+          bookingCode={booking._id.slice(-8).toUpperCase()}
+          vehicleName={getVehicleName()}
+          vehicleModel={getVehicleModel()}
+          startDate={startDateTime.date}
+          endDate={endDateTime.date}
+          startTime={startDateTime.time}
+          endTime={endDateTime.time}
+          actualStartTime={startDateTime.time}
+          actualEndTime={endDateTime.time}
+          hourlyRate={hourlyRate}
+          totalHours={totalHours}
+          actualHours={totalHours}
+          totalPrice={totalPrice}
+          actualPrice={totalPrice}
+          paymentMethod={booking.payment?.method || "Chưa thanh toán"}
+          location={getStationName()}
+        />
       </LinearGradient>
-      </SafeAreaView>
+    </SafeAreaView>
   );
 };
 
@@ -498,9 +557,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.primary,
@@ -510,30 +569,30 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: SPACING.md,
     gap: SPACING.sm,
   },
   statusText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   card: {
     backgroundColor: COLORS.white,
@@ -544,7 +603,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   vehicleImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     borderRadius: RADII.md,
     marginBottom: SPACING.md,
@@ -554,7 +613,7 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
   },
   vehicleModel: {
@@ -563,8 +622,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: SPACING.xs,
   },
   detailText: {
@@ -577,22 +636,22 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.md,
   },
   ratingButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: SPACING.sm,
   },
   starsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: SPACING.xs,
     marginBottom: SPACING.sm,
   },
   ratingText: {
     fontSize: FONTS.body,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.md,
   },
@@ -600,8 +659,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   infoLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: SPACING.sm,
     marginBottom: SPACING.xs,
   },
@@ -611,12 +670,12 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginLeft: 28,
   },
   locationText: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   addressText: {
     fontSize: FONTS.caption,
@@ -628,11 +687,11 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   tripTimeRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: SPACING.md,
   },
   timePoint: {
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: SPACING.md,
   },
   timeDot: {
@@ -656,7 +715,7 @@ const styles = StyleSheet.create({
   },
   timeValue: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
@@ -665,9 +724,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: SPACING.sm,
   },
   paymentLabel: {
@@ -677,34 +736,34 @@ const styles = StyleSheet.create({
   },
   paymentValue: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
   },
   totalLabel: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
   },
   totalValue: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   receiptButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: SPACING.sm,
   },
   receiptText: {
     flex: 1,
     fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.primary,
     marginLeft: SPACING.md,
   },
   bottomContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -714,9 +773,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.md,
   },
   bookAgainButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: SPACING.sm,
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
@@ -726,7 +785,7 @@ const styles = StyleSheet.create({
   },
   bookAgainButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   loadingContainer: {
@@ -738,7 +797,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: FONTS.bodyLarge,
     fontWeight: "600",
-    color: COLORS.white,
+    color: COLORS.primary,
     marginTop: SPACING.md,
   },
 });

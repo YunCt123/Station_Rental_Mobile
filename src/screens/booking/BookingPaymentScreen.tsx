@@ -142,8 +142,10 @@ const BookingPaymentScreen = () => {
       }
 
       // Check if vehicle is still available
-      if (vehicle.status !== 'AVAILABLE') {
-        throw new Error(`Xe không còn khả dụng. Trạng thái hiện tại: ${vehicle.status}`);
+      if (vehicle.status !== "AVAILABLE") {
+        throw new Error(
+          `Xe không còn khả dụng. Trạng thái hiện tại: ${vehicle.status}`
+        );
       }
 
       const { startAt, endAt } = calculateBookingTimes();
@@ -184,20 +186,26 @@ const BookingPaymentScreen = () => {
         },
       };
 
-      console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
+      console.log(
+        "Creating booking with data:",
+        JSON.stringify(bookingData, null, 2)
+      );
       const booking = await bookingService.createBooking(bookingData);
-      
+
       // Verify booking was created successfully
       if (!booking || !booking._id) {
         throw new Error("Booking không được tạo thành công");
       }
-      
-      console.log('Booking created:', booking);
+
+      console.log("Booking created:", booking);
       return booking._id;
     } catch (error: any) {
       console.error("Error creating booking:", error);
       // Extract error message from API response
-      const errorMessage = error.response?.data?.message || error.message || "Không thể tạo booking";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo booking";
       throw new Error(errorMessage);
     }
   };
@@ -211,13 +219,16 @@ const BookingPaymentScreen = () => {
       if (!bookingId) {
         throw new Error("Không thể tạo booking");
       }
-      
+
       setCreatedBookingId(bookingId);
 
       // Step 2: Create PayOS payment (NOT VNPay!)
       const amount = calculateTotal();
-      console.log('[handlePayOSPayment] Creating PayOS payment with amount:', amount);
-      
+      console.log(
+        "[handlePayOSPayment] Creating PayOS payment with amount:",
+        amount
+      );
+
       const response = await paymentService.createPayOSPayment({
         bookingId: bookingId,
         amount: amount,
@@ -225,19 +236,25 @@ const BookingPaymentScreen = () => {
         cancelUrl: `myapp://payment/cancel?bookingId=${bookingId}`,
       });
 
-      console.log('[handlePayOSPayment] Full payment response:', JSON.stringify(response, null, 2));
-      
+      console.log(
+        "[handlePayOSPayment] Full payment response:",
+        JSON.stringify(response, null, 2)
+      );
+
       // Backend returns: { payment, checkoutUrl, transaction_ref }
       const checkoutUrl = response?.checkoutUrl;
 
-      console.log('[handlePayOSPayment] Checkout URL:', checkoutUrl);
+      console.log("[handlePayOSPayment] Checkout URL:", checkoutUrl);
 
       // Step 3: Navigate to PayOS WebView
       if (checkoutUrl) {
         setIsProcessing(false);
-        
-        console.log('[handlePayOSPayment] Navigating to PayOSWebView with URL:', checkoutUrl);
-        
+
+        console.log(
+          "[handlePayOSPayment] Navigating to PayOSWebView with URL:",
+          checkoutUrl
+        );
+
         navigation.navigate("PayOSWebView", {
           paymentUrl: checkoutUrl,
           bookingId: bookingId,
@@ -245,18 +262,27 @@ const BookingPaymentScreen = () => {
           vehicleName: vehicle?.name || "Xe",
         });
       } else {
-        console.error('[handlePayOSPayment] No checkoutUrl in response:', response);
+        console.error(
+          "[handlePayOSPayment] No checkoutUrl in response:",
+          response
+        );
         throw new Error("Không nhận được URL thanh toán từ PayOS");
       }
     } catch (error: any) {
       console.error("[handlePayOSPayment] Error:", error);
-      console.error("[handlePayOSPayment] Error response:", error.response?.data);
+      console.error(
+        "[handlePayOSPayment] Error response:",
+        error.response?.data
+      );
       console.error("[handlePayOSPayment] Error message:", error.message);
       setIsProcessing(false);
-      
+
       // Extract error message from API response
-      const errorMessage = error.response?.data?.message || error.message || "Không thể khởi tạo thanh toán";
-      
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể khởi tạo thanh toán";
+
       setModalType("error");
       setModalTitle("Thanh toán thất bại");
       setModalMessage(errorMessage);
@@ -279,7 +305,7 @@ const BookingPaymentScreen = () => {
         amount
       );
 
-      console.log('[handleVNPAYPayment] Response:', response);
+      console.log("[handleVNPAYPayment] Response:", response);
 
       if (response?.checkoutUrl) {
         setIsProcessing(false);
@@ -384,7 +410,7 @@ const BookingPaymentScreen = () => {
             <View style={{ width: 40 }} />
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.white} />
+            <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Đang tải thông tin...</Text>
           </View>
         </LinearGradient>
@@ -582,7 +608,7 @@ const BookingPaymentScreen = () => {
             disabled={!selectedPayment || isProcessing}
           >
             {isProcessing ? (
-              <ActivityIndicator color={COLORS.white} />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
               <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
             )}
@@ -872,7 +898,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xxl,
   },
   loadingText: {
-    color: COLORS.white,
+    color: COLORS.primary,
     fontSize: FONTS.body,
     marginTop: SPACING.md,
   },
