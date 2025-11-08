@@ -71,7 +71,7 @@ const SearchScreen = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadAllVehicles(false); 
+    await loadAllVehicles(false);
     setRefreshing(false);
   }, []);
 
@@ -330,15 +330,14 @@ const SearchScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.white}
-              colors={[COLORS.white]}
-              progressBackgroundColor={COLORS.primary}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
             />
           }
         >
           {(loading || searchLoading) && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.white} />
+              <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={styles.loadingText}>
                 {loading ? "Đang tải xe..." : "Đang tìm kiếm..."}
               </Text>
@@ -472,7 +471,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xxl,
   },
   loadingText: {
-    color: COLORS.white,
+    color: COLORS.primary,
     marginTop: SPACING.md,
     fontSize: FONTS.body,
   },

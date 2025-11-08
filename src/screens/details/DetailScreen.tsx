@@ -16,11 +16,11 @@ import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { UIVehicle } from "../../services/vehicleService";
 import { vehicleService, mapVehicleToUI } from "../../services/vehicleService";
-import { 
-  VehicleInfoCard, 
-  PricingCard, 
-  FeaturesCard, 
-  SpecsCard, 
+import {
+  VehicleInfoCard,
+  PricingCard,
+  FeaturesCard,
+  SpecsCard,
   DescriptionCard,
   StatusBanner,
 } from "../../components/index";
@@ -61,8 +61,8 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
       const mappedVehicle = mapVehicleToUI(vehicleData);
       setVehicle(mappedVehicle);
     } catch (err) {
-      console.error('Error loading vehicle details:', err);
-      setError('Không thể tải thông tin xe');
+      console.error("Error loading vehicle details:", err);
+      setError("Không thể tải thông tin xe");
     } finally {
       setLoading(false);
     }
@@ -85,18 +85,20 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
           <Text style={styles.headerTitle}>Chi tiết xe</Text>
         </View>
 
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.white} />
+              <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={styles.loadingText}>Đang tải thông tin xe...</Text>
             </View>
           ) : !vehicle ? (
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Không tìm thấy thông tin xe</Text>
+              <Text style={styles.loadingText}>
+                Không tìm thấy thông tin xe
+              </Text>
             </View>
           ) : (
             <>
@@ -110,7 +112,7 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
               <PricingCard vehicle={vehicle} />
 
               {/* Specifications Card */}
-                <SpecsCard vehicle={vehicle} />
+              <SpecsCard vehicle={vehicle} />
 
               {/* Features Card */}
               <FeaturesCard vehicle={vehicle} />
@@ -122,7 +124,7 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
             </>
           )}
         </ScrollView>
-      {/* </LinearGradient> */}
+        {/* </LinearGradient> */}
         {/* Bottom Action Button */}
         {vehicle && (
           <View style={styles.bottomContainer}>
@@ -166,21 +168,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    position: 'absolute',
+    position: "absolute",
     zIndex: 10,
     bottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
-    textAlign: 'center', 
+    textAlign: "center",
   },
   bottomContainer: {
     paddingVertical: SPACING.xxl,
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -192,24 +194,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: RADII.button,
     paddingVertical: SPACING.md,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.sm,
     marginTop: -SPACING.md,
   },
   rentButtonText: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: SPACING.xxl,
     minHeight: 400,
   },
   loadingText: {
-    color: COLORS.white,
+    color: COLORS.primary,
     marginTop: SPACING.md,
     fontSize: FONTS.body,
   },

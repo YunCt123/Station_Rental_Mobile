@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import QRCodeModal from "../../components/common/QRCodeModal";
+import StatusModal from "../../components/common/StatusModal";
 import QRCode from "react-native-qrcode-svg";
 import { bookingService } from "../../services/bookingService";
 import { Booking } from "../../types/booking";
@@ -31,6 +32,8 @@ const ActiveBookingDetailScreen = () => {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Load booking details from API
   useEffect(() => {
@@ -40,17 +43,14 @@ const ActiveBookingDetailScreen = () => {
   const loadBookingDetails = async () => {
     try {
       setLoading(true);
-      console.log('[ActiveBookingDetail] Loading booking:', bookingId);
+      console.log("[ActiveBookingDetail] Loading booking:", bookingId);
       const data = await bookingService.getBookingById(bookingId);
-      console.log('[ActiveBookingDetail] Booking data:', data);
+      console.log("[ActiveBookingDetail] Booking data:", data);
       setBooking(data);
     } catch (error: any) {
-      console.error('[ActiveBookingDetail] Error loading booking:', error);
-      Alert.alert(
-        "Lỗi",
-        "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
+      console.error("[ActiveBookingDetail] Error loading booking:", error);
+      setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -78,8 +78,14 @@ const ActiveBookingDetailScreen = () => {
 
   const getVehicleModel = () => {
     if (!booking) return "";
-    const brand = booking.vehicle_snapshot?.brand || (booking.vehicle_id as any)?.brand || "";
-    const model = booking.vehicle_snapshot?.model || (booking.vehicle_id as any)?.model || "";
+    const brand =
+      booking.vehicle_snapshot?.brand ||
+      (booking.vehicle_id as any)?.brand ||
+      "";
+    const model =
+      booking.vehicle_snapshot?.model ||
+      (booking.vehicle_id as any)?.model ||
+      "";
     return `${brand} ${model}`.trim();
   };
 
@@ -96,7 +102,7 @@ const ActiveBookingDetailScreen = () => {
     if (!booking) return "";
     const snapshot = booking.station_snapshot;
     const stationObj = booking.station_id as any;
-    
+
     if (snapshot?.address) {
       return `${snapshot.address}, ${snapshot.city || ""}`.trim();
     }
@@ -111,7 +117,10 @@ const ActiveBookingDetailScreen = () => {
     const date = new Date(isoString);
     return {
       date: date.toLocaleDateString("vi-VN"),
-      time: date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      time: date.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -125,7 +134,7 @@ const ActiveBookingDetailScreen = () => {
 
   const handleCancelBooking = async () => {
     if (!booking) return;
-    
+
     Alert.alert(
       "Hủy đặt chỗ",
       "Bạn có chắc chắn muốn hủy đặt chỗ này? Tiền sẽ được hoàn lại trong 3-5 ngày làm việc.",
@@ -158,8 +167,13 @@ const ActiveBookingDetailScreen = () => {
   };
 
   const getStatusInfo = () => {
-    if (!booking) return { label: "", color: COLORS.textSecondary, icon: "information-circle" };
-    
+    if (!booking)
+      return {
+        label: "",
+        color: COLORS.textSecondary,
+        icon: "information-circle",
+      };
+
     switch (booking.status) {
       case "CONFIRMED":
         return {
@@ -209,7 +223,7 @@ const ActiveBookingDetailScreen = () => {
             <View style={styles.menuButton} />
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.white} />
+            <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         </LinearGradient>
@@ -232,7 +246,9 @@ const ActiveBookingDetailScreen = () => {
             <View style={styles.menuButton} />
           </View>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Không tìm thấy thông tin đặt chỗ</Text>
+            <Text style={styles.loadingText}>
+              Không tìm thấy thông tin đặt chỗ
+            </Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -244,7 +260,8 @@ const ActiveBookingDetailScreen = () => {
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
   const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
-  const totalPrice = booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
+  const totalPrice =
+    booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -335,7 +352,9 @@ const ActiveBookingDetailScreen = () => {
                 />
                 <Text style={styles.infoLabelText}>Mã đặt chỗ</Text>
               </View>
-              <Text style={styles.infoValue}>{booking._id.slice(-8).toUpperCase()}</Text>
+              <Text style={styles.infoValue}>
+                {booking._id.slice(-8).toUpperCase()}
+              </Text>
             </View>
 
             <View style={styles.divider} />
@@ -417,14 +436,32 @@ const ActiveBookingDetailScreen = () => {
               <Text style={styles.paymentLabel}>Trạng thái</Text>
               <View style={styles.paidBadge}>
                 <Ionicons
-                  name={booking.payment?.status === "SUCCESS" ? "checkmark-circle" : "time"}
+                  name={
+                    booking.payment?.status === "SUCCESS"
+                      ? "checkmark-circle"
+                      : "time"
+                  }
                   size={16}
-                  color={booking.payment?.status === "SUCCESS" ? COLORS.success : COLORS.warning}
+                  color={
+                    booking.payment?.status === "SUCCESS"
+                      ? COLORS.success
+                      : COLORS.warning
+                  }
                 />
-                <Text style={[styles.paidText, { 
-                  color: booking.payment?.status === "SUCCESS" ? COLORS.success : COLORS.warning 
-                }]}>
-                  {booking.payment?.status === "SUCCESS" ? "Đã thanh toán" : "Chờ thanh toán"}
+                <Text
+                  style={[
+                    styles.paidText,
+                    {
+                      color:
+                        booking.payment?.status === "SUCCESS"
+                          ? COLORS.success
+                          : COLORS.warning,
+                    },
+                  ]}
+                >
+                  {booking.payment?.status === "SUCCESS"
+                    ? "Đã thanh toán"
+                    : "Chờ thanh toán"}
                 </Text>
               </View>
             </View>
@@ -433,8 +470,7 @@ const ActiveBookingDetailScreen = () => {
 
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>
-                Giá thuê ({totalHours}h x{" "}
-                {hourlyRate.toLocaleString("vi-VN")}đ)
+                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}đ)
               </Text>
               <Text style={styles.paymentValue}>
                 {totalPrice.toLocaleString("vi-VN")}đ
@@ -523,6 +559,18 @@ const ActiveBookingDetailScreen = () => {
           vehicleName={`${getVehicleName()} ${getVehicleModel()}`}
           location={getStationAddress()}
           pickupTime={`${startDateTime.date} ${startDateTime.time}`}
+        />
+
+        {/* Error Modal */}
+        <StatusModal
+          visible={errorModalVisible}
+          type="error"
+          title="Lỗi"
+          message={errorMessage}
+          onClose={() => {
+            setErrorModalVisible(false);
+            navigation.goBack();
+          }}
         />
       </LinearGradient>
     </SafeAreaView>
@@ -732,7 +780,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: FONTS.bodyLarge,
     fontWeight: "600",
-    color: COLORS.white,
+    color: COLORS.primary,
     marginTop: SPACING.md,
   },
   bottomContainer: {

@@ -17,6 +17,7 @@ import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { Station } from "../../types/station";
 import { stationApi } from "../../api/stationApi";
 import { StationMarkerCard } from "../../components";
+import StatusModal from "../../components/common/StatusModal";
 
 const { width, height } = Dimensions.get("window");
 const ASPECT_RATIO = width / height;
@@ -41,6 +42,8 @@ const MapScreenWithMap = () => {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     requestLocationPermission();
@@ -55,12 +58,12 @@ const MapScreenWithMap = () => {
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== "granted") {
-        Alert.alert(
-          "Quyền truy cập vị trí",
+        setErrorMessage(
           "Vui lòng cấp quyền truy cập vị trí để xem các trạm gần bạn"
         );
+        setErrorModalVisible(true);
         setLoading(false);
         return;
       }
@@ -85,12 +88,17 @@ const MapScreenWithMap = () => {
       });
     } catch (error) {
       console.error("Error getting location:", error);
-      Alert.alert("Lỗi", "Không thể lấy vị trí của bạn");
+      setErrorMessage("Không thể lấy vị trí của bạn");
+      setErrorModalVisible(true);
       setLoading(false);
     }
   };
 
-  const fetchNearbyStations = async (lng: number, lat: number, radiusKm: number = 10) => {
+  const fetchNearbyStations = async (
+    lng: number,
+    lat: number,
+    radiusKm: number = 10
+  ) => {
     try {
       setLoading(true);
       const nearbyStations = await stationApi.getNearbyStations({
@@ -100,8 +108,9 @@ const MapScreenWithMap = () => {
       });
       setStations(nearbyStations);
     } catch (error) {
-      console.error("Error fetching stations:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách trạm");
+      console.error("Error fetching nearby stations:", error);
+      setErrorMessage("Không thể tải danh sách trạm");
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -120,7 +129,7 @@ const MapScreenWithMap = () => {
 
   const handleMarkerPress = (station: Station) => {
     setSelectedStation(station);
-    
+
     // Animate to marker
     if (mapRef.current) {
       mapRef.current.animateToRegion({
@@ -180,10 +189,7 @@ const MapScreenWithMap = () => {
               )}
             </View>
 
-            <Callout
-              tooltip
-              onPress={() => handleStationPress(station._id)}
-            >
+            <Callout tooltip onPress={() => handleStationPress(station._id)}>
               <StationMarkerCard
                 station={station}
                 onPress={() => handleStationPress(station._id)}
@@ -225,11 +231,15 @@ const MapScreenWithMap = () => {
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: COLORS.primary }]}
+          />
           <Text style={styles.legendText}>Còn xe</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: COLORS.warning }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: COLORS.warning }]}
+          />
           <Text style={styles.legendText}>Sắp hết</Text>
         </View>
         <View style={styles.legendItem}>
@@ -244,6 +254,15 @@ const MapScreenWithMap = () => {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       )}
+
+      {/* Error Modal */}
+      <StatusModal
+        visible={errorModalVisible}
+        type="error"
+        title="Lỗi"
+        message={errorMessage}
+        onClose={() => setErrorModalVisible(false)}
+      />
     </View>
   );
 };

@@ -15,6 +15,7 @@ import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
 import BookingCard from "../../components/booking/BookingCard";
 import EmptyState from "../../components/booking/EmptyState";
 import BookingFilterTabs from "../../components/booking/BookingFilterTabs";
+import StatusModal from "../../components/common/StatusModal";
 import { Booking } from "../../types/booking";
 import { bookingService } from "../../services/bookingService";
 
@@ -24,36 +25,52 @@ const BookingsScreen = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   /** Lấy danh sách booking */
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
 
-      console.log('[BookingsScreen] Active tab:', activeTab);
+      console.log("[BookingsScreen] Active tab:", activeTab);
 
       // Use status filter on the main /bookings endpoint. Backend doesn't provide /bookings/active or /bookings/history.
       const params = {
-        status:
-          activeTab === 'active' ? 'HELD,CONFIRMED' : 'CANCELLED,EXPIRED',
+        status: activeTab === "active" ? "HELD,CONFIRMED" : "CANCELLED,EXPIRED",
         limit: 50,
       };
 
-      console.log('[BookingsScreen] Calling bookingService.getUserBookings with params:', params);
+      console.log(
+        "[BookingsScreen] Calling bookingService.getUserBookings with params:",
+        params
+      );
       const result = await bookingService.getUserBookings(params);
 
-      console.log(`[BookingsScreen] Final result: ${result?.length || 0} ${activeTab} bookings`);
+      console.log(
+        `[BookingsScreen] Final result: ${
+          result?.length || 0
+        } ${activeTab} bookings`
+      );
       if (result && result.length > 0) {
-        console.log('[BookingsScreen] First booking:', result[0]);
+        console.log("[BookingsScreen] First booking:", result[0]);
       }
 
       // If backend returned empty for filtered request, try fetching all bookings and filter client-side
       if ((!result || result.length === 0) && params.status) {
-        console.warn('[BookingsScreen] No bookings returned for filtered request. Falling back to fetch all and filter client-side.');
+        console.warn(
+          "[BookingsScreen] No bookings returned for filtered request. Falling back to fetch all and filter client-side."
+        );
         const all = await bookingService.getUserBookings();
-        const statusList = (params.status as string).split(',').map(s => s.trim().toUpperCase());
-        const filtered = (all || []).filter(b => statusList.includes((b.status || '').toString().toUpperCase()));
-        console.log(`[BookingsScreen] Fallback filtered result: ${filtered.length}`);
+        const statusList = (params.status as string)
+          .split(",")
+          .map((s) => s.trim().toUpperCase());
+        const filtered = (all || []).filter((b) =>
+          statusList.includes((b.status || "").toString().toUpperCase())
+        );
+        console.log(
+          `[BookingsScreen] Fallback filtered result: ${filtered.length}`
+        );
         setBookings(filtered);
       } else {
         setBookings(result || []);
@@ -61,11 +78,11 @@ const BookingsScreen = () => {
     } catch (error: any) {
       console.error("❌ Error fetching bookings:", error);
       console.error("❌ Error response:", error.response?.data);
-      
-      Alert.alert(
-        "Lỗi",
+
+      setErrorMessage(
         error.response?.data?.message || "Không thể tải danh sách đặt chỗ"
       );
+      setErrorModalVisible(true);
       setBookings([]);
     } finally {
       setLoading(false);
@@ -91,7 +108,7 @@ const BookingsScreen = () => {
   };
 
   const handleBookingPress = (booking: Booking) => {
-    console.log('[BookingsScreen] Booking pressed:', {
+    console.log("[BookingsScreen] Booking pressed:", {
       id: booking._id,
       status: booking.status,
     });
@@ -101,13 +118,19 @@ const BookingsScreen = () => {
         ? "ActiveBookingDetail"
         : "HistoryBookingDetail";
 
-    console.log('[BookingsScreen] Navigating to:', screenName, 'with bookingId:', booking._id);
+    console.log(
+      "[BookingsScreen] Navigating to:",
+      screenName,
+      "with bookingId:",
+      booking._id
+    );
 
     try {
       (navigation as any).navigate(screenName, { bookingId: booking._id });
     } catch (error) {
-      console.error('[BookingsScreen] Navigation error:', error);
-      Alert.alert('Lỗi', 'Không thể mở chi tiết booking');
+      console.error("[BookingsScreen] Navigation error:", error);
+      setErrorMessage("Không thể mở chi tiết booking");
+      setErrorModalVisible(true);
     }
   };
 
@@ -118,7 +141,10 @@ const BookingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <LinearGradient colors={COLORS.gradient_4} style={styles.gradientBackground}>
+      <LinearGradient
+        colors={COLORS.gradient_4}
+        style={styles.gradientBackground}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Đặt chỗ của tôi</Text>
@@ -144,10 +170,7 @@ const BookingsScreen = () => {
               data={bookings}
               keyExtractor={(item) => item._id}
               renderItem={({ item }) => (
-                <BookingCard
-                  booking={item}
-                  onPress={handleBookingPress}
-                />
+                <BookingCard booking={item} onPress={handleBookingPress} />
               )}
               refreshControl={
                 <RefreshControl
@@ -164,6 +187,15 @@ const BookingsScreen = () => {
           )}
         </View>
       </LinearGradient>
+
+      {/* Error Modal */}
+      <StatusModal
+        visible={errorModalVisible}
+        type="error"
+        title="Lỗi"
+        message={errorMessage}
+        onClose={() => setErrorModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };

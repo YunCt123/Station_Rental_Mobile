@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: SPACING.md,
     fontSize: FONTS.body,
-    color: COLORS.textSecondary,
+    color: COLORS.primary,
   },
   scrollView: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,22 +6,22 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SPACING, FONTS, SHADOWS } from '../../utils/theme';
-import { FeaturedVehicles, AvailableVehicles } from '../../components';
-import { RootStackParamList } from '../../types/navigation';
-import { UIVehicle } from '../../services/vehicleService';
-import { vehicleService, mapVehiclesToUI } from '../../services/vehicleService';
+} from "react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
+import { FeaturedVehicles, AvailableVehicles } from "../../components";
+import { RootStackParamList } from "../../types/navigation";
+import { UIVehicle } from "../../services/vehicleService";
+import { vehicleService, mapVehiclesToUI } from "../../services/vehicleService";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const [greeting, setGreeting] = useState('');
+  const [greeting, setGreeting] = useState("");
   const [availableVehicles, setAvailableVehicles] = useState<UIVehicle[]>([]);
   const [featuredVehicles, setFeaturedVehicles] = useState<UIVehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +31,9 @@ const HomeScreen = () => {
   // Set greeting based on time of day
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Chào buổi sáng');
-    else if (hour < 18) setGreeting('Chào buổi chiều');
-    else setGreeting('Chào buổi tối');
+    if (hour < 12) setGreeting("Chào buổi sáng");
+    else if (hour < 18) setGreeting("Chào buổi chiều");
+    else setGreeting("Chào buổi tối");
   }, []);
 
   // Reload vehicles every time the screen comes into focus
@@ -58,8 +58,8 @@ const HomeScreen = () => {
       const featuredData = mapVehiclesToUI(featured);
       setFeaturedVehicles(featuredData);
     } catch (err) {
-      console.error('Error loading vehicles:', err);
-      setError('Không thể tải danh sách xe');
+      console.error("Error loading vehicles:", err);
+      setError("Không thể tải danh sách xe");
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -73,11 +73,11 @@ const HomeScreen = () => {
   }, []);
 
   const handleVehiclePress = (vehicleId: string) => {
-    navigation.navigate('VehicleDetails', { vehicleId });
+    navigation.navigate("VehicleDetails", { vehicleId });
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top',]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient
         colors={COLORS.gradient_4}
         style={styles.gradientBackground}
@@ -90,35 +90,35 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.white}
-              colors={[COLORS.white]}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
               progressBackgroundColor={COLORS.primary}
             />
           }
         >
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.white} />
+              <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={styles.loadingText}>Đang tải xe...</Text>
             </View>
           ) : (
             <>
               {/* Featured Vehicles */}
-              <FeaturedVehicles 
-                vehicles={featuredVehicles} 
-                onVehiclePress={handleVehiclePress} 
+              <FeaturedVehicles
+                vehicles={featuredVehicles}
+                onVehiclePress={handleVehiclePress}
               />
 
               {/* Available Vehicles */}
-              <AvailableVehicles 
-                vehicles={availableVehicles} 
-                onVehiclePress={handleVehiclePress} 
+              <AvailableVehicles
+                vehicles={availableVehicles}
+                onVehiclePress={handleVehiclePress}
               />
             </>
           )}
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: SPACING.screenPadding,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.primary,
@@ -147,23 +147,23 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: FONTS.title,
-    fontWeight: '800',
+    fontWeight: "800",
     color: COLORS.white,
   },
   subtitle: {
     fontSize: FONTS.body,
     color: COLORS.white,
     marginTop: SPACING.xs,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: SPACING.xxl,
   },
   loadingText: {
-    color: COLORS.white,
+    color: COLORS.primary,
     marginTop: SPACING.md,
     fontSize: FONTS.body,
   },
