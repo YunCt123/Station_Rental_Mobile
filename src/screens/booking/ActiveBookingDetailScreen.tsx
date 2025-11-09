@@ -470,17 +470,18 @@ const ActiveBookingDetailScreen = () => {
 
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>
-                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}đ)
+                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}{" "}
+                VND)
               </Text>
               <Text style={styles.paymentValue}>
-                {totalPrice.toLocaleString("vi-VN")}đ
+                {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
 
             <View style={styles.paymentRow}>
               <Text style={styles.totalLabel}>Tổng cộng</Text>
               <Text style={styles.totalValue}>
-                {totalPrice.toLocaleString("vi-VN")}đ
+                {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
           </View>

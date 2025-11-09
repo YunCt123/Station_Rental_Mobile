@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 
 interface InvoiceModalProps {
   visible: boolean;
@@ -63,8 +63,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableOpacity 
-          style={styles.overlayBackground} 
+        <TouchableOpacity
+          style={styles.overlayBackground}
           activeOpacity={1}
           onPress={onClose}
         />
@@ -73,21 +73,22 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Hóa đơn chi tiết</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={onClose}
-              >
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
             >
               {/* Invoice Header */}
               <View style={styles.invoiceHeader}>
-                <Ionicons name="receipt-outline" size={48} color={COLORS.primary} />
+                <Ionicons
+                  name="receipt-outline"
+                  size={48}
+                  color={COLORS.primary}
+                />
                 <Text style={styles.invoiceTitle}>Station Rental</Text>
                 <Text style={styles.invoiceSubtitle}>Hóa đơn thanh toán</Text>
               </View>
@@ -103,7 +104,9 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <Text style={styles.sectionTitle}>Thông tin xe</Text>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Xe</Text>
-                  <Text style={styles.infoValue}>{vehicleName} {vehicleModel}</Text>
+                  <Text style={styles.infoValue}>
+                    {vehicleName} {vehicleModel}
+                  </Text>
                 </View>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Trạm</Text>
@@ -135,7 +138,9 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <Text style={styles.sectionTitle}>Chi tiết giá</Text>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Đơn giá</Text>
-                  <Text style={styles.priceValue}>{hourlyRate.toLocaleString('vi-VN')}đ/giờ</Text>
+                  <Text style={styles.priceValue}>
+                    {hourlyRate.toLocaleString("vi-VN")} VND/giờ
+                  </Text>
                 </View>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Số giờ thuê</Text>
@@ -146,24 +151,27 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     <View style={styles.priceRow}>
                       <Text style={styles.priceLabel}>Dự tính</Text>
                       <Text style={[styles.priceValue, styles.strikethrough]}>
-                        {totalPrice.toLocaleString('vi-VN')}đ
+                        {totalPrice.toLocaleString("vi-VN")} VND
                       </Text>
                     </View>
                     <View style={styles.priceRow}>
                       <Text style={styles.priceLabel}>Điều chỉnh</Text>
-                      <Text style={[styles.priceValue, { color: COLORS.success }]}>
-                        -{(totalPrice - actualPrice).toLocaleString('vi-VN')}đ
+                      <Text
+                        style={[styles.priceValue, { color: COLORS.success }]}
+                      >
+                        -{(totalPrice - actualPrice).toLocaleString("vi-VN")}{" "}
+                        VND
                       </Text>
                     </View>
                   </>
                 )}
-                
+
                 <View style={styles.divider} />
-                
+
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Tổng cộng</Text>
                   <Text style={styles.totalValue}>
-                    {finalPrice.toLocaleString('vi-VN')}đ
+                    {finalPrice.toLocaleString("vi-VN")} VND
                   </Text>
                 </View>
               </View>
@@ -178,7 +186,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Trạng thái</Text>
                   <View style={styles.paidBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color={COLORS.success}
+                    />
                     <Text style={styles.paidText}>Đã thanh toán</Text>
                   </View>
                 </View>
@@ -186,7 +198,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
               {/* Footer Note */}
               <View style={styles.footerNote}>
-                <Ionicons name="information-circle-outline" size={20} color={COLORS.textSecondary} />
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.footerText}>
                   Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
                 </Text>
@@ -202,7 +218,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 style={styles.downloadButton}
                 onPress={() => {}}
               >
-                <Ionicons name="download-outline" size={20} color={COLORS.primary} />
+                <Ionicons
+                  name="download-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
                 <Text style={styles.downloadButtonText}>Tải xuống PDF</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -222,29 +242,29 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   overlayBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   modalContainer: {
-    maxHeight: '92%',
+    maxHeight: "92%",
   },
   modalContent: {
     backgroundColor: COLORS.white,
     borderTopLeftRadius: RADII.xl,
     borderTopRightRadius: RADII.xl,
     ...SHADOWS.lg,
-    height: '100%',
+    height: "100%",
   },
   scrollContent: {
     paddingBottom: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,
@@ -253,27 +273,27 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FONTS.title,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
-    textAlign: 'center'
+    textAlign: "center",
   },
   closeButton: {
     width: 36,
     height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   invoiceHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: SPACING.xl,
-    backgroundColor: COLORS.primary + '08',
+    backgroundColor: COLORS.primary + "08",
     marginTop: SPACING.md,
     marginHorizontal: SPACING.lg,
     borderRadius: RADII.md,
   },
   invoiceTitle: {
     fontSize: FONTS.header,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
     marginTop: SPACING.sm,
   },
@@ -283,7 +303,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   codeSection: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: SPACING.lg,
   },
   codeLabel: {
@@ -293,7 +313,7 @@ const styles = StyleSheet.create({
   },
   codeValue: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
     letterSpacing: 1,
   },
@@ -303,14 +323,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.md,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
@@ -323,14 +343,14 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: FONTS.body,
     color: COLORS.text,
-    fontWeight: '500',
+    fontWeight: "500",
     flex: 2,
-    textAlign: 'right',
+    textAlign: "right",
   },
   priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: SPACING.sm,
   },
   priceLabel: {
@@ -339,11 +359,11 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
   },
   strikethrough: {
-    textDecorationLine: 'line-through',
+    textDecorationLine: "line-through",
     color: COLORS.textTertiary,
   },
   divider: {
@@ -352,38 +372,38 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.md,
   },
   totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: SPACING.sm,
   },
   totalLabel: {
     fontSize: FONTS.bodyLarge,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.text,
   },
   totalValue: {
     fontSize: FONTS.header,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   paidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: SPACING.xs,
-    backgroundColor: COLORS.success + '15',
+    backgroundColor: COLORS.success + "15",
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: RADII.sm,
   },
   paidText: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.success,
   },
   footerNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     padding: SPACING.md,
     marginHorizontal: SPACING.lg,
@@ -397,7 +417,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   actionButtonContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.xxl,
@@ -406,10 +426,10 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary + '15',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary + "15",
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
     gap: SPACING.xs,
@@ -417,7 +437,7 @@ const styles = StyleSheet.create({
   },
   downloadButtonText: {
     fontSize: FONTS.body,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.primary,
   },
   closeActionButton: {
@@ -425,13 +445,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: SPACING.md,
     borderRadius: RADII.button,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.sm,
     marginTop: -SPACING.sm,
   },
   closeActionButtonText: {
     fontSize: FONTS.body,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.white,
   },
 });

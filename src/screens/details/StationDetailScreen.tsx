@@ -267,7 +267,7 @@ export const StationDetailScreen = () => {
                 </View>
                 <View style={styles.vehiclePrice}>
                   <Text style={styles.priceAmount}>
-                    {vehicle.pricePerHour.toLocaleString()}đ
+                    {vehicle.pricePerHour.toLocaleString("vi-VN")} VND
                   </Text>
                   <Text style={styles.priceUnit}>/giờ</Text>
                 </View>
