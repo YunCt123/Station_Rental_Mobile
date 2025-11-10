@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +17,7 @@ import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { UIVehicle } from "../../services/vehicleService";
 import { vehicleService, mapVehicleToUI } from "../../services/vehicleService";
+import { authService } from "../../services/authService";
 import {
   VehicleInfoCard,
   PricingCard,
@@ -66,6 +68,63 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBooking = async () => {
+    if (!vehicle) return;
+
+    // Check authentication first
+    const isAuth = await authService.isAuthenticated();
+    if (!isAuth) {
+      Alert.alert(
+        "Yêu cầu đăng nhập",
+        "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
+        [
+          {
+            text: "Đăng nhập",
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+        ]
+      );
+      return;
+    }
+
+    // Double check: verify user data exists
+    const user = await authService.getStoredUser();
+    if (!user || !user.id) {
+      Alert.alert(
+        "Lỗi xác thực",
+        "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
+        [
+          {
+            text: "Đăng nhập",
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+        ]
+      );
+      return;
+    }
+
+    // If authenticated, proceed to booking
+    navigation.navigate("BookingPayment", { vehicleId: vehicle.id });
   };
 
   return (
@@ -134,9 +193,7 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
                 { opacity: vehicle.status === "AVAILABLE" ? 1 : 0.5 },
               ]}
               disabled={vehicle.status !== "AVAILABLE"}
-              onPress={() =>
-                navigation.navigate("BookingPayment", { vehicleId: vehicle.id })
-              }
+              onPress={handleBooking}
             >
               <Text style={styles.rentButtonText}>Đặt xe ngay</Text>
             </TouchableOpacity>

@@ -186,12 +186,13 @@ const RegisterScreen = () => {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Chọn ngày sinh"
+                  placeholder="MM/DD/YYYY"
                   placeholderTextColor={COLORS.textSecondary}
                   value={dateOfBirth}
                   onChangeText={setDateOfBirth}
                 />
               </View>
+              <Text style={styles.inputNote}>Định dạng: MM/DD/YYYY (Ví dụ: 01/15/1990)</Text>
             </View>
 
             
@@ -396,6 +397,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.text,
     marginBottom: SPACING.xs,
+  },
+  inputNote: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    fontStyle: 'italic',
   },
   inputWrapper: {
     flexDirection: "row",

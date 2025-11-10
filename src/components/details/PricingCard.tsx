@@ -21,7 +21,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ vehicle }) => {
           <View style={styles.priceInfo}>
             <Text style={styles.priceLabel}>Giá theo giờ</Text>
             <Text style={styles.priceValue}>
-              {vehicle.pricePerHour.toLocaleString()}$/h
+              {vehicle.pricePerHour.toLocaleString()}đ/h
             </Text>
           </View>
         </View>
@@ -35,7 +35,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ vehicle }) => {
           <View style={styles.priceInfo}>
             <Text style={styles.priceLabel}>Giá theo ngày</Text>
             <Text style={styles.priceValue}>
-              {vehicle.pricePerDay.toLocaleString()}$/ngày
+              {vehicle.pricePerDay.toLocaleString()}đ/ngày
             </Text>
           </View>
         </View>
