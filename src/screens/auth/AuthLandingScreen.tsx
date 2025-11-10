@@ -83,7 +83,8 @@ const AuthLandingScreen = () => {
             <Text style={styles.secondaryButtonText}>Đăng ký</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* Guest mode disabled - users must login to book vehicles */}
+          {/* <TouchableOpacity
             style={styles.guestButton}
             onPress={() => navigation.navigate('MainTabs')}
           >
@@ -91,7 +92,7 @@ const AuthLandingScreen = () => {
               Tiếp tục không cần đăng nhập
             </Text>
             <Ionicons name="arrow-forward" size={16} color={COLORS.white} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </LinearGradient>
     </View>

@@ -56,7 +56,14 @@ const BookingPaymentScreen = () => {
 
   // Check authentication on mount
   useEffect(() => {
-    checkAuthentication();
+    const initAuth = async () => {
+      const authenticated = await checkAuthentication();
+      if (!authenticated) {
+        // User will be redirected by checkAuthentication
+        return;
+      }
+    };
+    initAuth();
   }, []);
 
   // Load vehicle details
@@ -65,11 +72,64 @@ const BookingPaymentScreen = () => {
   }, [vehicleId]);
 
   const checkAuthentication = async () => {
-    const isAuth = await authService.isAuthenticated();
-    if (!isAuth) {
+    try {
+      const isAuth = await authService.isAuthenticated();
+      if (!isAuth) {
+        Alert.alert(
+          "Yêu cầu đăng nhập",
+          "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
+          [
+            {
+              text: "Đăng nhập",
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+            {
+              text: "Hủy",
+              style: "cancel",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+        return false;
+      }
+
+      // Double check: verify user data exists
+      const user = await authService.getStoredUser();
+      if (!user || !user.id) {
+        Alert.alert(
+          "Lỗi xác thực",
+          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
+          [
+            {
+              text: "Đăng nhập",
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
+            },
+            {
+              text: "Hủy",
+              style: "cancel",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Authentication check error:", error);
       Alert.alert(
-        "Yêu cầu đăng nhập",
-        "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
+        "Lỗi",
+        "Không thể xác thực. Vui lòng đăng nhập lại.",
         [
           {
             text: "Đăng nhập",
@@ -87,6 +147,7 @@ const BookingPaymentScreen = () => {
           },
         ]
       );
+      return false;
     }
   };
 
@@ -332,27 +393,9 @@ const BookingPaymentScreen = () => {
   /** --- HANDLE CONFIRM --- **/
   const handleConfirmBooking = async () => {
     // Kiểm tra authentication trước
-    const isAuth = await authService.isAuthenticated();
+    const isAuth = await checkAuthentication();
     if (!isAuth) {
-      Alert.alert(
-        "Yêu cầu đăng nhập",
-        "Bạn cần đăng nhập để đặt xe. Vui lòng đăng nhập và thử lại.",
-        [
-          {
-            text: "Đăng nhập",
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-              });
-            },
-          },
-          {
-            text: "Hủy",
-            style: "cancel",
-          },
-        ]
-      );
+      // User will be redirected by checkAuthentication
       return;
     }
 

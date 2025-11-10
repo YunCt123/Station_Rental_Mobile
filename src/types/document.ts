@@ -1,5 +1,5 @@
 export type DocumentType =
-  | 'DRIVER_LICENSE'
+  | 'DRIVER_LICENSE' // Dùng cho CẢ 2 mặt giấy phép lái xe
   | 'ID_CARD_FRONT'
   | 'ID_CARD_BACK';
 
