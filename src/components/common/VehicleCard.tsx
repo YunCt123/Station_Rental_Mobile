@@ -50,7 +50,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
             
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
-              <Text style={styles.detailText}>{vehicle.pricePerHour.toLocaleString()}$/h</Text>
+              <Text style={styles.detailText}>{vehicle.pricePerHour.toLocaleString()}đ/h</Text>
             </View>
           </View>
           
