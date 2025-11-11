@@ -16,6 +16,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
+import { API_CONFIG, PAYMENT_ENDPOINTS } from "../../constants/apiEndpoints";
 import StatusModal from "../../components/common/StatusModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
@@ -90,22 +91,89 @@ const VNPAYWebView = () => {
   // ========================================
   // 📝 NOTE: Keep this in PRODUCTION
   // This handles the callback from VNPay after payment
-  const handlePaymentReturn = (url: string) => {
+  const handlePaymentReturn = async (url: string) => {
     console.log("💳 [VNPAYWebView] Processing payment return:", url);
 
     // Extract query params
-    const params = new URLSearchParams(url.split("?")[1] || "");
+    const queryString = url.split("?")[1] || "";
+    const params = new URLSearchParams(queryString);
     const responseCode = params.get("vnp_ResponseCode");
     const transactionStatus = params.get("vnp_TransactionStatus");
     const secureHash = params.get("vnp_SecureHash");
     const amount = params.get("vnp_Amount");
+    const txnRef = params.get("vnp_TxnRef");
 
     console.log("💳 [VNPAYWebView] Payment params:", {
       responseCode,
       transactionStatus,
       secureHash,
       amount,
+      txnRef,
     });
+
+    // 🚨 CRITICAL: Call backend callback to update payment & booking status
+    try {
+      console.log("📡 [VNPAYWebView] Calling backend callback API...");
+
+      // Build provider_metadata with all vnp_* params
+      const provider_metadata: any = {};
+      params.forEach((value, key) => {
+        provider_metadata[key] = value;
+      });
+
+      // Backend expects this exact format (matching validation schema)
+      const callbackParams = {
+        transaction_ref: txnRef,
+        status: responseCode === "00" ? "SUCCESS" : "FAILED", // ✅ Required by validator
+        provider: "VNPAY_SANDBOX", // ✅ Required by validator
+        amount: amount ? parseFloat(amount) / 100 : 0, // Convert from VND smallest unit
+        vnp_ResponseCode: responseCode,
+        vnp_TransactionStatus: transactionStatus,
+        vnp_TransactionNo: params.get("vnp_TransactionNo"),
+        vnp_Amount: amount,
+        vnp_SecureHash: secureHash,
+        vnp_TxnRef: txnRef,
+        vnp_BankCode: params.get("vnp_BankCode"),
+        vnp_CardType: params.get("vnp_CardType"),
+        vnp_PayDate: params.get("vnp_PayDate"),
+        vnp_OrderInfo: params.get("vnp_OrderInfo"),
+        provider_metadata: provider_metadata,
+      };
+
+      console.log("📤 [VNPAYWebView] Sending callback params:", callbackParams);
+
+      // Build full API URL
+      const apiUrl = `${API_CONFIG.BASE_URL}${PAYMENT_ENDPOINTS.VNPAY_CALLBACK}`;
+      console.log("🌐 [VNPAYWebView] API URL:", apiUrl);
+
+      // Call backend callback endpoint
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(callbackParams),
+      });
+
+      console.log("📥 [VNPAYWebView] Response status:", response.status);
+
+      const result = await response.json();
+      console.log("✅ [VNPAYWebView] Backend callback result:", result);
+
+      if (!response.ok) {
+        console.error("❌ [VNPAYWebView] Backend error:", result);
+        throw new Error(result.message || "Failed to process payment callback");
+      }
+
+      console.log("🎉 [VNPAYWebView] Payment callback successful!");
+    } catch (error) {
+      console.error(
+        "❌ [VNPAYWebView] Failed to call backend callback:",
+        error
+      );
+      // Continue to show UI even if backend call fails (IPN will handle it)
+    }
 
     // Check response code (00 = success)
     if (responseCode === "00" && transactionStatus === "00") {
