@@ -282,16 +282,14 @@ const ActiveBookingDetailScreen = () => {
   const startDateTime = formatDateTime(booking.start_at || booking.startAt);
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
-  const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
-  const totalPrice =
-    booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
-
-  // ✅ Lấy deposit từ backend (pricing_snapshot.deposit)
-  // Backend đã tính deposit chính xác khi create booking
-  const depositAmount = booking.pricing_snapshot?.deposit || 0;
-
-  // ✅ Tính số tiền còn lại phải trả (total - deposit)
-  // Số tiền này sẽ được thanh toán khi trả xe
+  
+  // 💰 Pricing information from backend
+  const pricingSnapshot = booking.pricing_snapshot;
+  const basePrice = pricingSnapshot?.base_price || 0;
+  const taxes = pricingSnapshot?.taxes || 0;
+  const insurancePrice = pricingSnapshot?.insurance_price || 0;
+  const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
+  const depositAmount = pricingSnapshot?.deposit || 0;
   const remainingAmount = totalPrice - depositAmount;
 
   return (
@@ -459,9 +457,16 @@ const ActiveBookingDetailScreen = () => {
             {/* Payment Method */}
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Phương thức</Text>
-              <Text style={styles.paymentValue}>
-                {booking.payment?.method?.toUpperCase() || "Chưa thanh toán"}
-              </Text>
+              <View style={styles.paymentMethodBadge}>
+                <Ionicons
+                  name="logo-usd"
+                  size={16}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.paymentMethodText}>
+                  VNPAY
+                </Text>
+              </View>
             </View>
 
             {/* Payment Status */}
@@ -486,25 +491,65 @@ const ActiveBookingDetailScreen = () => {
 
             <View style={styles.divider} />
 
-            {/* Price Breakdown */}
+            {/* 💰 Chi tiết giá - Price Breakdown */}
+            <Text style={styles.breakdownTitle}>Chi tiết giá thuê</Text>
+
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Tổng giá thuê</Text>
+              <Text style={styles.paymentLabel}>Giá cơ bản</Text>
               <Text style={styles.paymentValue}>
+                {basePrice.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            {taxes > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Thuế & phí</Text>
+                <Text style={styles.paymentValue}>
+                  {taxes.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            {insurancePrice > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Bảo hiểm</Text>
+                <Text style={styles.paymentValue}>
+                  {insurancePrice.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.paymentRow}>
+              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>
+                Tổng giá thuê
+              </Text>
+              <Text style={[styles.paymentValue, { fontWeight: '700', color: COLORS.primary }]}>
                 {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
 
             <View style={styles.divider} />
 
+            {/* 💰 Chi tiết thanh toán - Payment Details */}
+            <Text style={styles.breakdownTitle}>Chi tiết thanh toán</Text>
+
             {/* Deposit Info - ✅ Số tiền đã thanh toán VNPay */}
             <View style={styles.paymentRow}>
               <View style={styles.paymentLabelWithNote}>
                 <Text style={[styles.paymentLabel, styles.depositLabel]}>
-                  💰 Tiền cọc (đã thanh toán)
+                  💰 Tiền cọc{" "}
+                  {totalPrice > 0 && depositAmount > 0
+                    ? `(${Math.round((depositAmount / totalPrice) * 100)}%)`
+                    : ""}
                 </Text>
                 {booking.payment?.status === "SUCCESS" && (
                   <Text style={styles.paymentNote}>
-                    ✓ Đã thanh toán qua {booking.payment.method?.toUpperCase()}
+                    ✓ Đã thanh toán qua VNPAY
+                  </Text>
+                )}
+                {booking.payment?.status === "PENDING" && (
+                  <Text style={[styles.paymentNote, { color: COLORS.warning }]}>
+                    ⏳ Chờ thanh toán
                   </Text>
                 )}
               </View>
@@ -517,10 +562,13 @@ const ActiveBookingDetailScreen = () => {
             <View style={styles.paymentRow}>
               <View style={styles.paymentLabelWithNote}>
                 <Text style={[styles.paymentLabel, styles.remainingLabel]}>
-                  🔄 Còn lại (trả khi trả xe)
+                  🔄 Còn lại{" "}
+                  {totalPrice > 0 && remainingAmount > 0
+                    ? `(${Math.round((remainingAmount / totalPrice) * 100)}%)`
+                    : ""}
                 </Text>
                 <Text style={styles.paymentNote}>
-                  Thanh toán trực tiếp tại trạm
+                  Thanh toán trực tiếp tại trạm khi trả xe
                 </Text>
               </View>
               <Text style={styles.paymentValue}>
@@ -777,6 +825,27 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: SPACING.xs,
     fontStyle: "italic",
+  },
+  breakdownTitle: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  paymentMethodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    backgroundColor: `${COLORS.primary}15`,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADII.sm,
+  },
+  paymentMethodText: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.primary,
   },
   // ❌ REMOVED QR-related styles (qrContainer, qrCodeWrapper, qrText, qrButton, qrButtonText)
   // These are no longer needed since QR check-in has been removed

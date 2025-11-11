@@ -203,18 +203,11 @@ const VNPAYWebView = () => {
     console.log("🌐 [VNPAYWebView] Navigation to:", url);
 
     // ========================================
-    // 🔧 SANDBOX MODE: Open payment in external browser
+    // 🔧 SANDBOX MODE: Keep payment in WebView (FIXED)
     // ========================================
-    // 📝 NOTE: REMOVE this block when moving to PRODUCTION
-    // In sandbox, we open VNPay page in external browser for testing
-    // In production, payment will happen entirely within WebView
-    if (isSandboxUrl(url) && url.includes("vpcpay.html")) {
-      console.log("🔗 [VNPAYWebView] Opening sandbox URL in external browser");
-      Linking.openURL(url).catch((err) =>
-        console.error("Failed to open URL:", err)
-      );
-      return;
-    }
+    // 📝 NOTE: Removed automatic external browser opening
+    // Payment now stays within WebView for better UX
+    // Deeplink will still work when VNPay redirects back to app
     // ========================================
 
     // ========================================
@@ -467,131 +460,6 @@ const VNPAYWebView = () => {
                 }
           }
         />
-
-        {/* 🆕 QR Code Modal - For Sandbox Payment */}
-        <Modal
-          visible={qrModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setQrModalVisible(false)}
-        >
-          <View style={styles.qrModalOverlay}>
-            <View style={styles.qrModalContent}>
-              <ScrollView
-                contentContainerStyle={styles.qrScrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {/* Header */}
-                <View style={styles.qrModalHeader}>
-                  <Text style={styles.qrModalTitle}>
-                    Quét mã QR để thanh toán
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setQrModalVisible(false)}
-                    style={styles.qrCloseButton}
-                  >
-                    <Ionicons name="close" size={24} color={COLORS.text} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Important Notice */}
-                <View style={styles.qrNoticeContainer}>
-                  <Ionicons
-                    name="information-circle"
-                    size={20}
-                    color={COLORS.primary}
-                  />
-                  <View style={styles.qrNoticeTextContainer}>
-                    <Text style={styles.qrNoticeTitle}>
-                      ✅ Môi trường TEST - KHÔNG trừ tiền thật
-                    </Text>
-                    <Text style={styles.qrNoticeText}>
-                      • Đây là VNPay Sandbox (môi trường thử nghiệm){"\n"}• Sử
-                      dụng OTP giả (bất kỳ số nào đều OK){"\n"}• Không có giao
-                      dịch thật, không trừ tiền{"\n"}• Hoàn toàn miễn phí để
-                      test
-                    </Text>
-                  </View>
-                </View>
-
-                {/* QR Code */}
-                <View style={styles.qrCodeContainer}>
-                  <QRCode
-                    value={paymentUrl}
-                    size={250}
-                    color={COLORS.text}
-                    backgroundColor={COLORS.white}
-                    logo={require("../../../assets/icon.png")}
-                    logoSize={50}
-                    logoBackgroundColor={COLORS.white}
-                    logoMargin={2}
-                    logoBorderRadius={10}
-                  />
-                </View>
-
-                {/* Payment Info */}
-                <View style={styles.qrPaymentInfo}>
-                  <View style={styles.qrInfoRow}>
-                    <Text style={styles.qrInfoLabel}>Xe thuê:</Text>
-                    <Text style={styles.qrInfoValue}>{vehicleName}</Text>
-                  </View>
-                  <View style={styles.qrInfoRow}>
-                    <Text style={styles.qrInfoLabel}>Số tiền cọc:</Text>
-                    <Text style={[styles.qrInfoValue, styles.qrInfoAmount]}>
-                      {amount.toLocaleString("vi-VN")} VND
-                    </Text>
-                  </View>
-                  <View style={styles.qrInfoRow}>
-                    <Text style={styles.qrInfoLabel}>Mã booking:</Text>
-                    <Text style={styles.qrInfoValue}>{bookingId}</Text>
-                  </View>
-                </View>
-
-                {/* Instructions */}
-                <View style={styles.qrInstructions}>
-                  <Text style={styles.qrInstructionsTitle}>
-                    📱 Cách thanh toán:
-                  </Text>
-                  <Text style={styles.qrInstructionsText}>
-                    1. Mở ứng dụng ngân hàng trên điện thoại{"\n"}
-                    2. Chọn "Quét mã QR" hoặc "QR Pay"{"\n"}
-                    3. Quét mã QR phía trên{"\n"}
-                    4. Chọn ngân hàng test (VD: Vietcombank){"\n"}
-                    5. Nhập OTP bất kỳ (VD: 123456){"\n"}
-                    6. Hoàn tất thanh toán (KHÔNG trừ tiền thật)
-                  </Text>
-                </View>
-
-                {/* Alternative Payment Button */}
-                <TouchableOpacity
-                  style={styles.qrAlternativeButton}
-                  onPress={() => {
-                    setQrModalVisible(false);
-                    Linking.openURL(paymentUrl);
-                  }}
-                >
-                  <Ionicons
-                    name="open-outline"
-                    size={20}
-                    color={COLORS.white}
-                  />
-                  <Text style={styles.qrAlternativeButtonText}>
-                    Hoặc mở trình duyệt để thanh toán
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Warning */}
-                <View style={styles.qrWarning}>
-                  <Ionicons name="warning" size={16} color={COLORS.warning} />
-                  <Text style={styles.qrWarningText}>
-                    Lưu ý: Sau khi thanh toán thành công trên app ngân hàng,
-                    quay lại đây để hoàn tất
-                  </Text>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
       </View>
     </SafeAreaView>
   );

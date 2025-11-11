@@ -20,7 +20,6 @@ import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import StatusModal from "../../components/common/StatusModal";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { CreatePayOSPaymentResponse } from "../../types/payment";
 import { paymentService } from "../../services/paymentService";
 import { bookingService } from "../../services/bookingService";
 import { Vehicle } from "../../types/vehicle";
@@ -63,14 +62,16 @@ const BookingPaymentScreen = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
-  const [calculatedDeposit, setCalculatedDeposit] = useState<number>(0); // 💰 Lưu deposit đã tính
+  const [, setCreatedBookingId] = useState<string | null>(null);
+  const [, setCalculatedDeposit] = useState<number>(0); // 💰 Lưu deposit đã tính
 
   // 🆕 State lưu pricing từ backend để hiển thị UI
   const [backendPricing, setBackendPricing] = useState<{
     totalPrice: number;
     deposit: number;
     basePrice: number;
+    taxes: number;
+    insurancePrice: number;
     hourlyRate?: number;
     dailyRate?: number;
   } | null>(null);
@@ -148,6 +149,8 @@ const BookingPaymentScreen = () => {
         totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
         deposit: pricingData.deposit || 0,
         basePrice: pricingData.basePrice || pricingData.base_price || 0,
+        taxes: pricingData.taxes || 0,
+        insurancePrice: pricingData.insurancePrice || pricingData.insurance_price || 0,
         hourlyRate: pricingData.hourly_rate || 0,
         dailyRate: pricingData.daily_rate || 0,
       };
@@ -738,6 +741,8 @@ const BookingPaymentScreen = () => {
         totalPrice: normalizedPricing.totalPrice,
         deposit: normalizedPricing.deposit,
         basePrice: normalizedPricing.basePrice,
+        taxes: normalizedPricing.taxes,
+        insurancePrice: normalizedPricing.insurancePrice,
         hourlyRate: normalizedPricing.hourly_rate,
         dailyRate: normalizedPricing.daily_rate,
       });
@@ -1291,8 +1296,68 @@ const BookingPaymentScreen = () => {
                   </View>
 
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Tổng giá thuê</Text>
+                    <Text style={styles.summaryLabel}>Giá cơ bản</Text>
                     <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.basePrice ? (
+                        `${backendPricing.basePrice.toLocaleString(
+                          "vi-VN"
+                        )} VND`
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Thuế & phí</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.taxes ? (
+                        `${backendPricing.taxes.toLocaleString("vi-VN")} VND`
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          0 VND
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Bảo hiểm</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.insurancePrice ? (
+                        `${backendPricing.insurancePrice.toLocaleString(
+                          "vi-VN"
+                        )} VND`
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          0 VND
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={[styles.summaryLabel, { fontWeight: '700', fontSize: 16 }]}>
+                      Tổng cộng
+                    </Text>
+                    <Text style={[styles.summaryValue, { fontWeight: '700', fontSize: 16, color: COLORS.primary }]}>
                       {pricingLoading ? (
                         <ActivityIndicator
                           size="small"
