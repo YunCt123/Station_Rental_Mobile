@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +18,7 @@ import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
 import StatusModal from "../../components/common/StatusModal";
 import { SafeAreaView } from "react-native-safe-area-context";
+import QRCode from "react-native-qrcode-svg";
 
 interface RouteParams {
   paymentUrl: string;
@@ -37,25 +41,126 @@ const VNPAYWebView = () => {
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const [qrModalVisible, setQrModalVisible] = useState(false); // 🆕 QR Modal state
 
-  const handleNavigationStateChange = (navState: any) => {
-    setCanGoBack(navState.canGoBack);
-    setCanGoForward(navState.canGoForward);
+  // ========================================
+  // 🔧 SANDBOX MODE: Check if URL is sandbox
+  // ========================================
+  // 📝 NOTE: Remove this check when moving to PRODUCTION
+  // In production, VNPay will use real payment gateway
+  const isSandboxUrl = (url: string) => {
+    return url.includes("sandbox.vnpayment.vn");
+  };
 
-    // Check if payment is successful or cancelled based on URL
-    const url = navState.url;
+  // ========================================
+  // 🔧 SANDBOX MODE: Setup deeplink listener
+  // ========================================
+  // 📝 NOTE: Keep this in PRODUCTION but update return URL
+  // Production return URL: https://yourdomain.com/api/v1/payments/vnpay/callback
+  // Sandbox return URL: myapp://payment/result
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      const url = event.url;
+      console.log("📱 [VNPAYWebView] Deeplink received:", url);
 
-    if (
-      url.includes("vnp_ResponseCode=00") ||
-      url.includes("payment-success") ||
-      url.includes("success")
-    ) {
+      // Parse query params from return URL
+      if (url.includes("myapp://payment")) {
+        handlePaymentReturn(url);
+      }
+    };
+
+    // Listen for deeplinks
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    // Check if app was opened from deeplink
+    Linking.getInitialURL().then((url) => {
+      if (url && url.includes("myapp://payment")) {
+        console.log("📱 [VNPAYWebView] Initial URL:", url);
+        handlePaymentReturn(url);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // ========================================
+  // 🔧 SANDBOX MODE: Handle payment return
+  // ========================================
+  // 📝 NOTE: Keep this in PRODUCTION
+  // This handles the callback from VNPay after payment
+  const handlePaymentReturn = (url: string) => {
+    console.log("💳 [VNPAYWebView] Processing payment return:", url);
+
+    // Extract query params
+    const params = new URLSearchParams(url.split("?")[1] || "");
+    const responseCode = params.get("vnp_ResponseCode");
+    const transactionStatus = params.get("vnp_TransactionStatus");
+    const secureHash = params.get("vnp_SecureHash");
+    const amount = params.get("vnp_Amount");
+
+    console.log("💳 [VNPAYWebView] Payment params:", {
+      responseCode,
+      transactionStatus,
+      secureHash,
+      amount,
+    });
+
+    // Check response code (00 = success)
+    if (responseCode === "00" && transactionStatus === "00") {
       setModalType("success");
       setModalTitle("Thanh toán thành công!");
       setModalMessage(
         `Đã đặt xe ${vehicleName} thành công qua VNPAY. Vui lòng đến trạm để nhận xe.`
       );
       setModalVisible(true);
+    } else {
+      setModalType("error");
+      setModalTitle("Thanh toán thất bại");
+      setModalMessage(
+        responseCode === "24"
+          ? "Bạn đã hủy thanh toán. Vui lòng thử lại."
+          : "Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại."
+      );
+      setModalVisible(true);
+    }
+  };
+
+  const handleNavigationStateChange = (navState: any) => {
+    setCanGoBack(navState.canGoBack);
+    setCanGoForward(navState.canGoForward);
+
+    const url = navState.url;
+    console.log("🌐 [VNPAYWebView] Navigation to:", url);
+
+    // ========================================
+    // 🔧 SANDBOX MODE: Open payment in external browser
+    // ========================================
+    // 📝 NOTE: REMOVE this block when moving to PRODUCTION
+    // In sandbox, we open VNPay page in external browser for testing
+    // In production, payment will happen entirely within WebView
+    if (isSandboxUrl(url) && url.includes("vpcpay.html")) {
+      console.log("🔗 [VNPAYWebView] Opening sandbox URL in external browser");
+      Linking.openURL(url).catch((err) =>
+        console.error("Failed to open URL:", err)
+      );
+      return;
+    }
+    // ========================================
+
+    // ========================================
+    // ✅ PRODUCTION: Handle payment result in WebView
+    // ========================================
+    // 📝 NOTE: Keep this in PRODUCTION
+    // This handles the return URL after payment completion
+    if (
+      url.includes("vnp_ResponseCode=00") ||
+      url.includes("payment-success") ||
+      url.includes("success")
+    ) {
+      // Parse full URL for complete payment info
+      handlePaymentReturn(url);
     } else if (
       url.includes("vnp_ResponseCode=24") ||
       url.includes("cancel") ||
@@ -74,6 +179,7 @@ const VNPAYWebView = () => {
       setModalMessage("Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.");
       setModalVisible(true);
     }
+    // ========================================
   };
 
   const handleWebViewError = (syntheticEvent: any) => {
@@ -94,7 +200,19 @@ const VNPAYWebView = () => {
     } else {
       Alert.alert("Hủy thanh toán", "Bạn có chắc chắn muốn hủy thanh toán?", [
         { text: "Không", style: "cancel" },
-        { text: "Có", onPress: () => navigation.goBack() },
+        {
+          text: "Có",
+          onPress: () => {
+            // 🔥 Back 2 pages: VNPAYWebView + BookingPaymentScreen
+            // This prevents user from returning to booking screen and creating duplicate booking
+            navigation.goBack(); // Exit VNPAYWebView
+            setTimeout(() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack(); // Exit BookingPaymentScreen
+              }
+            }, 100);
+          },
+        },
       ]);
     }
   };
@@ -117,7 +235,19 @@ const VNPAYWebView = () => {
       "Bạn có chắc chắn muốn đóng trang thanh toán?",
       [
         { text: "Không", style: "cancel" },
-        { text: "Có", onPress: () => navigation.goBack() },
+        {
+          text: "Có",
+          onPress: () => {
+            // 🔥 Back 2 pages: VNPAYWebView + BookingPaymentScreen
+            // This prevents user from returning to booking screen and creating duplicate booking
+            navigation.goBack(); // Exit VNPAYWebView
+            setTimeout(() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack(); // Exit BookingPaymentScreen
+              }
+            }, 100);
+          },
+        },
       ]
     );
   };
@@ -125,11 +255,23 @@ const VNPAYWebView = () => {
   const handleModalClose = () => {
     setModalVisible(false);
     if (modalType === "success") {
+      // ✅ Thanh toán thành công → về MainTabs
       setTimeout(() => {
         navigation.reset({
           index: 0,
           routes: [{ name: "MainTabs" }],
         });
+      }, 300);
+    } else {
+      // ❌ Thanh toán thất bại → back 2 pages (VNPAYWebView + BookingPaymentScreen)
+      // This prevents user from returning to booking screen and creating duplicate booking
+      setTimeout(() => {
+        navigation.goBack(); // Exit VNPAYWebView
+        setTimeout(() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack(); // Exit BookingPaymentScreen
+          }
+        }, 100);
       }, 300);
     }
   };
@@ -147,8 +289,11 @@ const VNPAYWebView = () => {
             <Text style={styles.headerTitle}>Thanh toán VNPAY</Text>
           </View>
 
-          <TouchableOpacity style={styles.headerButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={COLORS.white} />
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setQrModalVisible(true)}
+          >
+            <Ionicons name="qr-code" size={24} color={COLORS.white} />
           </TouchableOpacity>
         </View>
 
@@ -254,6 +399,131 @@ const VNPAYWebView = () => {
                 }
           }
         />
+
+        {/* 🆕 QR Code Modal - For Sandbox Payment */}
+        <Modal
+          visible={qrModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setQrModalVisible(false)}
+        >
+          <View style={styles.qrModalOverlay}>
+            <View style={styles.qrModalContent}>
+              <ScrollView
+                contentContainerStyle={styles.qrScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Header */}
+                <View style={styles.qrModalHeader}>
+                  <Text style={styles.qrModalTitle}>
+                    Quét mã QR để thanh toán
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setQrModalVisible(false)}
+                    style={styles.qrCloseButton}
+                  >
+                    <Ionicons name="close" size={24} color={COLORS.text} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Important Notice */}
+                <View style={styles.qrNoticeContainer}>
+                  <Ionicons
+                    name="information-circle"
+                    size={20}
+                    color={COLORS.primary}
+                  />
+                  <View style={styles.qrNoticeTextContainer}>
+                    <Text style={styles.qrNoticeTitle}>
+                      ✅ Môi trường TEST - KHÔNG trừ tiền thật
+                    </Text>
+                    <Text style={styles.qrNoticeText}>
+                      • Đây là VNPay Sandbox (môi trường thử nghiệm){"\n"}• Sử
+                      dụng OTP giả (bất kỳ số nào đều OK){"\n"}• Không có giao
+                      dịch thật, không trừ tiền{"\n"}• Hoàn toàn miễn phí để
+                      test
+                    </Text>
+                  </View>
+                </View>
+
+                {/* QR Code */}
+                <View style={styles.qrCodeContainer}>
+                  <QRCode
+                    value={paymentUrl}
+                    size={250}
+                    color={COLORS.text}
+                    backgroundColor={COLORS.white}
+                    logo={require("../../../assets/icon.png")}
+                    logoSize={50}
+                    logoBackgroundColor={COLORS.white}
+                    logoMargin={2}
+                    logoBorderRadius={10}
+                  />
+                </View>
+
+                {/* Payment Info */}
+                <View style={styles.qrPaymentInfo}>
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Xe thuê:</Text>
+                    <Text style={styles.qrInfoValue}>{vehicleName}</Text>
+                  </View>
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Số tiền cọc:</Text>
+                    <Text style={[styles.qrInfoValue, styles.qrInfoAmount]}>
+                      {amount.toLocaleString("vi-VN")} VND
+                    </Text>
+                  </View>
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Mã booking:</Text>
+                    <Text style={styles.qrInfoValue}>{bookingId}</Text>
+                  </View>
+                </View>
+
+                {/* Instructions */}
+                <View style={styles.qrInstructions}>
+                  <Text style={styles.qrInstructionsTitle}>
+                    📱 Cách thanh toán:
+                  </Text>
+                  <Text style={styles.qrInstructionsText}>
+                    1. Mở ứng dụng ngân hàng trên điện thoại{"\n"}
+                    2. Chọn "Quét mã QR" hoặc "QR Pay"{"\n"}
+                    3. Quét mã QR phía trên{"\n"}
+                    4. Chọn ngân hàng test (VD: Vietcombank){"\n"}
+                    5. Nhập OTP bất kỳ (VD: 123456){"\n"}
+                    6. Hoàn tất thanh toán (KHÔNG trừ tiền thật)
+                  </Text>
+                </View>
+
+                {/* Alternative Payment Button */}
+                <TouchableOpacity
+                  style={styles.qrAlternativeButton}
+                  onPress={() => {
+                    setQrModalVisible(false);
+                    Linking.openURL(paymentUrl);
+                  }}
+                >
+                  <Ionicons
+                    name="open-outline"
+                    size={20}
+                    color={COLORS.white}
+                  />
+                  <Text style={styles.qrAlternativeButtonText}>
+                    Hoặc mở trình duyệt để thanh toán
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Warning */}
+                <View style={styles.qrWarning}>
+                  <Ionicons name="warning" size={16} color={COLORS.warning} />
+                  <Text style={styles.qrWarningText}>
+                    Lưu ý: Sau khi thanh toán thành công trên app ngân hàng,
+                    quay lại đây để hoàn tất
+                  </Text>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -362,6 +632,142 @@ const styles = StyleSheet.create({
   footerInfoText: {
     fontSize: FONTS.caption,
     color: COLORS.white,
+  },
+  // 🆕 QR Modal Styles
+  qrModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.lg,
+  },
+  qrModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    width: "100%",
+    maxWidth: 500,
+    maxHeight: "90%",
+    ...SHADOWS.lg,
+  },
+  qrScrollContent: {
+    padding: SPACING.xl,
+  },
+  qrModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.lg,
+  },
+  qrModalTitle: {
+    fontSize: FONTS.title,
+    fontWeight: "700",
+    color: COLORS.text,
+    flex: 1,
+  },
+  qrCloseButton: {
+    padding: SPACING.xs,
+  },
+  qrNoticeContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(41, 121, 255, 0.1)",
+    padding: SPACING.md,
+    borderRadius: 12,
+    marginBottom: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  qrNoticeTextContainer: {
+    flex: 1,
+  },
+  qrNoticeTitle: {
+    fontSize: FONTS.body,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
+  },
+  qrNoticeText: {
+    fontSize: FONTS.caption,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  qrCodeContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: SPACING.xl,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    marginBottom: SPACING.xl,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  qrPaymentInfo: {
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
+    borderRadius: 12,
+    marginBottom: SPACING.lg,
+  },
+  qrInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: SPACING.sm,
+  },
+  qrInfoLabel: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+  },
+  qrInfoValue: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  qrInfoAmount: {
+    color: COLORS.primary,
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "700",
+  },
+  qrInstructions: {
+    marginBottom: SPACING.lg,
+  },
+  qrInstructionsTitle: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  qrInstructionsText: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+    lineHeight: 24,
+  },
+  qrAlternativeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary,
+    padding: SPACING.md,
+    borderRadius: 12,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+    ...SHADOWS.sm,
+  },
+  qrAlternativeButtonText: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.white,
+  },
+  qrWarning: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    padding: SPACING.md,
+    borderRadius: 12,
+    gap: SPACING.sm,
+  },
+  qrWarningText: {
+    flex: 1,
+    fontSize: FONTS.caption,
+    color: COLORS.text,
+    lineHeight: 18,
   },
 });
 

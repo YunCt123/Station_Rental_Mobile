@@ -45,6 +45,7 @@ const BookingPaymentScreen = () => {
   const [rentalType, setRentalType] = useState<"hourly" | "daily">("hourly");
   const [rentalHours, setRentalHours] = useState("4");
   const [pickupTime, setPickupTime] = useState("");
+  const [pickupDate, setPickupDate] = useState(new Date()); // 🆕 Ngày nhận xe cho thuê theo giờ
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(
     new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -52,7 +53,11 @@ const BookingPaymentScreen = () => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showPickupTimePicker, setShowPickupTimePicker] = useState(false);
+  const [showPickupDatePicker, setShowPickupDatePicker] = useState(false); // 🆕 Date picker cho thuê theo giờ
   const [pickupDateTime, setPickupDateTime] = useState(new Date());
+  const [dailyPickupTime, setDailyPickupTime] = useState(new Date()); // 🆕 Giờ nhận xe cho thuê theo ngày
+  const [showDailyPickupTimePicker, setShowDailyPickupTimePicker] =
+    useState(false); // 🆕 Time picker cho thuê theo ngày
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalTitle, setModalTitle] = useState("");
@@ -60,6 +65,16 @@ const BookingPaymentScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [calculatedDeposit, setCalculatedDeposit] = useState<number>(0); // 💰 Lưu deposit đã tính
+
+  // 🆕 State lưu pricing từ backend để hiển thị UI
+  const [backendPricing, setBackendPricing] = useState<{
+    totalPrice: number;
+    deposit: number;
+    basePrice: number;
+    hourlyRate?: number;
+    dailyRate?: number;
+  } | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -82,6 +97,74 @@ const BookingPaymentScreen = () => {
 
     return unsubscribe;
   }, [navigation]);
+
+  // 🆕 Fetch pricing từ backend khi thay đổi rental info
+  useEffect(() => {
+    fetchBackendPricing();
+  }, [vehicleId, rentalType, rentalHours, startDate, endDate]);
+
+  // Helper function để fetch pricing với vehicle data được truyền vào
+  const fetchBackendPricingWithVehicle = async (vehicleData: any) => {
+    if (!vehicleData || !vehicleId) return;
+
+    try {
+      // Validate input trước khi gọi API
+      if (rentalType === "hourly") {
+        const hours = parseInt(rentalHours) || 0;
+        if (hours <= 0) {
+          setPricingLoading(false);
+          return;
+        }
+      } else {
+        const days = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (days <= 0) {
+          setPricingLoading(false);
+          return;
+        }
+      }
+
+      setPricingLoading(true);
+      const { startAt, endAt } = calculateBookingTimes();
+
+      const pricingData = await bookingService.calculateBookingPrice({
+        vehicleId: vehicleId,
+        startAt,
+        endAt,
+        insurancePremium: false,
+        currency: "VND",
+      });
+
+      // Normalize response
+      const normalized = {
+        totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
+        deposit: pricingData.deposit || 0,
+        basePrice: pricingData.basePrice || pricingData.base_price || 0,
+        hourlyRate: pricingData.hourly_rate || 0,
+        dailyRate: pricingData.daily_rate || 0,
+      };
+
+      // Fallback nếu backend không trả deposit
+      if (!normalized.deposit && normalized.totalPrice > 0) {
+        normalized.deposit = Math.round(normalized.totalPrice * 0.2);
+      }
+
+      setBackendPricing(normalized);
+      console.log("[fetchBackendPricing] Updated pricing:", normalized);
+    } catch (error) {
+      console.error("[fetchBackendPricing] Error:", error);
+      // Fallback về client-side calculation
+      setBackendPricing(null);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const fetchBackendPricing = async () => {
+    if (!vehicle || !vehicleId) return;
+    await fetchBackendPricingWithVehicle(vehicle);
+  };
 
   const checkAuthentication = async () => {
     const isAuth = await authService.isAuthenticated();
@@ -114,6 +197,10 @@ const BookingPaymentScreen = () => {
       setLoading(true);
       const vehicleData = await vehicleService.getVehicleById(vehicleId);
       setVehicle(vehicleData);
+
+      // 🆕 Fetch pricing ngay sau khi có vehicle data
+      // Điều này đảm bảo giá được tính từ backend trước khi hiển thị
+      await fetchBackendPricingWithVehicle(vehicleData);
     } catch (error) {
       console.error("Error loading vehicle:", error);
       Alert.alert("Lỗi", "Không thể tải thông tin xe");
@@ -241,12 +328,28 @@ const BookingPaymentScreen = () => {
     });
   };
 
-  // Handle pickup time change
+  // Handle pickup time change (for hourly rental)
   const onPickupTimeChange = (event: any, selectedTime?: Date) => {
     setShowPickupTimePicker(Platform.OS === "ios");
     if (selectedTime) {
       setPickupDateTime(selectedTime);
       setPickupTime(formatTime(selectedTime));
+    }
+  };
+
+  // 🆕 Handle pickup date change (for hourly rental)
+  const onPickupDateChange = (event: any, selectedDate?: Date) => {
+    setShowPickupDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setPickupDate(selectedDate);
+    }
+  };
+
+  // 🆕 Handle daily pickup time change (for daily rental)
+  const onDailyPickupTimeChange = (event: any, selectedTime?: Date) => {
+    setShowDailyPickupTimePicker(Platform.OS === "ios");
+    if (selectedTime) {
+      setDailyPickupTime(selectedTime);
     }
   };
 
@@ -283,7 +386,6 @@ const BookingPaymentScreen = () => {
 
       // ✅ Kiểm tra station_id - backend đã fix nên giờ sẽ có
       if (!latestVehicle.station_id) {
-        console.error("❌ Vehicle vẫn không có station_id sau khi fix backend");
         throw new Error(
           "Xe chưa được gán trạm. Vui lòng liên hệ quản trị viên."
         );
@@ -570,6 +672,15 @@ const BookingPaymentScreen = () => {
         policy_version: pricingData.policy_version || "v1.0",
       };
 
+      // 🔄 Cập nhật backendPricing state để UI hiển thị đúng
+      setBackendPricing({
+        totalPrice: normalizedPricing.totalPrice,
+        deposit: normalizedPricing.deposit,
+        basePrice: normalizedPricing.basePrice,
+        hourlyRate: normalizedPricing.hourly_rate,
+        dailyRate: normalizedPricing.daily_rate,
+      });
+
       if (!normalizedPricing.totalPrice || normalizedPricing.totalPrice <= 0) {
         console.error(
           "[handleVNPAYPayment] Backend returned invalid pricing:",
@@ -610,7 +721,17 @@ const BookingPaymentScreen = () => {
         );
       }
 
-      console.log("[handleVNPAYPayment] Calculated deposit:", depositAmount);
+      console.log(
+        "[handleVNPAYPayment] ✅ Deposit amount to be sent to VNPay:",
+        {
+          deposit: depositAmount,
+          totalPrice: normalizedPricing.totalPrice,
+          percentage: `${Math.round(
+            (depositAmount / normalizedPricing.totalPrice) * 100
+          )}%`,
+          displayedInUI: backendPricing?.deposit,
+        }
+      );
 
       // Validate deposit
       if (!depositAmount || depositAmount <= 0) {
@@ -647,7 +768,7 @@ const BookingPaymentScreen = () => {
         navigation.navigate("VNPAYWebView", {
           paymentUrl: response.checkoutUrl,
           bookingId: result.bookingId,
-          amount: calculateTotal(), // Display full amount for user reference
+          amount: result.deposit, // ✅ Pass deposit amount, not total
           vehicleName: vehicle?.name || "Xe",
         });
       } else {
@@ -772,299 +893,532 @@ const BookingPaymentScreen = () => {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* CONTENT */}
-        <ScrollView
-          style={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* VEHICLE INFO */}
-          <View style={styles.vehicleCard}>
-            <Image
-              source={{ uri: vehicle.image }}
-              style={styles.vehicleImage}
-            />
-            <View style={styles.vehicleInfo}>
-              <Text style={styles.vehicleName}>{vehicle.name}</Text>
-              <Text style={styles.vehicleModel}>
-                {vehicle.brand} • {vehicle.year}
-              </Text>
-              <View style={styles.rateContainer}>
-                <Text style={styles.rateText}>
-                  {hourlyRate.toLocaleString("vi-VN")} VND
-                </Text>
-                <Text style={styles.rateUnit}>/giờ</Text>
-              </View>
-            </View>
+        {/* Loading State - Hiển thị khi đang load vehicle & pricing */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Đang tải thông tin...</Text>
           </View>
-
-          {/* RENTAL DETAILS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
-
-            {/* Rental Type Selector */}
-            <View style={styles.rentalTypeContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.rentalTypeButton,
-                  rentalType === "hourly" && styles.rentalTypeButtonActive,
-                ]}
-                onPress={() => setRentalType("hourly")}
-              >
-                <Ionicons
-                  name="time-outline"
-                  size={20}
-                  color={
-                    rentalType === "hourly" ? COLORS.white : COLORS.primary
-                  }
+        ) : !vehicle ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Không tìm thấy thông tin xe</Text>
+          </View>
+        ) : (
+          <>
+            {/* CONTENT */}
+            <ScrollView
+              style={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* VEHICLE INFO */}
+              <View style={styles.vehicleCard}>
+                <Image
+                  source={{ uri: vehicle.image }}
+                  style={styles.vehicleImage}
                 />
-                <Text
-                  style={[
-                    styles.rentalTypeText,
-                    rentalType === "hourly" && styles.rentalTypeTextActive,
-                  ]}
-                >
-                  Thuê theo giờ
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.rentalTypeButton,
-                  rentalType === "daily" && styles.rentalTypeButtonActive,
-                ]}
-                onPress={() => setRentalType("daily")}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={20}
-                  color={rentalType === "daily" ? COLORS.white : COLORS.primary}
-                />
-                <Text
-                  style={[
-                    styles.rentalTypeText,
-                    rentalType === "daily" && styles.rentalTypeTextActive,
-                  ]}
-                >
-                  Thuê theo ngày
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Rental Duration Input */}
-            {rentalType === "hourly" ? (
-              <>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Thời gian thuê (giờ)</Text>
-
-                  {/* Quick Select Buttons */}
-                  <View style={styles.quickSelectContainer}>
-                    {[4, 8, 12, 24].map((hours) => (
-                      <TouchableOpacity
-                        key={hours}
-                        style={[
-                          styles.quickSelectButton,
-                          rentalHours === hours.toString() &&
-                            styles.quickSelectButtonActive,
-                        ]}
-                        onPress={() => selectQuickHours(hours)}
-                      >
-                        <Text
-                          style={[
-                            styles.quickSelectText,
-                            rentalHours === hours.toString() &&
-                              styles.quickSelectTextActive,
-                          ]}
-                        >
-                          {hours}h
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                <View style={styles.vehicleInfo}>
+                  <Text style={styles.vehicleName}>{vehicle.name}</Text>
+                  <Text style={styles.vehicleModel}>
+                    {vehicle.brand} • {vehicle.year}
+                  </Text>
+                  <View style={styles.rateContainer}>
+                    <Text style={styles.rateText}>
+                      {hourlyRate.toLocaleString("vi-VN")} VND
+                    </Text>
+                    <Text style={styles.rateUnit}>/giờ</Text>
                   </View>
-
-                  {/* Custom Input */}
-                  <TextInput
-                    style={styles.input}
-                    value={rentalHours}
-                    onChangeText={setRentalHours}
-                    keyboardType="numeric"
-                    placeholder="Hoặc nhập số giờ tùy chỉnh"
-                  />
                 </View>
+              </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+              {/* RENTAL DETAILS */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
+
+                {/* Rental Type Selector */}
+                <View style={styles.rentalTypeContainer}>
                   <TouchableOpacity
-                    style={styles.dateTimeButton}
-                    onPress={() => setShowPickupTimePicker(true)}
+                    style={[
+                      styles.rentalTypeButton,
+                      rentalType === "hourly" && styles.rentalTypeButtonActive,
+                    ]}
+                    onPress={() => setRentalType("hourly")}
                   >
                     <Ionicons
                       name="time-outline"
                       size={20}
-                      color={COLORS.primary}
+                      color={
+                        rentalType === "hourly" ? COLORS.white : COLORS.primary
+                      }
                     />
-                    <Text style={styles.dateTimeButtonText}>
-                      {pickupTime || formatTime(pickupDateTime)}
+                    <Text
+                      style={[
+                        styles.rentalTypeText,
+                        rentalType === "hourly" && styles.rentalTypeTextActive,
+                      ]}
+                    >
+                      Thuê theo giờ
                     </Text>
                   </TouchableOpacity>
 
-                  {showPickupTimePicker && (
-                    <DateTimePicker
-                      value={pickupDateTime}
-                      mode="time"
-                      is24Hour={true}
-                      display="default"
-                      onChange={onPickupTimeChange}
-                    />
-                  )}
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Ngày bắt đầu</Text>
                   <TouchableOpacity
-                    style={styles.dateTimeButton}
-                    onPress={() => setShowStartDatePicker(true)}
+                    style={[
+                      styles.rentalTypeButton,
+                      rentalType === "daily" && styles.rentalTypeButtonActive,
+                    ]}
+                    onPress={() => setRentalType("daily")}
                   >
                     <Ionicons
                       name="calendar-outline"
                       size={20}
-                      color={COLORS.primary}
+                      color={
+                        rentalType === "daily" ? COLORS.white : COLORS.primary
+                      }
                     />
-                    <Text style={styles.dateTimeButtonText}>
-                      {formatDate(startDate)}
+                    <Text
+                      style={[
+                        styles.rentalTypeText,
+                        rentalType === "daily" && styles.rentalTypeTextActive,
+                      ]}
+                    >
+                      Thuê theo ngày
                     </Text>
                   </TouchableOpacity>
                 </View>
 
+                {/* Rental Duration Input */}
+                {rentalType === "hourly" ? (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>
+                        Thời gian thuê (giờ)
+                      </Text>
+
+                      {/* Quick Select Buttons */}
+                      <View style={styles.quickSelectContainer}>
+                        {[4, 8, 12, 24].map((hours) => (
+                          <TouchableOpacity
+                            key={hours}
+                            style={[
+                              styles.quickSelectButton,
+                              rentalHours === hours.toString() &&
+                                styles.quickSelectButtonActive,
+                            ]}
+                            onPress={() => selectQuickHours(hours)}
+                          >
+                            <Text
+                              style={[
+                                styles.quickSelectText,
+                                rentalHours === hours.toString() &&
+                                  styles.quickSelectTextActive,
+                              ]}
+                            >
+                              {hours}h
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      {/* Custom Input */}
+                      <TextInput
+                        style={styles.input}
+                        value={rentalHours}
+                        onChangeText={setRentalHours}
+                        keyboardType="numeric"
+                        placeholder="Hoặc nhập số giờ tùy chỉnh"
+                      />
+                    </View>
+
+                    {/* 🆕 Ngày nhận xe (cho thuê theo giờ) */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowPickupDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(pickupDate)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showPickupDatePicker && (
+                        <DateTimePicker
+                          value={pickupDate}
+                          mode="date"
+                          display={
+                            Platform.OS === "ios" ? "spinner" : "default"
+                          }
+                          onChange={onPickupDateChange}
+                          minimumDate={new Date()}
+                        />
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowPickupTimePicker(true)}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {pickupTime || formatTime(pickupDateTime)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showPickupTimePicker && (
+                        <DateTimePicker
+                          value={pickupDateTime}
+                          mode="time"
+                          is24Hour={true}
+                          display="default"
+                          onChange={onPickupTimeChange}
+                        />
+                      )}
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày bắt đầu</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowStartDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(startDate)}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày kết thúc</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowEndDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(endDate)}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 🆕 Giờ nhận xe (cho thuê theo ngày) */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowDailyPickupTimePicker(true)}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatTime(dailyPickupTime)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showDailyPickupTimePicker && (
+                        <DateTimePicker
+                          value={dailyPickupTime}
+                          mode="time"
+                          is24Hour={true}
+                          display="default"
+                          onChange={onDailyPickupTimeChange}
+                        />
+                      )}
+                    </View>
+                  </>
+                )}
+
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Ngày kết thúc</Text>
-                  <TouchableOpacity
-                    style={styles.dateTimeButton}
-                    onPress={() => setShowEndDatePicker(true)}
-                  >
+                  <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
+                  <View style={styles.locationContainer}>
                     <Ionicons
-                      name="calendar-outline"
+                      name="location"
                       size={20}
                       color={COLORS.primary}
                     />
-                    <Text style={styles.dateTimeButtonText}>
-                      {formatDate(endDate)}
-                    </Text>
-                  </TouchableOpacity>
+                    <Text style={styles.locationText}>{stationLocation}</Text>
+                  </View>
                 </View>
-              </>
-            )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={20} color={COLORS.primary} />
-                <Text style={styles.locationText}>{stationLocation}</Text>
               </View>
-            </View>
-          </View>
 
-          {/* PAYMENT METHOD */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+              {/* PAYMENT METHOD */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
 
-            {/* VNPAY - Only payment method supported by backend */}
-            <TouchableOpacity
-              style={[
-                styles.paymentOption,
-                selectedPayment === "vnpay" && styles.paymentOptionSelected,
-              ]}
-              onPress={() => setSelectedPayment("vnpay")}
-            >
-              <Ionicons
-                name="logo-usd"
-                size={28}
-                color={
-                  selectedPayment === "vnpay"
-                    ? COLORS.primary
-                    : COLORS.textSecondary
-                }
-              />
-              <View style={styles.paymentInfo}>
-                <Text
+                {/* VNPAY - Only payment method supported by backend */}
+                <TouchableOpacity
                   style={[
-                    styles.paymentTitle,
-                    selectedPayment === "vnpay" && styles.paymentTitleSelected,
+                    styles.paymentOption,
+                    selectedPayment === "vnpay" && styles.paymentOptionSelected,
                   ]}
+                  onPress={() => setSelectedPayment("vnpay")}
                 >
-                  VNPAY
+                  <Ionicons
+                    name="logo-usd"
+                    size={28}
+                    color={
+                      selectedPayment === "vnpay"
+                        ? COLORS.primary
+                        : COLORS.textSecondary
+                    }
+                  />
+                  <View style={styles.paymentInfo}>
+                    <Text
+                      style={[
+                        styles.paymentTitle,
+                        selectedPayment === "vnpay" &&
+                          styles.paymentTitleSelected,
+                      ]}
+                    >
+                      VNPAY
+                    </Text>
+                    <Text style={styles.paymentDesc}>
+                      Thanh toán nhanh qua cổng VNPAY
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* SUMMARY */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tổng kết</Text>
+
+                {/* 🆕 Chi tiết bảng giá */}
+                <View style={styles.pricingDetail}>
+                  <Text style={styles.pricingDetailTitle}>
+                    Chi tiết giá thuê
+                  </Text>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Đơn giá</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : rentalType === "hourly" ? (
+                        `${(
+                          backendPricing?.hourlyRate || hourlyRate
+                        ).toLocaleString("vi-VN")} VND/giờ`
+                      ) : (
+                        `${(
+                          backendPricing?.dailyRate ||
+                          vehicle?.pricing?.daily ||
+                          vehicle?.pricePerDay ||
+                          0
+                        ).toLocaleString("vi-VN")} VND/ngày`
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Thời gian thuê</Text>
+                    <Text style={styles.summaryValue}>
+                      {rentalType === "hourly"
+                        ? `${rentalHours} giờ`
+                        : `${Math.ceil(
+                            (endDate.getTime() - startDate.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )} ngày`}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Tổng giá thuê</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.totalPrice ? (
+                        `${backendPricing.totalPrice.toLocaleString(
+                          "vi-VN"
+                        )} VND`
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                {/* 🆕 Chi tiết thanh toán */}
+                <View style={styles.paymentDetail}>
+                  <Text style={styles.pricingDetailTitle}>
+                    Chi tiết thanh toán
+                  </Text>
+
+                  <View style={styles.summaryRow}>
+                    <View style={styles.depositLabelContainer}>
+                      <Text style={styles.summaryLabel}>
+                        💰 Tiền cọc{" "}
+                        {backendPricing?.deposit &&
+                        backendPricing.totalPrice > 0
+                          ? `(${Math.round(
+                              (backendPricing.deposit /
+                                backendPricing.totalPrice) *
+                                100
+                            )}%)`
+                          : pricingLoading
+                          ? ""
+                          : "(...)"}
+                      </Text>
+                      <Text style={styles.depositNote}>
+                        Thanh toán trước khi bắt đầu thuê
+                      </Text>
+                    </View>
+                    <Text style={[styles.summaryValue, styles.depositValue]}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.deposit ? (
+                        <>
+                          {backendPricing.deposit.toLocaleString("vi-VN")} VND
+                        </>
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <View style={styles.depositLabelContainer}>
+                      <Text style={styles.summaryLabel}>
+                        🔄 Thanh toán sau (
+                        {backendPricing?.deposit &&
+                        backendPricing.totalPrice > 0
+                          ? Math.round(
+                              ((backendPricing.totalPrice -
+                                backendPricing.deposit) /
+                                backendPricing.totalPrice) *
+                                100
+                            )
+                          : 80}
+                        %)
+                      </Text>
+                      <Text style={styles.depositNote}>
+                        Thanh toán khi trả xe
+                      </Text>
+                    </View>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.totalPrice &&
+                        backendPricing?.deposit ? (
+                        <>
+                          {(
+                            backendPricing.totalPrice - backendPricing.deposit
+                          ).toLocaleString("vi-VN")}{" "}
+                          VND
+                        </>
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.totalLabel}>Tổng cộng</Text>
+                  <Text style={styles.totalValue}>
+                    {pricingLoading ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : backendPricing?.totalPrice ? (
+                      `${backendPricing.totalPrice.toLocaleString("vi-VN")} VND`
+                    ) : (
+                      <Text style={{ color: COLORS.textSecondary }}>
+                        Đang tính...
+                      </Text>
+                    )}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ height: 100 }} />
+            </ScrollView>
+
+            {/* BOTTOM BUTTON */}
+            <View style={styles.bottomContainer}>
+              <View style={styles.priceContainer}>
+                <Text style={styles.priceLabel}>Tổng thanh toán</Text>
+                <Text style={styles.priceValue}>
+                  {pricingLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : backendPricing?.deposit ? (
+                    <>{backendPricing.deposit.toLocaleString("vi-VN")} VND</>
+                  ) : (
+                    <Text style={{ color: COLORS.white }}>Đang tính...</Text>
+                  )}
                 </Text>
-                <Text style={styles.paymentDesc}>
-                  Thanh toán nhanh qua cổng VNPAY
+                <Text style={styles.depositSubLabel}>
+                  (Tiền cọc{" "}
+                  {backendPricing?.deposit && backendPricing.totalPrice > 0
+                    ? `${Math.round(
+                        (backendPricing.deposit / backendPricing.totalPrice) *
+                          100
+                      )}%`
+                    : "20%"}{" "}
+                  - Thanh toán trước)
                 </Text>
               </View>
-            </TouchableOpacity>
-          </View>
 
-          {/* SUMMARY */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tổng kết</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Đơn giá</Text>
-              <Text style={styles.summaryValue}>
-                {rentalType === "hourly"
-                  ? `${hourlyRate.toLocaleString("vi-VN")} VND/giờ`
-                  : `${(
-                      vehicle?.pricing?.daily ||
-                      vehicle?.pricePerDay ||
-                      0
-                    ).toLocaleString("vi-VN")} VND/ngày`}
-              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.confirmButton,
+                  (!selectedPayment || isProcessing) &&
+                    styles.confirmButtonDisabled,
+                ]}
+                onPress={handleConfirmBooking}
+                disabled={!selectedPayment || isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={COLORS.primary} />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
+                )}
+              </TouchableOpacity>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Thời gian thuê</Text>
-              <Text style={styles.summaryValue}>
-                {rentalType === "hourly"
-                  ? `${rentalHours} giờ`
-                  : `${Math.ceil(
-                      (endDate.getTime() - startDate.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    )} ngày`}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Tổng cộng</Text>
-              <Text style={styles.totalValue}>
-                {calculateTotal().toLocaleString("vi-VN")} VND
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* BOTTOM BUTTON */}
-        <View style={styles.bottomContainer}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Tổng thanh toán</Text>
-            <Text style={styles.priceValue}>
-              {calculateTotal().toLocaleString("vi-VN")} VND
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.confirmButton,
-              (!selectedPayment || isProcessing) &&
-                styles.confirmButtonDisabled,
-            ]}
-            onPress={handleConfirmBooking}
-            disabled={!selectedPayment || isProcessing}
-          >
-            {isProcessing ? (
-              <ActivityIndicator color={COLORS.primary} />
-            ) : (
-              <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          </>
+        )}
 
         {/* MODAL */}
         <StatusModal
@@ -1113,6 +1467,18 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.xl,
+  },
+  loadingText: {
+    marginTop: SPACING.md,
+    fontSize: FONTS.body,
+    color: COLORS.white,
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",
@@ -1374,8 +1740,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.md,
   },
   priceContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
     marginBottom: SPACING.md,
     marginTop: -SPACING.sm,
@@ -1383,11 +1748,18 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
   },
   priceValue: {
     fontSize: FONTS.title,
     fontWeight: "700",
     color: COLORS.primary,
+  },
+  depositSubLabel: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    fontStyle: "italic",
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
@@ -1409,17 +1781,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     color: COLORS.white,
     marginTop: SPACING.xs,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: SPACING.xxl,
-  },
-  loadingText: {
-    color: COLORS.primary,
-    fontSize: FONTS.body,
-    marginTop: SPACING.md,
   },
   quickSelectContainer: {
     flexDirection: "row",
@@ -1449,6 +1810,30 @@ const styles = StyleSheet.create({
   },
   quickSelectTextActive: {
     color: COLORS.white,
+  },
+  pricingDetail: {
+    marginBottom: SPACING.md,
+  },
+  pricingDetailTitle: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  paymentDetail: {
+    marginBottom: SPACING.md,
+  },
+  depositLabelContainer: {
+    flex: 1,
+  },
+  depositNote: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs / 2,
+  },
+  depositValue: {
+    color: COLORS.primary,
+    fontWeight: "700",
   },
 });
 
