@@ -67,9 +67,7 @@ const EditProfileScreen = () => {
       if (currentUser.licenseExpiry) {
         setLicenseExpiryDisplay(formatDate(currentUser.licenseExpiry));
       }
-    } catch (error) {
-      console.error("Load user error:", error);
-      showStatus("error", "Lỗi", "Không thể tải thông tin người dùng");
+    } catch (error) {showStatus("error", "Lỗi", "Không thể tải thông tin người dùng");
     } finally {
       setLoading(false);
     }
@@ -115,9 +113,7 @@ const EditProfileScreen = () => {
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
-    } catch (error: any) {
-      console.error("Update profile error:", error);
-      showStatus(
+    } catch (error: any) {showStatus(
         "error",
         "Lỗi",
         error.message || "Không thể cập nhật thông tin"

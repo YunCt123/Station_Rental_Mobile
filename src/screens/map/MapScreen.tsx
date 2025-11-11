@@ -58,14 +58,10 @@ const MapScreen = () => {
         await fetchNearbyStations(longitude, latitude);
       } else {
         // If no permission, fetch all stations or use default location (Hanoi)
-        console.log(
-          "[MapScreen] Location permission not granted, using default location"
-        );
-        await fetchAllStations();
+await fetchAllStations();
       }
     } catch (error) {
-      console.error("[MapScreen] Error initializing:", error);
-      // Fallback: fetch all stations
+// Fallback: fetch all stations
       await fetchAllStations();
     }
   };
@@ -77,23 +73,15 @@ const MapScreen = () => {
   ) => {
     try {
       setLoading(true);
-      console.log("[MapScreen] Fetching nearby stations:", {
+const stations = await stationService.getNearbyStations({
         lng,
         lat,
         radiusKm,
       });
 
-      const stations = await stationService.getNearbyStations({
-        lng,
-        lat,
-        radiusKm,
-      });
-
-      console.log("[MapScreen] Fetched stations:", stations.length);
-      setNearbyStations(stations);
+setNearbyStations(stations);
     } catch (error: any) {
-      console.error("[MapScreen] Error fetching nearby stations:", error);
-      setErrorMessage("Không thể tải danh sách trạm gần bạn");
+setErrorMessage("Không thể tải danh sách trạm gần bạn");
       setErrorModalVisible(true);
       // Fallback to all stations
       await fetchAllStations();
@@ -105,18 +93,14 @@ const MapScreen = () => {
   const fetchAllStations = async () => {
     try {
       setLoading(true);
-      console.log("[MapScreen] Fetching all stations");
-
-      const stations = await stationService.listStations(
+const stations = await stationService.listStations(
         { status: "ACTIVE" },
         { limit: 50 }
       );
 
-      console.log("[MapScreen] Fetched all stations:", stations.length);
-      setNearbyStations(stations);
+setNearbyStations(stations);
     } catch (error: any) {
-      console.error("[MapScreen] Error fetching all stations:", error);
-      setErrorMessage(
+setErrorMessage(
         error.response?.data?.message || "Không thể tải danh sách trạm"
       );
       setErrorModalVisible(true);

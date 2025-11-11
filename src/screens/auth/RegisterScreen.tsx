@@ -63,16 +63,14 @@ const RegisterScreen = () => {
       },
     );
 
-      console.log("Register success:", response.data.user);
-      Alert.alert("Thành công", "Đăng ký thành công! Chào mừng bạn.", [
+Alert.alert("Thành công", "Đăng ký thành công! Chào mừng bạn.", [
         {
           text: "OK",
           onPress: () => navigation.navigate("MainTabs"),
         },
       ]);
     } catch (error: any) {
-      console.error("Register error:", error);
-      const errorMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+const errorMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

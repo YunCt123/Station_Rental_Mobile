@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  _id?: string;
   email: string;
   phone?: string;
   phoneNumber?: string; // API might return phoneNumber instead of phone

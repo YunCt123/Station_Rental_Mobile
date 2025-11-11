@@ -33,53 +33,32 @@ const RentalHistoryScreen = () => {
     try {
       setLoading(true);
 
-      console.log("[RentalHistoryScreen] Fetching history bookings");
-
-      // Lấy bookings với status CANCELLED và EXPIRED
+// Lấy bookings với status CANCELLED và EXPIRED
       const params = {
         status: "CANCELLED,EXPIRED,CONFIRMED",
         limit: 50,
       };
 
-      console.log(
-        "[RentalHistoryScreen] Calling bookingService.getUserBookings with params:",
-        params
-      );
-      const result = await bookingService.getUserBookings(params);
+const result = await bookingService.getUserBookings(params);
 
-      console.log(
-        `[RentalHistoryScreen] Final result: ${
-          result?.length || 0
-        } history bookings`
-      );
-      if (result && result.length > 0) {
-        console.log("[RentalHistoryScreen] First booking:", result[0]);
-      }
+if (result && result.length > 0) {
+}
 
       // Nếu backend trả về rỗng với filter, thử lấy tất cả và filter client-side
       if ((!result || result.length === 0) && params.status) {
-        console.warn(
-          "[RentalHistoryScreen] No bookings returned for filtered request. Falling back to fetch all and filter client-side."
-        );
-        const all = await bookingService.getUserBookings();
+const all = await bookingService.getUserBookings();
         const statusList = (params.status as string)
           .split(",")
           .map((s) => s.trim().toUpperCase());
         const filtered = (all || []).filter((b) =>
           statusList.includes((b.status || "").toString().toUpperCase())
         );
-        console.log(
-          `[RentalHistoryScreen] Fallback filtered result: ${filtered.length}`
-        );
-        setBookings(filtered);
+setBookings(filtered);
       } else {
         setBookings(result || []);
       }
     } catch (error: any) {
-      console.error("❌ Error fetching history bookings:", error);
-      console.error("❌ Error response:", error.response?.data);
-
-      setErrorMessage(
+setErrorMessage(
         error.response?.data?.message ||
           "Không thể tải danh sách lịch sử thuê xe"
       );
@@ -104,23 +83,12 @@ const RentalHistoryScreen = () => {
   };
 
   const handleBookingPress = (booking: Booking) => {
-    console.log("[RentalHistoryScreen] Booking pressed:", {
-      id: booking._id,
-      status: booking.status,
-    });
-
-    console.log(
-      "[RentalHistoryScreen] Navigating to HistoryBookingDetail with bookingId:",
-      booking._id
-    );
-
-    try {
+try {
       (navigation as any).navigate("HistoryBookingDetail", {
         bookingId: booking._id,
       });
     } catch (error) {
-      console.error("[RentalHistoryScreen] Navigation error:", error);
-      setErrorMessage("Không thể mở chi tiết booking");
+setErrorMessage("Không thể mở chi tiết booking");
       setErrorModalVisible(true);
     }
   };

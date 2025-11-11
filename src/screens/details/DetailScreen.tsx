@@ -62,9 +62,7 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
       const vehicleData = await vehicleService.getVehicleById(vehicleId);
       const mappedVehicle = mapVehicleToUI(vehicleData);
       setVehicle(mappedVehicle);
-    } catch (err) {
-      console.error("Error loading vehicle details:", err);
-      setError("Không thể tải thông tin xe");
+    } catch (err) {setError("Không thể tải thông tin xe");
     } finally {
       setLoading(false);
     }
@@ -98,32 +96,60 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    // Double check: verify user data exists
-    const user = await authService.getStoredUser();
-    if (!user || !user.id) {
-      Alert.alert(
-        "Lỗi xác thực",
-        "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
-        [
-          {
-            text: "Đăng nhập",
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-              });
+    // ✅ Fetch latest user data and check verification status
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user || !user._id) {
+        Alert.alert(
+          "Lỗi xác thực",
+          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.",
+          [
+            {
+              text: "Đăng nhập",
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              },
             },
-          },
-          {
-            text: "Hủy",
-            style: "cancel",
-          },
-        ]
+            {
+              text: "Hủy",
+              style: "cancel",
+            },
+          ]
+        );
+        return;
+      }
+
+      // ✅ Use verificationStatus directly from getCurrentUser() response
+      const verificationStatus = user.verificationStatus;// Check verification status
+      if (verificationStatus !== "APPROVED") {
+        Alert.alert(
+          "Yêu cầu xác thực tài khoản",
+          "Bạn cần xác thực tài khoản trước khi đặt xe. Vui lòng hoàn tất xác thực để tiếp tục.",
+          [
+            {
+              text: "Xác thực ngay",
+              onPress: () => navigation.navigate("VerifyAccount" as never),
+            },
+            {
+              text: "Hủy",
+              style: "cancel",
+            },
+          ]
+        );
+        return;
+      }
+    } catch (error) {Alert.alert(
+        "Lỗi",
+        "Không thể kiểm tra trạng thái xác thực. Vui lòng thử lại.",
+        [{ text: "OK" }]
       );
       return;
     }
 
-    // If authenticated, proceed to booking
+    // If authenticated and verified, proceed to booking
     navigation.navigate("BookingPayment", { vehicleId: vehicle.id });
   };
 

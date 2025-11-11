@@ -14,9 +14,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import QRCodeModal from "../../components/common/QRCodeModal";
+import {
+  getBookingStatusLabel,
+  getBookingStatusColor,
+  getPaymentStatusLabel,
+  getPaymentStatusColor,
+} from "../../utils/statusHelper";
+// ❌ REMOVED QR Code imports - no longer needed
+// import QRCodeModal from "../../components/common/QRCodeModal";
+// import QRCode from "react-native-qrcode-svg";
 import StatusModal from "../../components/common/StatusModal";
-import QRCode from "react-native-qrcode-svg";
 import { bookingService } from "../../services/bookingService";
 import { Booking } from "../../types/booking";
 
@@ -29,7 +36,8 @@ const ActiveBookingDetailScreen = () => {
   const route = useRoute<RouteProp<{ params: RouteParams }, "params">>();
   const { bookingId } = route.params;
 
-  const [qrModalVisible, setQrModalVisible] = useState(false);
+  // ❌ REMOVED QR Modal state - no longer needed
+  // const [qrModalVisible, setQrModalVisible] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
@@ -42,14 +50,8 @@ const ActiveBookingDetailScreen = () => {
 
   const loadBookingDetails = async () => {
     try {
-      setLoading(true);
-      console.log("[ActiveBookingDetail] Loading booking:", bookingId);
-      const data = await bookingService.getBookingById(bookingId);
-      console.log("[ActiveBookingDetail] Booking data:", data);
-      setBooking(data);
-    } catch (error: any) {
-      console.error("[ActiveBookingDetail] Error loading booking:", error);
-      setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
+      setLoading(true);const data = await bookingService.getBookingById(bookingId);setBooking(data);
+    } catch (error: any) {setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -174,38 +176,53 @@ const ActiveBookingDetailScreen = () => {
         icon: "information-circle",
       };
 
-    switch (booking.status) {
-      case "CONFIRMED":
-        return {
-          label: "Đang sử dụng",
-          color: COLORS.success,
-          icon: "checkmark-circle",
-        };
-      case "HELD":
-        return {
-          label: "Đang giữ chỗ",
-          color: COLORS.warning,
-          icon: "time",
-        };
-      case "CANCELLED":
-        return {
-          label: "Đã hủy",
-          color: COLORS.error,
-          icon: "close-circle",
-        };
-      case "EXPIRED":
-        return {
-          label: "Đã hết hạn",
-          color: COLORS.textSecondary,
-          icon: "alert-circle",
-        };
-      default:
-        return {
-          label: booking.status,
-          color: COLORS.textSecondary,
-          icon: "information-circle",
-        };
-    }
+    const status = booking.status;
+    const label = getBookingStatusLabel(
+      status as "HELD" | "CONFIRMED" | "CANCELLED" | "EXPIRED"
+    );
+    const color = getBookingStatusColor(
+      status as "HELD" | "CONFIRMED" | "CANCELLED" | "EXPIRED"
+    );
+
+    const iconMap = {
+      CONFIRMED: "checkmark-circle",
+      HELD: "time",
+      CANCELLED: "close-circle",
+      EXPIRED: "alert-circle",
+    };
+
+    return {
+      label,
+      color,
+      icon:
+        iconMap[status as keyof typeof iconMap] ||
+        ("information-circle" as any),
+    };
+  };
+
+  const getPaymentStatusInfo = () => {
+    if (!booking?.payment)
+      return {
+        label: "Chưa có thông tin",
+        color: COLORS.textSecondary,
+        icon: "help-circle",
+      };
+
+    const status = booking.payment.status;
+    const label = getPaymentStatusLabel(status);
+    const color = getPaymentStatusColor(status);
+
+    const iconMap = {
+      PENDING: "time-outline",
+      SUCCESS: "checkmark-circle-outline",
+      FAILED: "close-circle-outline",
+    };
+
+    return {
+      label,
+      color,
+      icon: iconMap[status] || ("help-circle-outline" as any),
+    };
   };
 
   if (loading) {
@@ -259,9 +276,15 @@ const ActiveBookingDetailScreen = () => {
   const startDateTime = formatDateTime(booking.start_at || booking.startAt);
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
-  const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
-  const totalPrice =
-    booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
+  
+  // 💰 Pricing information from backend
+  const pricingSnapshot = booking.pricing_snapshot;
+  const basePrice = pricingSnapshot?.base_price || 0;
+  const taxes = pricingSnapshot?.taxes || 0;
+  const insurancePrice = pricingSnapshot?.insurance_price || 0;
+  const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
+  const depositAmount = pricingSnapshot?.deposit || 0;
+  const remainingAmount = totalPrice - depositAmount;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -425,99 +448,145 @@ const ActiveBookingDetailScreen = () => {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
 
+            {/* Payment Method */}
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Phương thức</Text>
-              <Text style={styles.paymentValue}>
-                {booking.payment?.method || "Chưa thanh toán"}
-              </Text>
+              <View style={styles.paymentMethodBadge}>
+                <Ionicons
+                  name="logo-usd"
+                  size={16}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.paymentMethodText}>
+                  VNPAY
+                </Text>
+              </View>
             </View>
 
+            {/* Payment Status */}
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Trạng thái</Text>
+              <Text style={styles.paymentLabel}>Trạng thái thanh toán</Text>
               <View style={styles.paidBadge}>
                 <Ionicons
-                  name={
-                    booking.payment?.status === "SUCCESS"
-                      ? "checkmark-circle"
-                      : "time"
-                  }
+                  name={getPaymentStatusInfo().icon as any}
                   size={16}
-                  color={
-                    booking.payment?.status === "SUCCESS"
-                      ? COLORS.success
-                      : COLORS.warning
-                  }
+                  color={getPaymentStatusInfo().color}
                 />
                 <Text
                   style={[
                     styles.paidText,
-                    {
-                      color:
-                        booking.payment?.status === "SUCCESS"
-                          ? COLORS.success
-                          : COLORS.warning,
-                    },
+                    { color: getPaymentStatusInfo().color },
                   ]}
                 >
-                  {booking.payment?.status === "SUCCESS"
-                    ? "Đã thanh toán"
-                    : "Chờ thanh toán"}
+                  {getPaymentStatusInfo().label}
                 </Text>
               </View>
             </View>
 
             <View style={styles.divider} />
 
+            {/* 💰 Chi tiết giá - Price Breakdown */}
+            <Text style={styles.breakdownTitle}>Chi tiết giá thuê</Text>
+
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>
-                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}đ)
-              </Text>
+              <Text style={styles.paymentLabel}>Giá cơ bản</Text>
               <Text style={styles.paymentValue}>
-                {totalPrice.toLocaleString("vi-VN")}đ
+                {basePrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
 
+            {taxes > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Thuế & phí</Text>
+                <Text style={styles.paymentValue}>
+                  {taxes.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            {insurancePrice > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Bảo hiểm</Text>
+                <Text style={styles.paymentValue}>
+                  {insurancePrice.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.paymentRow}>
+              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>
+                Tổng giá thuê
+              </Text>
+              <Text style={[styles.paymentValue, { fontWeight: '700', color: COLORS.primary }]}>
+                {totalPrice.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* 💰 Chi tiết thanh toán - Payment Details */}
+            <Text style={styles.breakdownTitle}>Chi tiết thanh toán</Text>
+
+            {/* Deposit Info - ✅ Số tiền đã thanh toán VNPay */}
+            <View style={styles.paymentRow}>
+              <View style={styles.paymentLabelWithNote}>
+                <Text style={[styles.paymentLabel, styles.depositLabel]}>
+                  💰 Tiền cọc{" "}
+                  {totalPrice > 0 && depositAmount > 0
+                    ? `(${Math.round((depositAmount / totalPrice) * 100)}%)`
+                    : ""}
+                </Text>
+                {booking.payment?.status === "SUCCESS" && (
+                  <Text style={styles.paymentNote}>
+                    ✓ Đã thanh toán qua VNPAY
+                  </Text>
+                )}
+                {booking.payment?.status === "PENDING" && (
+                  <Text style={[styles.paymentNote, { color: COLORS.warning }]}>
+                    ⏳ Chờ thanh toán
+                  </Text>
+                )}
+              </View>
+              <Text style={[styles.paymentValue, styles.depositValue]}>
+                {depositAmount.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            {/* Remaining Payment - ✅ Số tiền phải trả khi trả xe */}
+            <View style={styles.paymentRow}>
+              <View style={styles.paymentLabelWithNote}>
+                <Text style={[styles.paymentLabel, styles.remainingLabel]}>
+                  🔄 Còn lại{" "}
+                  {totalPrice > 0 && remainingAmount > 0
+                    ? `(${Math.round((remainingAmount / totalPrice) * 100)}%)`
+                    : ""}
+                </Text>
+                <Text style={styles.paymentNote}>
+                  Thanh toán trực tiếp tại trạm khi trả xe
+                </Text>
+              </View>
+              <Text style={styles.paymentValue}>
+                {remainingAmount.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Total */}
             <View style={styles.paymentRow}>
               <Text style={styles.totalLabel}>Tổng cộng</Text>
               <Text style={styles.totalValue}>
-                {totalPrice.toLocaleString("vi-VN")}đ
+                {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
           </View>
 
-          {/* QR Code Section */}
-          <View style={styles.card}>
+          {/* ❌ REMOVED QR Code Section - no longer needed for check-in */}
+          {/* Staff will manually check-in customer at station */}
+          {/* <View style={styles.card}>
             <Text style={styles.sectionTitle}>Mã QR nhận xe</Text>
-            <TouchableOpacity
-              style={styles.qrContainer}
-              onPress={() => setQrModalVisible(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.qrCodeWrapper}>
-                <QRCode
-                  value={JSON.stringify({
-                    bookingId: booking._id,
-                    vehicleName: `${getVehicleName()} ${getVehicleModel()}`,
-                    location: getStationAddress(),
-                    pickupTime: `${startDateTime.date} ${startDateTime.time}`,
-                    timestamp: new Date().toISOString(),
-                  })}
-                  size={180}
-                  color={COLORS.text}
-                  backgroundColor={COLORS.white}
-                />
-              </View>
-              <Text style={styles.qrText}>Nhấn để xem mã QR check-in</Text>
-              <View style={styles.qrButton}>
-                <Text style={styles.qrButtonText}>Xem chi tiết</Text>
-                <Ionicons
-                  name="expand-outline"
-                  size={16}
-                  color={COLORS.white}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
+            ...QR code UI removed...
+          </View> */}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -551,15 +620,8 @@ const ActiveBookingDetailScreen = () => {
           </View>
         )}
 
-        {/* QR Code Modal */}
-        <QRCodeModal
-          visible={qrModalVisible}
-          onClose={() => setQrModalVisible(false)}
-          bookingId={booking._id}
-          vehicleName={`${getVehicleName()} ${getVehicleModel()}`}
-          location={getStationAddress()}
-          pickupTime={`${startDateTime.date} ${startDateTime.time}`}
-        />
+        {/* ❌ REMOVED QR Code Modal - no longer needed */}
+        {/* <QRCodeModal ... /> */}
 
         {/* Error Modal */}
         <StatusModal
@@ -736,6 +798,52 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.primary,
   },
+  depositLabel: {
+    color: COLORS.primary,
+    fontWeight: "600",
+  },
+  depositValue: {
+    color: COLORS.primary,
+    fontWeight: "700",
+  },
+  remainingLabel: {
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+  },
+  paymentLabelWithNote: {
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  paymentNote: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    fontStyle: "italic",
+  },
+  breakdownTitle: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  paymentMethodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    backgroundColor: `${COLORS.primary}15`,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADII.sm,
+  },
+  paymentMethodText: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  // ❌ REMOVED QR-related styles (qrContainer, qrCodeWrapper, qrText, qrButton, qrButtonText)
+  // These are no longer needed since QR check-in has been removed
+  /*
   qrContainer: {
     alignItems: "center",
     paddingVertical: SPACING.lg,
@@ -771,6 +879,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.white,
   },
+  */
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

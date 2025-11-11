@@ -13,26 +13,11 @@ class StationService {
    */
   async getNearbyStations(params: NearbyStationsParams): Promise<Station[]> {
     try {
-      const { lng, lat, radiusKm = 10 } = params;
-      
-      console.log('[stationService.getNearbyStations] Fetching stations:', { lng, lat, radiusKm });
-
-      const response = await api.get(STATION_ENDPOINTS.NEARBY, {
+      const { lng, lat, radiusKm = 10 } = params;const response = await api.get(STATION_ENDPOINTS.NEARBY, {
         params: { lng, lat, radiusKm },
-      });
-
-      console.log('[stationService.getNearbyStations] Response:', response);
-
-      // Backend may return { data: stations[] } or stations[] directly
-      const stations = (response as any)?.data ?? response;
-      
-      console.log('[stationService.getNearbyStations] Stations count:', stations?.length || 0);
-      
-      return Array.isArray(stations) ? stations : [];
-    } catch (error: any) {
-      console.error('[stationService.getNearbyStations] Error:', error);
-      console.error('[stationService.getNearbyStations] Error response:', error.response?.data);
-      throw error;
+      });// Backend may return { data: stations[] } or stations[] directly
+      const stations = (response as any)?.data ?? response;return Array.isArray(stations) ? stations : [];
+    } catch (error: any) {throw error;
     }
   }
 
@@ -43,23 +28,13 @@ class StationService {
     id: string,
     includeVehicles: boolean = false
   ): Promise<Station> {
-    try {
-      console.log('[stationService.getStationById] Fetching station:', id);
-
-      const response = await api.get(STATION_ENDPOINTS.BY_ID(id), {
+    try {const response = await api.get(STATION_ENDPOINTS.BY_ID(id), {
         params: { includeVehicles },
-      });
-
-      console.log('[stationService.getStationById] Response:', response);
-
-      // Backend may return { data: station } or station directly
+      });// Backend may return { data: station } or station directly
       const station = (response as any)?.data ?? response;
       
       return station;
-    } catch (error: any) {
-      console.error('[stationService.getStationById] Error:', error);
-      console.error('[stationService.getStationById] Error response:', error.response?.data);
-      throw error;
+    } catch (error: any) {throw error;
     }
   }
 
@@ -110,29 +85,15 @@ class StationService {
    * List all stations with optional filters
    */
   async listStations(filters?: any, options?: any): Promise<Station[]> {
-    try {
-      console.log('[stationService.listStations] Fetching with filters:', filters, options);
-
-      const response = await api.get(STATION_ENDPOINTS.LIST, {
+    try {const response = await api.get(STATION_ENDPOINTS.LIST, {
         params: { 
           status: 'ACTIVE',
           ...filters, 
           ...options 
         },
-      });
-
-      console.log('[stationService.listStations] Response:', response);
-
-      // Backend may return { data: stations[] } or stations[] directly
-      const stations = (response as any)?.data ?? response;
-      
-      console.log('[stationService.listStations] Stations count:', stations?.length || 0);
-      
-      return Array.isArray(stations) ? stations : [];
-    } catch (error: any) {
-      console.error('[stationService.listStations] Error:', error);
-      console.error('[stationService.listStations] Error response:', error.response?.data);
-      throw error;
+      });// Backend may return { data: stations[] } or stations[] directly
+      const stations = (response as any)?.data ?? response;return Array.isArray(stations) ? stations : [];
+    } catch (error: any) {throw error;
     }
   }
 

@@ -44,8 +44,7 @@ export const StationDetailScreen = () => {
       setStation(stationData);
       setVehicles(vehiclesData.vehicles);
     } catch (error) {
-      console.error("Error fetching station details:", error);
-      setErrorMessage("Không thể tải thông tin trạm");
+setErrorMessage("Không thể tải thông tin trạm");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -267,7 +266,7 @@ export const StationDetailScreen = () => {
                 </View>
                 <View style={styles.vehiclePrice}>
                   <Text style={styles.priceAmount}>
-                    {vehicle.pricePerHour.toLocaleString()}đ
+                    {vehicle.pricePerHour.toLocaleString("vi-VN")} VND
                   </Text>
                   <Text style={styles.priceUnit}>/giờ</Text>
                 </View>

@@ -83,8 +83,8 @@ const AuthLandingScreen = () => {
             <Text style={styles.secondaryButtonText}>Đăng ký</Text>
           </TouchableOpacity>
 
-          {/* Guest mode disabled - users must login to book vehicles */}
-          {/* <TouchableOpacity
+          {/* Guest mode disabled - users must login to book vehicles
+          <TouchableOpacity
             style={styles.guestButton}
             onPress={() => navigation.navigate('MainTabs')}
           >
