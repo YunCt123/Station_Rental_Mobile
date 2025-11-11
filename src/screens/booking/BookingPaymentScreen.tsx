@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import StatusModal from "../../components/common/StatusModal";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { CreatePayOSPaymentResponse } from "../../types/payment";
 import { paymentService } from "../../services/paymentService";
 import { bookingService } from "../../services/bookingService";
@@ -37,22 +39,42 @@ const BookingPaymentScreen = () => {
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPayment, setSelectedPayment] = useState<
-    "vnpay" | "payos" | null
-  >(null);
+  const [selectedPayment, setSelectedPayment] = useState<"vnpay" | null>(
+    "vnpay"
+  ); // Only VNPAY is supported in backend
+  const [rentalType, setRentalType] = useState<"hourly" | "daily">("hourly");
   const [rentalHours, setRentalHours] = useState("4");
-  const [pickupTime, setPickupTime] = useState(
-    new Date().toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  );
+  const [pickupTime, setPickupTime] = useState("");
+  const [pickupDate, setPickupDate] = useState(new Date()); // 🆕 Ngày nhận xe cho thuê theo giờ
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(
+    new Date(Date.now() + 24 * 60 * 60 * 1000)
+  ); // +1 day
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showPickupTimePicker, setShowPickupTimePicker] = useState(false);
+  const [showPickupDatePicker, setShowPickupDatePicker] = useState(false); // 🆕 Date picker cho thuê theo giờ
+  const [pickupDateTime, setPickupDateTime] = useState(new Date());
+  const [dailyPickupTime, setDailyPickupTime] = useState(new Date()); // 🆕 Giờ nhận xe cho thuê theo ngày
+  const [showDailyPickupTimePicker, setShowDailyPickupTimePicker] =
+    useState(false); // 🆕 Time picker cho thuê theo ngày
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [calculatedDeposit, setCalculatedDeposit] = useState<number>(0); // 💰 Lưu deposit đã tính
+
+  // 🆕 State lưu pricing từ backend để hiển thị UI
+  const [backendPricing, setBackendPricing] = useState<{
+    totalPrice: number;
+    deposit: number;
+    basePrice: number;
+    hourlyRate?: number;
+    dailyRate?: number;
+  } | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -70,6 +92,86 @@ const BookingPaymentScreen = () => {
   useEffect(() => {
     loadVehicleDetails();
   }, [vehicleId]);
+
+  // Reset form when screen gains focus (user comes back from payment)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      console.log("📱 Screen focused - resetting payment state");
+      setIsProcessing(false);
+      setCreatedBookingId(null);
+      // Keep other fields (rentalHours, dates) so user doesn't have to re-enter
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // 🆕 Fetch pricing từ backend khi thay đổi rental info
+  useEffect(() => {
+    fetchBackendPricing();
+  }, [vehicleId, rentalType, rentalHours, startDate, endDate]);
+
+  // Helper function để fetch pricing với vehicle data được truyền vào
+  const fetchBackendPricingWithVehicle = async (vehicleData: any) => {
+    if (!vehicleData || !vehicleId) return;
+
+    try {
+      // Validate input trước khi gọi API
+      if (rentalType === "hourly") {
+        const hours = parseInt(rentalHours) || 0;
+        if (hours <= 0) {
+          setPricingLoading(false);
+          return;
+        }
+      } else {
+        const days = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (days <= 0) {
+          setPricingLoading(false);
+          return;
+        }
+      }
+
+      setPricingLoading(true);
+      const { startAt, endAt } = calculateBookingTimes();
+
+      const pricingData = await bookingService.calculateBookingPrice({
+        vehicleId: vehicleId,
+        startAt,
+        endAt,
+        insurancePremium: false,
+        currency: "VND",
+      });
+
+      // Normalize response
+      const normalized = {
+        totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
+        deposit: pricingData.deposit || 0,
+        basePrice: pricingData.basePrice || pricingData.base_price || 0,
+        hourlyRate: pricingData.hourly_rate || 0,
+        dailyRate: pricingData.daily_rate || 0,
+      };
+
+      // Fallback nếu backend không trả deposit
+      if (!normalized.deposit && normalized.totalPrice > 0) {
+        normalized.deposit = Math.round(normalized.totalPrice * 0.2);
+      }
+
+      setBackendPricing(normalized);
+      console.log("[fetchBackendPricing] Updated pricing:", normalized);
+    } catch (error) {
+      console.error("[fetchBackendPricing] Error:", error);
+      // Fallback về client-side calculation
+      setBackendPricing(null);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const fetchBackendPricing = async () => {
+    if (!vehicle || !vehicleId) return;
+    await fetchBackendPricingWithVehicle(vehicle);
+  };
 
   const checkAuthentication = async () => {
     try {
@@ -156,6 +258,10 @@ const BookingPaymentScreen = () => {
       setLoading(true);
       const vehicleData = await vehicleService.getVehicleById(vehicleId);
       setVehicle(vehicleData);
+
+      // 🆕 Fetch pricing ngay sau khi có vehicle data
+      // Điều này đảm bảo giá được tính từ backend trước khi hiển thị
+      await fetchBackendPricingWithVehicle(vehicleData);
     } catch (error) {
       console.error("Error loading vehicle:", error);
       Alert.alert("Lỗi", "Không thể tải thông tin xe");
@@ -165,85 +271,296 @@ const BookingPaymentScreen = () => {
     }
   };
 
-  // Calculate total price
+  // Calculate total price (estimate for UI display)
+  // Note: Actual pricing will be calculated by backend with business rules
   const calculateTotal = () => {
     if (!vehicle) return 0;
-    const hours = parseInt(rentalHours) || 0;
-    const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
-    return hours * hourlyRate;
+
+    if (rentalType === "hourly") {
+      const hours = parseInt(rentalHours) || 0;
+      const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
+      return hours * hourlyRate;
+    } else {
+      // Calculate days from date range
+      const days = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const dailyRate = vehicle.pricing?.daily || vehicle.pricePerDay || 0;
+      return days * dailyRate;
+    }
   };
 
   // Calculate booking times
   const calculateBookingTimes = () => {
-    const now = new Date();
-    const [hours, minutes] = pickupTime.split(":").map(Number);
+    if (rentalType === "hourly") {
+      // For hourly: start from now
+      const hours = parseInt(rentalHours) || 0;
 
-    const startAt = new Date(now);
-    startAt.setHours(hours, minutes, 0, 0);
+      console.log("📅 Calculating hourly times:", {
+        rentalHours,
+        parsedHours: hours,
+        isValid: hours > 0,
+      });
 
-    // If pickup time is in the past, set it to tomorrow
-    if (startAt < now) {
-      startAt.setDate(startAt.getDate() + 1);
+      if (hours <= 0) {
+        throw new Error("Vui lòng nhập số giờ thuê hợp lệ (> 0)");
+      }
+
+      const startAt = new Date();
+      const endAt = new Date(startAt);
+      endAt.setHours(endAt.getHours() + hours);
+
+      return {
+        startAt: startAt.toISOString(),
+        endAt: endAt.toISOString(),
+      };
+    } else {
+      // For daily: use selected date range
+      const days = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log("📅 Calculating daily times:", {
+        startDate,
+        endDate,
+        days,
+        isValid: days > 0,
+      });
+
+      if (days <= 0) {
+        throw new Error("Vui lòng chọn ngày kết thúc sau ngày bắt đầu");
+      }
+
+      // Set start date to 00:00:00
+      const startAt = new Date(startDate);
+      startAt.setHours(0, 0, 0, 0);
+
+      // Set end date to 23:59:59
+      const endAt = new Date(endDate);
+      endAt.setHours(23, 59, 59, 999);
+
+      return {
+        startAt: startAt.toISOString(),
+        endAt: endAt.toISOString(),
+      };
     }
+  };
 
-    const endAt = new Date(startAt);
-    endAt.setHours(endAt.getHours() + parseInt(rentalHours));
+  // Handle start date change (for daily rental)
+  const onStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setStartDate(selectedDate);
+      // Auto-adjust end date if it's before start date
+      if (selectedDate > endDate) {
+        setEndDate(new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000));
+      }
+    }
+  };
 
-    return {
-      startAt: startAt.toISOString(),
-      endAt: endAt.toISOString(),
-    };
+  // Handle end date change (for daily rental)
+  const onEndDateChange = (event: any, selectedDate?: Date) => {
+    setShowEndDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      // Ensure end date is after start date
+      if (selectedDate > startDate) {
+        setEndDate(selectedDate);
+      } else {
+        Alert.alert("Lỗi", "Ngày kết thúc phải sau ngày bắt đầu");
+      }
+    }
+  };
+
+  // Format date for display
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  // Format time for display
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
+
+  // Handle pickup time change (for hourly rental)
+  const onPickupTimeChange = (event: any, selectedTime?: Date) => {
+    setShowPickupTimePicker(Platform.OS === "ios");
+    if (selectedTime) {
+      setPickupDateTime(selectedTime);
+      setPickupTime(formatTime(selectedTime));
+    }
+  };
+
+  // 🆕 Handle pickup date change (for hourly rental)
+  const onPickupDateChange = (event: any, selectedDate?: Date) => {
+    setShowPickupDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setPickupDate(selectedDate);
+    }
+  };
+
+  // 🆕 Handle daily pickup time change (for daily rental)
+  const onDailyPickupTimeChange = (event: any, selectedTime?: Date) => {
+    setShowDailyPickupTimePicker(Platform.OS === "ios");
+    if (selectedTime) {
+      setDailyPickupTime(selectedTime);
+    }
+  };
+
+  // Quick select hours
+  const selectQuickHours = (hours: number) => {
+    setRentalHours(hours.toString());
   };
 
   /** --- CREATE BOOKING FIRST --- **/
-  const createBooking = async (): Promise<string | null> => {
+  const createBooking = async (): Promise<{
+    bookingId: string;
+    deposit: number;
+  }> => {
     try {
-      if (!vehicle || !vehicle.station_id) {
-        throw new Error("Thông tin xe hoặc trạm không hợp lệ");
+      // 🔄 Reload vehicle data to get latest status
+      console.log("🔄 Reloading vehicle data before booking...");
+      const latestVehicle = await vehicleService.getVehicleById(vehicleId);
+
+      // Log vehicle data để debug
+      console.log("🚗 Vehicle data:", {
+        _id: latestVehicle?._id,
+        name: latestVehicle?.name,
+        status: latestVehicle?.status,
+        station_id: latestVehicle?.station_id,
+        station_name: latestVehicle?.station_name,
+      });
+
+      // Update vehicle state with latest data
+      setVehicle(latestVehicle);
+
+      if (!latestVehicle) {
+        throw new Error("Không tìm thấy thông tin xe");
       }
 
-      // Check if vehicle is still available
-      if (vehicle.status !== "AVAILABLE") {
+      // ✅ Kiểm tra station_id - backend đã fix nên giờ sẽ có
+      if (!latestVehicle.station_id) {
         throw new Error(
-          `Xe không còn khả dụng. Trạng thái hiện tại: ${vehicle.status}`
+          "Xe chưa được gán trạm. Vui lòng liên hệ quản trị viên."
+        );
+      }
+
+      console.log("✅ Station ID:", latestVehicle.station_id);
+
+      // Check if vehicle is available or already reserved by this booking attempt
+      if (
+        latestVehicle.status !== "AVAILABLE" &&
+        latestVehicle.status !== "RESERVED"
+      ) {
+        throw new Error(
+          `Xe không khả dụng. Trạng thái: ${latestVehicle.status}. Vui lòng chọn xe khác.`
+        );
+      }
+
+      // If vehicle is RESERVED, show warning but allow retry (might be from previous failed attempt)
+      if (latestVehicle.status === "RESERVED") {
+        console.warn(
+          "⚠️ Vehicle is RESERVED, attempting to create booking anyway..."
         );
       }
 
       const { startAt, endAt } = calculateBookingTimes();
 
-      // Extract pricing information from vehicle
-      const hourlyRate = vehicle.pricing?.hourly || vehicle.pricePerHour || 0;
-      const dailyRate = vehicle.pricing?.daily || vehicle.pricePerDay || 0;
-      const currency = vehicle.pricing?.currency || "VND";
+      console.log("📅 Booking times:", { startAt, endAt, rentalType });
 
-      // Calculate total price
-      const hours = parseInt(rentalHours) || 0;
-      const totalPrice = calculateTotal();
+      // Step 1: Call backend calculateBookingPrice API to get accurate pricing
+      // Backend will calculate with business rules (peak hours, weekends, etc.)
+      const pricingData = await bookingService.calculateBookingPrice({
+        vehicleId: vehicleId,
+        startAt,
+        endAt,
+        insurancePremium: false, // Can be made configurable
+        currency: "VND",
+      });
 
+      console.log("💰 Backend calculated pricing:", {
+        deposit: pricingData.deposit,
+        totalPrice: pricingData.totalPrice || pricingData.total_price,
+        basePrice: pricingData.basePrice || pricingData.base_price,
+        insurancePrice:
+          pricingData.insurancePrice || pricingData.insurance_price,
+        taxes: pricingData.taxes,
+        hourlyRate: pricingData.hourly_rate,
+        dailyRate: pricingData.daily_rate,
+        currency: pricingData.currency,
+        details: pricingData.details,
+      });
+
+      // ✅ Normalize response: backend may return both camelCase and snake_case
+      const normalizedPricing = {
+        deposit: pricingData.deposit || 0,
+        totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
+        basePrice: pricingData.basePrice || pricingData.base_price || 0,
+        insurancePrice:
+          pricingData.insurancePrice || pricingData.insurance_price || 0,
+        taxes: pricingData.taxes || 0,
+        hourly_rate: pricingData.hourly_rate || pricingData.hourlyRate || 0,
+        daily_rate: pricingData.daily_rate || pricingData.dailyRate || 0,
+        currency: pricingData.currency || "VND",
+        details: pricingData.details || {
+          rawBase: pricingData.basePrice || pricingData.base_price || 0,
+          rentalType: rentalType,
+          hours: 0,
+          days: 0,
+        },
+        policy_version: pricingData.policy_version || "v1.0",
+      };
+
+      // ✅ Calculate deposit if backend doesn't provide it (should be 20% of total)
+      let depositAmount = normalizedPricing.deposit;
+      if (!depositAmount || depositAmount <= 0) {
+        depositAmount = Math.round(normalizedPricing.totalPrice * 0.2);
+        console.log("⚠️ Backend deposit is 0, calculating 20% of total:", {
+          totalPrice: normalizedPricing.totalPrice,
+          calculatedDeposit: depositAmount,
+        });
+      }
+
+      // � LƯU deposit để dùng lại trong payment (tránh duplicate API call)
+      setCalculatedDeposit(depositAmount);
+
+      // �🔥 Step 2: Create booking with backend-calculated pricing
       const bookingData: CreateBookingRequest = {
         vehicleId: vehicleId,
-        stationId: vehicle.station_id,
+        stationId: latestVehicle.station_id, // ✅ Backend đã fix, giờ có station_id
         startAt,
         endAt,
         pricing_snapshot: {
-          hourly_rate: hourlyRate,
-          daily_rate: dailyRate,
-          currency: currency,
-          deposit: 0, // Set appropriate deposit if needed
-          total_price: totalPrice,
-          base_price: totalPrice,
-          insurance_price: 0,
-          taxes: 0,
+          hourly_rate: normalizedPricing.hourly_rate,
+          daily_rate: normalizedPricing.daily_rate,
+          currency: normalizedPricing.currency,
+          deposit: depositAmount,
+          total_price: normalizedPricing.totalPrice,
+          base_price: normalizedPricing.basePrice,
+          insurance_price: normalizedPricing.insurancePrice,
+          taxes: normalizedPricing.taxes,
           details: {
-            rawBase: totalPrice,
-            rentalType: "hourly",
-            hours: hours,
-            days: 0,
+            rawBase:
+              normalizedPricing.details.rawBase || normalizedPricing.basePrice,
+            rentalType: normalizedPricing.details.rentalType || rentalType,
+            hours: normalizedPricing.details.hours || 0,
+            days: normalizedPricing.details.days || 0,
           },
-          policy_version: "1.0",
+          policy_version: normalizedPricing.policy_version,
         },
         agreement: {
           accepted: true,
+        },
+        // Backend only accepts premium flag, not note field
+        insuranceOption: {
+          premium: false,
         },
       };
 
@@ -259,7 +576,7 @@ const BookingPaymentScreen = () => {
       }
 
       console.log("Booking created:", booking);
-      return booking._id;
+      return { bookingId: booking._id, deposit: depositAmount };
     } catch (error: any) {
       console.error("Error creating booking:", error);
       // Extract error message from API response
@@ -276,12 +593,12 @@ const BookingPaymentScreen = () => {
     setIsProcessing(true);
     try {
       // Step 1: Create booking with status HELD
-      const bookingId = await createBooking();
-      if (!bookingId) {
+      const result = await createBooking();
+      if (!result || !result.bookingId) {
         throw new Error("Không thể tạo booking");
       }
 
-      setCreatedBookingId(bookingId);
+      setCreatedBookingId(result.bookingId);
 
       // Step 2: Create PayOS payment (NOT VNPay!)
       const amount = calculateTotal();
@@ -291,10 +608,10 @@ const BookingPaymentScreen = () => {
       );
 
       const response = await paymentService.createPayOSPayment({
-        bookingId: bookingId,
+        bookingId: result.bookingId,
         amount: amount,
-        returnUrl: `myapp://payment/result?bookingId=${bookingId}`,
-        cancelUrl: `myapp://payment/cancel?bookingId=${bookingId}`,
+        returnUrl: `myapp://payment/result?bookingId=${result.bookingId}`,
+        cancelUrl: `myapp://payment/cancel?bookingId=${result.bookingId}`,
       });
 
       console.log(
@@ -318,7 +635,7 @@ const BookingPaymentScreen = () => {
 
         navigation.navigate("PayOSWebView", {
           paymentUrl: checkoutUrl,
-          bookingId: bookingId,
+          bookingId: result.bookingId,
           amount: amount,
           vehicleName: vehicle?.name || "Xe",
         });
@@ -355,15 +672,153 @@ const BookingPaymentScreen = () => {
   const handleVNPAYPayment = async () => {
     setIsProcessing(true);
     try {
-      const bookingId = await createBooking();
-      if (!bookingId) throw new Error("Không thể tạo booking");
-      setCreatedBookingId(bookingId);
+      // ✅ Validate thông tin trước khi tính toán
+      if (rentalType === "hourly") {
+        const hours = parseInt(rentalHours) || 0;
+        if (hours <= 0) {
+          throw new Error("Vui lòng nhập số giờ thuê hợp lệ");
+        }
+      } else {
+        const days = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (days <= 0) {
+          throw new Error("Vui lòng chọn ngày kết thúc sau ngày bắt đầu");
+        }
+      }
 
-      const amount = calculateTotal();
+      // 🔥 Tính deposit mỗi lần user bấm
+      const { startAt, endAt } = calculateBookingTimes();
+
+      console.log("[handleVNPAYPayment] Calculating pricing with:", {
+        vehicleId,
+        startAt,
+        endAt,
+        rentalType,
+      });
+
+      const pricingData = await bookingService.calculateBookingPrice({
+        vehicleId: vehicleId,
+        startAt,
+        endAt,
+        insurancePremium: false,
+        currency: "VND",
+      });
+
+      console.log("[handleVNPAYPayment] Backend pricing response:", {
+        totalPrice: pricingData.totalPrice || pricingData.total_price,
+        basePrice: pricingData.basePrice || pricingData.base_price,
+        deposit: pricingData.deposit,
+        hourlyRate: pricingData.hourly_rate,
+        details: pricingData.details,
+      });
+
+      // Normalize response: backend may return both camelCase and snake_case
+      const normalizedPricing = {
+        deposit: pricingData.deposit || 0,
+        totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
+        basePrice: pricingData.basePrice || pricingData.base_price || 0,
+        insurancePrice:
+          pricingData.insurancePrice || pricingData.insurance_price || 0,
+        taxes: pricingData.taxes || 0,
+        hourly_rate: pricingData.hourly_rate || 0,
+        daily_rate: pricingData.daily_rate || 0,
+        currency: pricingData.currency || "VND",
+        details: pricingData.details || {
+          rawBase: pricingData.basePrice || pricingData.base_price || 0,
+          rentalType: rentalType,
+          hours: 0,
+          days: 0,
+        },
+        policy_version: pricingData.policy_version || "v1.0",
+      };
+
+      // 🔄 Cập nhật backendPricing state để UI hiển thị đúng
+      setBackendPricing({
+        totalPrice: normalizedPricing.totalPrice,
+        deposit: normalizedPricing.deposit,
+        basePrice: normalizedPricing.basePrice,
+        hourlyRate: normalizedPricing.hourly_rate,
+        dailyRate: normalizedPricing.daily_rate,
+      });
+
+      if (!normalizedPricing.totalPrice || normalizedPricing.totalPrice <= 0) {
+        console.error(
+          "[handleVNPAYPayment] Backend returned invalid pricing:",
+          {
+            fullResponse: pricingData,
+            normalizedPricing,
+            vehicleId,
+            vehicleName: vehicle?.name,
+            vehicleHourlyRate:
+              vehicle?.pricing?.hourly || vehicle?.pricePerHour,
+            vehicleDailyRate: vehicle?.pricing?.daily || vehicle?.pricePerDay,
+          }
+        );
+
+        // Check if it's a backend validation error (will have better message)
+        const backendError = pricingData?.message || pricingData?.error;
+        if (backendError) {
+          throw new Error(backendError);
+        }
+
+        // Generic error if no backend message
+        throw new Error(
+          `Xe "${vehicle?.name || "này"}" chưa có giá thuê.\n\n` +
+            `Vui lòng chọn xe khác hoặc liên hệ quản trị viên để cập nhật giá cho xe này.`
+        );
+      }
+
+      // Calculate deposit (20% of total)
+      let depositAmount = normalizedPricing.deposit;
+      if (!depositAmount || depositAmount <= 0) {
+        depositAmount = Math.round(normalizedPricing.totalPrice * 0.2);
+        console.log(
+          "[handleVNPAYPayment] Backend deposit is 0, calculating 20%:",
+          {
+            totalPrice: normalizedPricing.totalPrice,
+            deposit: depositAmount,
+          }
+        );
+      }
+
+      console.log(
+        "[handleVNPAYPayment] ✅ Deposit amount to be sent to VNPay:",
+        {
+          deposit: depositAmount,
+          totalPrice: normalizedPricing.totalPrice,
+          percentage: `${Math.round(
+            (depositAmount / normalizedPricing.totalPrice) * 100
+          )}%`,
+          displayedInUI: backendPricing?.deposit,
+        }
+      );
+
+      // Validate deposit
+      if (!depositAmount || depositAmount <= 0) {
+        throw new Error(
+          `Số tiền đặt cọc không hợp lệ (${depositAmount}). Vui lòng thử lại.`
+        );
+      }
+
+      // Save deposit to use in createBooking()
+      setCalculatedDeposit(depositAmount);
+
+      // Create booking (will return {bookingId, deposit})
+      const result = await createBooking();
+      if (!result || !result.bookingId) {
+        throw new Error("Không thể tạo booking");
+      }
+      setCreatedBookingId(result.bookingId);
+
+      console.log(
+        "[handleVNPAYPayment] Creating VNPay payment with deposit:",
+        result.deposit
+      );
 
       const response = await paymentService.createVNPAYDeposit(
-        bookingId,
-        amount
+        result.bookingId,
+        result.deposit
       );
 
       console.log("[handleVNPAYPayment] Response:", response);
@@ -373,8 +828,8 @@ const BookingPaymentScreen = () => {
         // @ts-ignore - navigation type issue
         navigation.navigate("VNPAYWebView", {
           paymentUrl: response.checkoutUrl,
-          bookingId,
-          amount: amount,
+          bookingId: result.bookingId,
+          amount: result.deposit, // ✅ Pass deposit amount, not total
           vehicleName: vehicle?.name || "Xe",
         });
       } else {
@@ -382,10 +837,15 @@ const BookingPaymentScreen = () => {
       }
     } catch (error: any) {
       console.error("Lỗi VNPAY:", error);
+      console.error("Chi tiết lỗi:", error.response?.data);
       setIsProcessing(false);
       setModalType("error");
       setModalTitle("Thanh toán thất bại");
-      setModalMessage(error.message || "Không thể khởi tạo thanh toán.");
+      setModalMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Không thể khởi tạo thanh toán."
+      );
       setModalVisible(true);
     }
   };
@@ -407,11 +867,8 @@ const BookingPaymentScreen = () => {
       return;
     }
 
-    if (selectedPayment === "payos") {
-      await handlePayOSPayment();
-    } else {
-      await handleVNPAYPayment();
-    }
+    // Only VNPAY is supported
+    await handleVNPAYPayment();
   };
 
   /** --- MODAL HANDLING --- **/
@@ -479,184 +936,532 @@ const BookingPaymentScreen = () => {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* CONTENT */}
-        <ScrollView
-          style={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* VEHICLE INFO */}
-          <View style={styles.vehicleCard}>
-            <Image
-              source={{ uri: vehicle.image }}
-              style={styles.vehicleImage}
-            />
-            <View style={styles.vehicleInfo}>
-              <Text style={styles.vehicleName}>{vehicle.name}</Text>
-              <Text style={styles.vehicleModel}>
-                {vehicle.brand} • {vehicle.year}
-              </Text>
-              <View style={styles.rateContainer}>
-                <Text style={styles.rateText}>
-                  {hourlyRate.toLocaleString("vi-VN")}đ
-                </Text>
-                <Text style={styles.rateUnit}>/giờ</Text>
-              </View>
-            </View>
+        {/* Loading State - Hiển thị khi đang load vehicle & pricing */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Đang tải thông tin...</Text>
           </View>
-
-          {/* RENTAL DETAILS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Thời gian thuê (giờ)</Text>
-              <TextInput
-                style={styles.input}
-                value={rentalHours}
-                onChangeText={setRentalHours}
-                keyboardType="numeric"
-                placeholder="Nhập số giờ"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Thời gian nhận xe</Text>
-              <TextInput
-                style={styles.input}
-                value={pickupTime}
-                onChangeText={setPickupTime}
-                placeholder="HH:MM"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={20} color={COLORS.primary} />
-                <Text style={styles.locationText}>{stationLocation}</Text>
-              </View>
-            </View>
+        ) : !vehicle ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Không tìm thấy thông tin xe</Text>
           </View>
-
-          {/* PAYMENT METHOD */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-
-            {/* PAYOS */}
-            <TouchableOpacity
-              style={[
-                styles.paymentOption,
-                selectedPayment === "payos" && styles.paymentOptionSelected,
-              ]}
-              onPress={() => setSelectedPayment("payos")}
+        ) : (
+          <>
+            {/* CONTENT */}
+            <ScrollView
+              style={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
             >
-              <Ionicons
-                name="card"
-                size={28}
-                color={
-                  selectedPayment === "payos"
-                    ? COLORS.primary
-                    : COLORS.textSecondary
-                }
-              />
-              <View style={styles.paymentInfo}>
-                <Text
+              {/* VEHICLE INFO */}
+              <View style={styles.vehicleCard}>
+                <Image
+                  source={{ uri: vehicle.image }}
+                  style={styles.vehicleImage}
+                />
+                <View style={styles.vehicleInfo}>
+                  <Text style={styles.vehicleName}>{vehicle.name}</Text>
+                  <Text style={styles.vehicleModel}>
+                    {vehicle.brand} • {vehicle.year}
+                  </Text>
+                  <View style={styles.rateContainer}>
+                    <Text style={styles.rateText}>
+                      {hourlyRate.toLocaleString("vi-VN")} VND
+                    </Text>
+                    <Text style={styles.rateUnit}>/giờ</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* RENTAL DETAILS */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Chi tiết thuê xe</Text>
+
+                {/* Rental Type Selector */}
+                <View style={styles.rentalTypeContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.rentalTypeButton,
+                      rentalType === "hourly" && styles.rentalTypeButtonActive,
+                    ]}
+                    onPress={() => setRentalType("hourly")}
+                  >
+                    <Ionicons
+                      name="time-outline"
+                      size={20}
+                      color={
+                        rentalType === "hourly" ? COLORS.white : COLORS.primary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.rentalTypeText,
+                        rentalType === "hourly" && styles.rentalTypeTextActive,
+                      ]}
+                    >
+                      Thuê theo giờ
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.rentalTypeButton,
+                      rentalType === "daily" && styles.rentalTypeButtonActive,
+                    ]}
+                    onPress={() => setRentalType("daily")}
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color={
+                        rentalType === "daily" ? COLORS.white : COLORS.primary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.rentalTypeText,
+                        rentalType === "daily" && styles.rentalTypeTextActive,
+                      ]}
+                    >
+                      Thuê theo ngày
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Rental Duration Input */}
+                {rentalType === "hourly" ? (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>
+                        Thời gian thuê (giờ)
+                      </Text>
+
+                      {/* Quick Select Buttons */}
+                      <View style={styles.quickSelectContainer}>
+                        {[4, 8, 12, 24].map((hours) => (
+                          <TouchableOpacity
+                            key={hours}
+                            style={[
+                              styles.quickSelectButton,
+                              rentalHours === hours.toString() &&
+                                styles.quickSelectButtonActive,
+                            ]}
+                            onPress={() => selectQuickHours(hours)}
+                          >
+                            <Text
+                              style={[
+                                styles.quickSelectText,
+                                rentalHours === hours.toString() &&
+                                  styles.quickSelectTextActive,
+                              ]}
+                            >
+                              {hours}h
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      {/* Custom Input */}
+                      <TextInput
+                        style={styles.input}
+                        value={rentalHours}
+                        onChangeText={setRentalHours}
+                        keyboardType="numeric"
+                        placeholder="Hoặc nhập số giờ tùy chỉnh"
+                      />
+                    </View>
+
+                    {/* 🆕 Ngày nhận xe (cho thuê theo giờ) */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowPickupDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(pickupDate)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showPickupDatePicker && (
+                        <DateTimePicker
+                          value={pickupDate}
+                          mode="date"
+                          display={
+                            Platform.OS === "ios" ? "spinner" : "default"
+                          }
+                          onChange={onPickupDateChange}
+                          minimumDate={new Date()}
+                        />
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowPickupTimePicker(true)}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {pickupTime || formatTime(pickupDateTime)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showPickupTimePicker && (
+                        <DateTimePicker
+                          value={pickupDateTime}
+                          mode="time"
+                          is24Hour={true}
+                          display="default"
+                          onChange={onPickupTimeChange}
+                        />
+                      )}
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày bắt đầu</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowStartDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(startDate)}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Ngày kết thúc</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowEndDatePicker(true)}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatDate(endDate)}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 🆕 Giờ nhận xe (cho thuê theo ngày) */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowDailyPickupTimePicker(true)}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={COLORS.primary}
+                        />
+                        <Text style={styles.dateTimeButtonText}>
+                          {formatTime(dailyPickupTime)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showDailyPickupTimePicker && (
+                        <DateTimePicker
+                          value={dailyPickupTime}
+                          mode="time"
+                          is24Hour={true}
+                          display="default"
+                          onChange={onDailyPickupTimeChange}
+                        />
+                      )}
+                    </View>
+                  </>
+                )}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Địa điểm nhận xe</Text>
+                  <View style={styles.locationContainer}>
+                    <Ionicons
+                      name="location"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.locationText}>{stationLocation}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* PAYMENT METHOD */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+
+                {/* VNPAY - Only payment method supported by backend */}
+                <TouchableOpacity
                   style={[
-                    styles.paymentTitle,
-                    selectedPayment === "payos" && styles.paymentTitleSelected,
+                    styles.paymentOption,
+                    selectedPayment === "vnpay" && styles.paymentOptionSelected,
                   ]}
+                  onPress={() => setSelectedPayment("vnpay")}
                 >
-                  PayOS
+                  <Ionicons
+                    name="logo-usd"
+                    size={28}
+                    color={
+                      selectedPayment === "vnpay"
+                        ? COLORS.primary
+                        : COLORS.textSecondary
+                    }
+                  />
+                  <View style={styles.paymentInfo}>
+                    <Text
+                      style={[
+                        styles.paymentTitle,
+                        selectedPayment === "vnpay" &&
+                          styles.paymentTitleSelected,
+                      ]}
+                    >
+                      VNPAY
+                    </Text>
+                    <Text style={styles.paymentDesc}>
+                      Thanh toán nhanh qua cổng VNPAY
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* SUMMARY */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tổng kết</Text>
+
+                {/* 🆕 Chi tiết bảng giá */}
+                <View style={styles.pricingDetail}>
+                  <Text style={styles.pricingDetailTitle}>
+                    Chi tiết giá thuê
+                  </Text>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Đơn giá</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : rentalType === "hourly" ? (
+                        `${(
+                          backendPricing?.hourlyRate || hourlyRate
+                        ).toLocaleString("vi-VN")} VND/giờ`
+                      ) : (
+                        `${(
+                          backendPricing?.dailyRate ||
+                          vehicle?.pricing?.daily ||
+                          vehicle?.pricePerDay ||
+                          0
+                        ).toLocaleString("vi-VN")} VND/ngày`
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Thời gian thuê</Text>
+                    <Text style={styles.summaryValue}>
+                      {rentalType === "hourly"
+                        ? `${rentalHours} giờ`
+                        : `${Math.ceil(
+                            (endDate.getTime() - startDate.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )} ngày`}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Tổng giá thuê</Text>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.totalPrice ? (
+                        `${backendPricing.totalPrice.toLocaleString(
+                          "vi-VN"
+                        )} VND`
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                {/* 🆕 Chi tiết thanh toán */}
+                <View style={styles.paymentDetail}>
+                  <Text style={styles.pricingDetailTitle}>
+                    Chi tiết thanh toán
+                  </Text>
+
+                  <View style={styles.summaryRow}>
+                    <View style={styles.depositLabelContainer}>
+                      <Text style={styles.summaryLabel}>
+                        💰 Tiền cọc{" "}
+                        {backendPricing?.deposit &&
+                        backendPricing.totalPrice > 0
+                          ? `(${Math.round(
+                              (backendPricing.deposit /
+                                backendPricing.totalPrice) *
+                                100
+                            )}%)`
+                          : pricingLoading
+                          ? ""
+                          : "(...)"}
+                      </Text>
+                      <Text style={styles.depositNote}>
+                        Thanh toán trước khi bắt đầu thuê
+                      </Text>
+                    </View>
+                    <Text style={[styles.summaryValue, styles.depositValue]}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.deposit ? (
+                        <>
+                          {backendPricing.deposit.toLocaleString("vi-VN")} VND
+                        </>
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <View style={styles.depositLabelContainer}>
+                      <Text style={styles.summaryLabel}>
+                        🔄 Thanh toán sau (
+                        {backendPricing?.deposit &&
+                        backendPricing.totalPrice > 0
+                          ? Math.round(
+                              ((backendPricing.totalPrice -
+                                backendPricing.deposit) /
+                                backendPricing.totalPrice) *
+                                100
+                            )
+                          : 80}
+                        %)
+                      </Text>
+                      <Text style={styles.depositNote}>
+                        Thanh toán khi trả xe
+                      </Text>
+                    </View>
+                    <Text style={styles.summaryValue}>
+                      {pricingLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.primary}
+                        />
+                      ) : backendPricing?.totalPrice &&
+                        backendPricing?.deposit ? (
+                        <>
+                          {(
+                            backendPricing.totalPrice - backendPricing.deposit
+                          ).toLocaleString("vi-VN")}{" "}
+                          VND
+                        </>
+                      ) : (
+                        <Text style={{ color: COLORS.textSecondary }}>
+                          Đang tính...
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.totalLabel}>Tổng cộng</Text>
+                  <Text style={styles.totalValue}>
+                    {pricingLoading ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : backendPricing?.totalPrice ? (
+                      `${backendPricing.totalPrice.toLocaleString("vi-VN")} VND`
+                    ) : (
+                      <Text style={{ color: COLORS.textSecondary }}>
+                        Đang tính...
+                      </Text>
+                    )}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ height: 100 }} />
+            </ScrollView>
+
+            {/* BOTTOM BUTTON */}
+            <View style={styles.bottomContainer}>
+              <View style={styles.priceContainer}>
+                <Text style={styles.priceLabel}>Tổng thanh toán</Text>
+                <Text style={styles.priceValue}>
+                  {pricingLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : backendPricing?.deposit ? (
+                    <>{backendPricing.deposit.toLocaleString("vi-VN")} VND</>
+                  ) : (
+                    <Text style={{ color: COLORS.white }}>Đang tính...</Text>
+                  )}
                 </Text>
-                <Text style={styles.paymentDesc}>
-                  Thanh toán online qua ví điện tử
+                <Text style={styles.depositSubLabel}>
+                  (Tiền cọc{" "}
+                  {backendPricing?.deposit && backendPricing.totalPrice > 0
+                    ? `${Math.round(
+                        (backendPricing.deposit / backendPricing.totalPrice) *
+                          100
+                      )}%`
+                    : "20%"}{" "}
+                  - Thanh toán trước)
                 </Text>
               </View>
-            </TouchableOpacity>
 
-            {/* VNPAY */}
-            <TouchableOpacity
-              style={[
-                styles.paymentOption,
-                selectedPayment === "vnpay" && styles.paymentOptionSelected,
-              ]}
-              onPress={() => setSelectedPayment("vnpay")}
-            >
-              <Ionicons
-                name="logo-usd"
-                size={28}
-                color={
-                  selectedPayment === "vnpay"
-                    ? COLORS.primary
-                    : COLORS.textSecondary
-                }
-              />
-              <View style={styles.paymentInfo}>
-                <Text
-                  style={[
-                    styles.paymentTitle,
-                    selectedPayment === "vnpay" && styles.paymentTitleSelected,
-                  ]}
-                >
-                  VNPAY
-                </Text>
-                <Text style={styles.paymentDesc}>
-                  Thanh toán nhanh qua cổng VNPAY
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* SUMMARY */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tổng kết</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Đơn giá</Text>
-              <Text style={styles.summaryValue}>
-                {hourlyRate.toLocaleString("vi-VN")}đ/giờ
-              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.confirmButton,
+                  (!selectedPayment || isProcessing) &&
+                    styles.confirmButtonDisabled,
+                ]}
+                onPress={handleConfirmBooking}
+                disabled={!selectedPayment || isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color={COLORS.primary} />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
+                )}
+              </TouchableOpacity>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Thời gian thuê</Text>
-              <Text style={styles.summaryValue}>{rentalHours} giờ</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Tổng cộng</Text>
-              <Text style={styles.totalValue}>
-                {calculateTotal().toLocaleString("vi-VN")}đ
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* BOTTOM BUTTON */}
-        <View style={styles.bottomContainer}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Tổng thanh toán</Text>
-            <Text style={styles.priceValue}>
-              {calculateTotal().toLocaleString("vi-VN")}đ
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.confirmButton,
-              (!selectedPayment || isProcessing) &&
-                styles.confirmButtonDisabled,
-            ]}
-            onPress={handleConfirmBooking}
-            disabled={!selectedPayment || isProcessing}
-          >
-            {isProcessing ? (
-              <ActivityIndicator color={COLORS.primary} />
-            ) : (
-              <Text style={styles.confirmButtonText}>Xác nhận đặt xe</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          </>
+        )}
 
         {/* MODAL */}
         <StatusModal
@@ -672,6 +1477,27 @@ const BookingPaymentScreen = () => {
               : () => setModalVisible(false)
           }
         />
+
+        {/* Date Pickers for Daily Rental */}
+        {showStartDatePicker && (
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onStartDateChange}
+            minimumDate={new Date()}
+          />
+        )}
+
+        {showEndDatePicker && (
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onEndDateChange}
+            minimumDate={startDate}
+          />
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -684,6 +1510,18 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.xl,
+  },
+  loadingText: {
+    marginTop: SPACING.md,
+    fontSize: FONTS.body,
+    color: COLORS.white,
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",
@@ -764,6 +1602,36 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SPACING.md,
   },
+  rentalTypeContainer: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  rentalTypeButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: RADII.button,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    gap: SPACING.xs,
+  },
+  rentalTypeButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  rentalTypeText: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  rentalTypeTextActive: {
+    color: COLORS.white,
+  },
   inputGroup: {
     marginBottom: SPACING.md,
   },
@@ -782,6 +1650,23 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     fontSize: FONTS.body,
     color: COLORS.text,
+  },
+  dateTimeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: RADII.input,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  dateTimeButtonText: {
+    flex: 1,
+    fontSize: FONTS.body,
+    color: COLORS.text,
+    fontWeight: "500",
   },
   locationContainer: {
     flexDirection: "row",
@@ -898,8 +1783,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.md,
   },
   priceContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
     marginBottom: SPACING.md,
     marginTop: -SPACING.sm,
@@ -907,11 +1791,18 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
   },
   priceValue: {
     fontSize: FONTS.title,
     fontWeight: "700",
     color: COLORS.primary,
+  },
+  depositSubLabel: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    fontStyle: "italic",
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
@@ -934,16 +1825,58 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginTop: SPACING.xs,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: SPACING.xxl,
+  quickSelectContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
   },
-  loadingText: {
-    color: COLORS.primary,
+  quickSelectButton: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: RADII.md,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickSelectButtonActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+  },
+  quickSelectText: {
     fontSize: FONTS.body,
-    marginTop: SPACING.md,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  quickSelectTextActive: {
+    color: COLORS.white,
+  },
+  pricingDetail: {
+    marginBottom: SPACING.md,
+  },
+  pricingDetailTitle: {
+    fontSize: FONTS.body,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+  },
+  paymentDetail: {
+    marginBottom: SPACING.md,
+  },
+  depositLabelContainer: {
+    flex: 1,
+  },
+  depositNote: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs / 2,
+  },
+  depositValue: {
+    color: COLORS.primary,
+    fontWeight: "700",
   },
 });
 

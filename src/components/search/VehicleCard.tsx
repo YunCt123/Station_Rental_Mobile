@@ -51,7 +51,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => {
           
           <View style={styles.detailItem}>
             <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
-            <Text style={styles.detailText}>{vehicle.hourlyRate.toLocaleString()}đ/h</Text>
+            <Text style={styles.detailText}>{vehicle.hourlyRate.toLocaleString("vi-VN")} VND/h</Text>
           </View>
         </View>
         
