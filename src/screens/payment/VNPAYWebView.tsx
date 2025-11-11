@@ -7,8 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  Modal,
-  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +17,6 @@ import { COLORS, SPACING, FONTS, SHADOWS } from "../../utils/theme";
 import { API_CONFIG, PAYMENT_ENDPOINTS } from "../../constants/apiEndpoints";
 import StatusModal from "../../components/common/StatusModal";
 import { SafeAreaView } from "react-native-safe-area-context";
-import QRCode from "react-native-qrcode-svg";
 
 interface RouteParams {
   paymentUrl: string;
@@ -42,29 +39,11 @@ const VNPAYWebView = () => {
   const [modalType, setModalType] = useState<"success" | "error">("success");
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-  const [qrModalVisible, setQrModalVisible] = useState(false); // 🆕 QR Modal state
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // ========================================
-  // 🔧 SANDBOX MODE: Check if URL is sandbox
-  // ========================================
-  // 📝 NOTE: Remove this check when moving to PRODUCTION
-  // In production, VNPay will use real payment gateway
-  const isSandboxUrl = (url: string) => {
-    return url.includes("sandbox.vnpayment.vn");
-  };
-
-  // ========================================
-  // 🔧 SANDBOX MODE: Setup deeplink listener
-  // ========================================
-  // 📝 NOTE: Keep this in PRODUCTION but update return URL
-  // Production return URL: https://yourdomain.com/api/v1/payments/vnpay/callback
-  // Sandbox return URL: myapp://payment/result
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
-      const url = event.url;
-      console.log("📱 [VNPAYWebView] Deeplink received:", url);
-
-      // Parse query params from return URL
+      const url = event.url;// Parse query params from return URL
       if (url.includes("myapp://payment")) {
         handlePaymentReturn(url);
       }
@@ -75,9 +54,7 @@ const VNPAYWebView = () => {
 
     // Check if app was opened from deeplink
     Linking.getInitialURL().then((url) => {
-      if (url && url.includes("myapp://payment")) {
-        console.log("📱 [VNPAYWebView] Initial URL:", url);
-        handlePaymentReturn(url);
+      if (url && url.includes("myapp://payment")) {handlePaymentReturn(url);
       }
     });
 
@@ -91,8 +68,8 @@ const VNPAYWebView = () => {
   // ========================================
   // 📝 NOTE: Keep this in PRODUCTION
   // This handles the callback from VNPay after payment
-  const handlePaymentReturn = async (url: string) => {
-    console.log("💳 [VNPAYWebView] Processing payment return:", url);
+  const handlePaymentReturn = async (url: string) => {// Show loading immediately when payment return is detected
+    setIsProcessingPayment(true);
 
     // Extract query params
     const queryString = url.split("?")[1] || "";
@@ -101,21 +78,8 @@ const VNPAYWebView = () => {
     const transactionStatus = params.get("vnp_TransactionStatus");
     const secureHash = params.get("vnp_SecureHash");
     const amount = params.get("vnp_Amount");
-    const txnRef = params.get("vnp_TxnRef");
-
-    console.log("💳 [VNPAYWebView] Payment params:", {
-      responseCode,
-      transactionStatus,
-      secureHash,
-      amount,
-      txnRef,
-    });
-
-    // 🚨 CRITICAL: Call backend callback to update payment & booking status
-    try {
-      console.log("📡 [VNPAYWebView] Calling backend callback API...");
-
-      // Build provider_metadata with all vnp_* params
+    const txnRef = params.get("vnp_TxnRef");// 🚨 CRITICAL: Call backend callback to update payment & booking status
+    try {// Build provider_metadata with all vnp_* params
       const provider_metadata: any = {};
       params.forEach((value, key) => {
         provider_metadata[key] = value;
@@ -138,15 +102,8 @@ const VNPAYWebView = () => {
         vnp_PayDate: params.get("vnp_PayDate"),
         vnp_OrderInfo: params.get("vnp_OrderInfo"),
         provider_metadata: provider_metadata,
-      };
-
-      console.log("📤 [VNPAYWebView] Sending callback params:", callbackParams);
-
-      // Build full API URL
-      const apiUrl = `${API_CONFIG.BASE_URL}${PAYMENT_ENDPOINTS.VNPAY_CALLBACK}`;
-      console.log("🌐 [VNPAYWebView] API URL:", apiUrl);
-
-      // Call backend callback endpoint
+      };// Build full API URL
+      const apiUrl = `${API_CONFIG.BASE_URL}${PAYMENT_ENDPOINTS.VNPAY_CALLBACK}`;// Call backend callback endpoint
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -154,44 +111,31 @@ const VNPAYWebView = () => {
           Accept: "application/json",
         },
         body: JSON.stringify(callbackParams),
-      });
-
-      console.log("📥 [VNPAYWebView] Response status:", response.status);
-
-      const result = await response.json();
-      console.log("✅ [VNPAYWebView] Backend callback result:", result);
-
-      if (!response.ok) {
-        console.error("❌ [VNPAYWebView] Backend error:", result);
-        throw new Error(result.message || "Failed to process payment callback");
+      });const result = await response.json();if (!response.ok) {throw new Error(result.message || "Failed to process payment callback");
+      }} catch (error) {// Continue to show UI even if backend call fails (IPN will handle it)
+    } finally {
+      // Hide loading after backend processing completes
+      setIsProcessingPayment(false);
+      
+      // Show result modal after loading is hidden
+      // Check response code (00 = success)
+      if (responseCode === "00" && transactionStatus === "00") {
+        setModalType("success");
+        setModalTitle("Thanh toán thành công!");
+        setModalMessage(
+          `Đã đặt xe ${vehicleName} thành công qua VNPAY. Vui lòng đến trạm để nhận xe.`
+        );
+        setModalVisible(true);
+      } else {
+        setModalType("error");
+        setModalTitle("Thanh toán thất bại");
+        setModalMessage(
+          responseCode === "24"
+            ? "Bạn đã hủy thanh toán. Vui lòng thử lại."
+            : "Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại."
+        );
+        setModalVisible(true);
       }
-
-      console.log("🎉 [VNPAYWebView] Payment callback successful!");
-    } catch (error) {
-      console.error(
-        "❌ [VNPAYWebView] Failed to call backend callback:",
-        error
-      );
-      // Continue to show UI even if backend call fails (IPN will handle it)
-    }
-
-    // Check response code (00 = success)
-    if (responseCode === "00" && transactionStatus === "00") {
-      setModalType("success");
-      setModalTitle("Thanh toán thành công!");
-      setModalMessage(
-        `Đã đặt xe ${vehicleName} thành công qua VNPAY. Vui lòng đến trạm để nhận xe.`
-      );
-      setModalVisible(true);
-    } else {
-      setModalType("error");
-      setModalTitle("Thanh toán thất bại");
-      setModalMessage(
-        responseCode === "24"
-          ? "Bạn đã hủy thanh toán. Vui lòng thử lại."
-          : "Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại."
-      );
-      setModalVisible(true);
     }
   };
 
@@ -199,10 +143,7 @@ const VNPAYWebView = () => {
     setCanGoBack(navState.canGoBack);
     setCanGoForward(navState.canGoForward);
 
-    const url = navState.url;
-    console.log("🌐 [VNPAYWebView] Navigation to:", url);
-
-    // ========================================
+    const url = navState.url;// ========================================
     // 🔧 SANDBOX MODE: Keep payment in WebView (FIXED)
     // ========================================
     // 📝 NOTE: Removed automatic external browser opening
@@ -244,8 +185,14 @@ const VNPAYWebView = () => {
   };
 
   const handleWebViewError = (syntheticEvent: any) => {
-    const { nativeEvent } = syntheticEvent;
-    console.warn("WebView error: ", nativeEvent);
+    const { nativeEvent } = syntheticEvent;// ⚠️ Don't show error modal if we're processing payment callback
+    // The payment may succeed even if WebView has navigation errors
+    if (isProcessingPayment) {return;
+    }
+
+    // Don't show error if modal is already visible (result already shown)
+    if (modalVisible) {return;
+    }
 
     setModalType("error");
     setModalTitle("Không thể tải trang");
@@ -350,12 +297,7 @@ const VNPAYWebView = () => {
             <Text style={styles.headerTitle}>Thanh toán VNPAY</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setQrModalVisible(true)}
-          >
-            <Ionicons name="qr-code" size={24} color={COLORS.white} />
-          </TouchableOpacity>
+          <View style={styles.headerButton} />
         </View>
 
         {/* Security Banner */}
@@ -394,6 +336,19 @@ const VNPAYWebView = () => {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Đang tải...</Text>
+          </View>
+        )}
+
+        {/* Payment Processing Overlay */}
+        {isProcessingPayment && (
+          <View style={styles.processingOverlay}>
+            <View style={styles.processingCard}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.processingTitle}>Đang xử lý thanh toán...</Text>
+              <Text style={styles.processingSubtitle}>
+                Vui lòng chờ trong giây lát
+              </Text>
+            </View>
           </View>
         )}
 
@@ -569,141 +524,38 @@ const styles = StyleSheet.create({
     fontSize: FONTS.caption,
     color: COLORS.white,
   },
-  // 🆕 QR Modal Styles
-  qrModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  // Payment Processing Overlay
+  processingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    padding: SPACING.lg,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    zIndex: 999,
   },
-  qrModalContent: {
+  processingCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
-    width: "100%",
-    maxWidth: 500,
-    maxHeight: "90%",
+    borderRadius: 16,
+    padding: SPACING.xl,
+    alignItems: "center",
+    minWidth: 280,
     ...SHADOWS.lg,
   },
-  qrScrollContent: {
-    padding: SPACING.xl,
-  },
-  qrModalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: SPACING.lg,
-  },
-  qrModalTitle: {
-    fontSize: FONTS.title,
-    fontWeight: "700",
-    color: COLORS.text,
-    flex: 1,
-  },
-  qrCloseButton: {
-    padding: SPACING.xs,
-  },
-  qrNoticeContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(41, 121, 255, 0.1)",
-    padding: SPACING.md,
-    borderRadius: 12,
-    marginBottom: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  qrNoticeTextContainer: {
-    flex: 1,
-  },
-  qrNoticeTitle: {
-    fontSize: FONTS.body,
-    fontWeight: "700",
-    color: COLORS.primary,
-    marginBottom: SPACING.xs,
-  },
-  qrNoticeText: {
-    fontSize: FONTS.caption,
-    color: COLORS.text,
-    lineHeight: 20,
-  },
-  qrCodeContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: SPACING.xl,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    marginBottom: SPACING.xl,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-  },
-  qrPaymentInfo: {
-    backgroundColor: COLORS.background,
-    padding: SPACING.md,
-    borderRadius: 12,
-    marginBottom: SPACING.lg,
-  },
-  qrInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: SPACING.sm,
-  },
-  qrInfoLabel: {
-    fontSize: FONTS.body,
-    color: COLORS.textSecondary,
-  },
-  qrInfoValue: {
-    fontSize: FONTS.body,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-  qrInfoAmount: {
-    color: COLORS.primary,
-    fontSize: FONTS.bodyLarge,
-    fontWeight: "700",
-  },
-  qrInstructions: {
-    marginBottom: SPACING.lg,
-  },
-  qrInstructionsTitle: {
+  processingTitle: {
     fontSize: FONTS.bodyLarge,
     fontWeight: "700",
     color: COLORS.text,
-    marginBottom: SPACING.sm,
+    marginTop: SPACING.md,
+    textAlign: "center",
   },
-  qrInstructionsText: {
+  processingSubtitle: {
     fontSize: FONTS.body,
     color: COLORS.textSecondary,
-    lineHeight: 24,
-  },
-  qrAlternativeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.primary,
-    padding: SPACING.md,
-    borderRadius: 12,
-    marginBottom: SPACING.md,
-    gap: SPACING.sm,
-    ...SHADOWS.sm,
-  },
-  qrAlternativeButtonText: {
-    fontSize: FONTS.body,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-  qrWarning: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    padding: SPACING.md,
-    borderRadius: 12,
-    gap: SPACING.sm,
-  },
-  qrWarningText: {
-    flex: 1,
-    fontSize: FONTS.caption,
-    color: COLORS.text,
-    lineHeight: 18,
+    marginTop: SPACING.xs,
+    textAlign: "center",
   },
 });
 

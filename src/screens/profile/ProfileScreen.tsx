@@ -17,6 +17,7 @@ import StatsGrid from "../../components/profile/StatsGrid";
 import ProfileMenu from "../../components/profile/ProfileMenu";
 import { authApi } from "../../api/authApi";
 import { User } from "../../types/auth";
+import { bookingService } from "../../services/bookingService";
 
 interface MenuItem {
   id: string;
@@ -27,8 +28,8 @@ interface MenuItem {
 }
 
 interface UserStats {
-  totalRides: number;
-  totalDistance: string;
+  totalBookings: number;
+  totalSpent: number;
 }
 
 const ProfileScreen = () => {
@@ -45,15 +46,44 @@ const ProfileScreen = () => {
     isVerified: false,
   });
 
-  const [userStats] = useState<UserStats>({
-    totalRides: 42,
-    totalDistance: "156.8 km",
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalBookings: 0,
+    totalSpent: 0,
   });
 
   // Load user data khi component mount
   useEffect(() => {
     loadUserData();
+    loadUserStats();
   }, []);
+
+  const loadUserStats = async () => {
+    try {
+      // Fetch all bookings of user
+      const bookings = await bookingService.getUserBookings();
+      
+      // Tính tổng số bookings
+      const totalBookings = bookings.length;
+      
+      // Tính tổng tiền đã tiêu (chỉ lấy bookings đã cọc thành công)
+      // Lọc bookings có status = CONFIRMED (đã thanh toán deposit thành công)
+      const paidBookings = bookings.filter(
+        (booking) =>
+          booking.status === "CONFIRMED" &&
+          booking.payment?.status === "SUCCESS"
+      );
+      
+      const totalSpent = paidBookings.reduce((sum, booking) => {
+        const deposit = booking.pricing_snapshot?.deposit || 0;
+        return sum + deposit;
+      }, 0);
+      
+      setUserStats({
+        totalBookings,
+        totalSpent,
+      });} catch (error) {// Keep default values on error
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -69,9 +99,7 @@ const ProfileScreen = () => {
       const currentUser = await authApi.getCurrentUser();
       updateUserInfo(currentUser);
       setUser(currentUser);
-    } catch (error) {
-      console.error("Load user error:", error);
-      // Nếu lỗi, dùng stored user
+    } catch (error) {// Nếu lỗi, dùng stored user
       const storedUser = await authApi.getStoredUser();
       if (storedUser) {
         updateUserInfo(storedUser);
@@ -115,13 +143,7 @@ const ProfileScreen = () => {
       id: "help",
       title: "Trợ giúp & Hỗ trợ",
       icon: "help-circle-outline",
-      onPress: () => console.log("Help & Support"),
-    },
-    {
-      id: "about",
-      title: "Về chúng tôi",
-      icon: "information-circle-outline",
-      onPress: () => console.log("About us"),
+      onPress: () => console.log("Navigate to Help & Support"),
     },
   ];
 
@@ -140,9 +162,7 @@ const ProfileScreen = () => {
               index: 0,
               routes: [{ name: "AuthLanding" as never }],
             });
-          } catch (error) {
-            console.error("Logout error:", error);
-            Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
+          } catch (error) {Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
           } finally {
             setLoggingOut(false);
           }

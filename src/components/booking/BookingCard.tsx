@@ -41,8 +41,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
           setVehicle(booking.vehicle_id as any as Vehicle);
         }
       } catch (error) {
-        console.error("[BookingCard] Error fetching vehicle:", error);
-      } finally {
+} finally {
         setLoadingVehicle(false);
       }
     };

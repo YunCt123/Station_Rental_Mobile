@@ -44,16 +44,14 @@ const LoginScreen = () => {
         password: password.trim(),
       });
 
-      console.log("Login success:", response.data.user);
-      Alert.alert("Thành công", "Đăng nhập thành công!", [
+Alert.alert("Thành công", "Đăng nhập thành công!", [
         {
           text: "OK",
           onPress: () => navigation.navigate("MainTabs"),
         },
       ]);
     } catch (error: any) {
-      console.error("Login error:", error);
-      const errorMessage = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
+const errorMessage = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

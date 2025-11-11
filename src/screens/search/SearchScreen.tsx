@@ -94,9 +94,7 @@ const SearchScreen = () => {
         })),
       ];
       setFilterOptions(brandFilters);
-    } catch (err) {
-      console.error("Error loading vehicles:", err);
-    } finally {
+    } catch (err) {} finally {
       if (showLoading) setLoading(false);
     }
   };
@@ -149,9 +147,7 @@ const SearchScreen = () => {
             : vehiclesData.filter((v) => v.brand.toLowerCase() === lowerFilter);
 
         setSearchResults(filtered);
-      } catch (err) {
-        console.error("Error searching vehicles (remote):", err);
-        // fallback local filter
+      } catch (err) {// fallback local filter
         const filtered = allVehicles.filter((vehicle) => {
           const matchQuery =
             vehicle.name.toLowerCase().includes(q) ||
@@ -240,9 +236,7 @@ const SearchScreen = () => {
                 );
 
           setSearchResults(filtered);
-        } catch (err) {
-          console.error("Error searching vehicles:", err);
-          const filtered = allVehicles.filter((vehicle) => {
+        } catch (err) {const filtered = allVehicles.filter((vehicle) => {
             const matchQuery =
               vehicle.name.toLowerCase().includes(q) ||
               vehicle.type.toLowerCase().includes(q) ||
@@ -270,9 +264,7 @@ const SearchScreen = () => {
         const filtered = await vehicleService.getVehiclesByBrand(filterId);
         const vehiclesData = mapVehiclesToUI(filtered);
         setSearchResults(vehiclesData);
-      } catch (err) {
-        console.error("Error filtering vehicles by brand:", err);
-        const filtered = allVehicles.filter(
+      } catch (err) {const filtered = allVehicles.filter(
           (vehicle) => vehicle.brand.toLowerCase() === filterId.toLowerCase()
         );
         setSearchResults(filtered);

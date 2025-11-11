@@ -61,17 +61,8 @@ const PayOSWebViewScreen = () => {
 
     setIsCheckingStatus(true);
     try {
-      const params = parseUrlParams(url);
-
-      console.log("[PayOSWebView] Parsed URL params:", params);
-
-      // Check if this is VNPay callback (has vnp_ prefix)
-      if (params.vnp_TxnRef || params.vnp_txnref) {
-        console.log(
-          "[PayOSWebView] Detected VNPay callback, calling VNPay handler"
-        );
-
-        const callbackData = {
+      const params = parseUrlParams(url);// Check if this is VNPay callback (has vnp_ prefix)
+      if (params.vnp_TxnRef || params.vnp_txnref) {const callbackData = {
           transaction_ref: params.vnp_TxnRef || params.vnp_txnref || "",
           provider_payment_id:
             params.vnp_TransactionNo || params.vnp_transactionno || "",
@@ -126,31 +117,12 @@ const PayOSWebViewScreen = () => {
         amount: amount,
         code: params.code || "00",
         bookingId: bookingId,
-      };
-
-      console.log(
-        "[PayOSWebView] Calling PayOS client callback:",
+      };const result = await paymentService.handlePayOSClientCallback(
         callbackData
-      );
-
-      const result = await paymentService.handlePayOSClientCallback(
-        callbackData
-      );
-
-      console.log("[PayOSWebView] Client callback result:", result);
-
-      if (result.status === "SUCCESS") {
+      );if (result.status === "SUCCESS") {
         // Verify vehicle status after payment
         try {
-          const booking = await bookingService.getBookingById(bookingId);
-          console.log("[PayOSWebView] Booking after payment:", booking);
-          console.log(
-            "[PayOSWebView] Vehicle status should be RESERVED:",
-            booking.vehicle_id
-          );
-        } catch (err) {
-          console.error("[PayOSWebView] Error fetching booking:", err);
-        }
+          const booking = await bookingService.getBookingById(bookingId);} catch (err) {}
 
         setModalType("success");
         setModalTitle("Thanh toán thành công!");
@@ -164,10 +136,7 @@ const PayOSWebViewScreen = () => {
         setModalMessage("Thanh toán không thành công. Vui lòng thử lại.");
         setModalVisible(true);
       }
-    } catch (error: any) {
-      console.error("Error handling callback:", error);
-      console.error("Error response:", error.response?.data);
-      // Fallback to checking booking status
+    } catch (error: any) {// Fallback to checking booking status
       await checkPaymentStatus();
     } finally {
       setIsCheckingStatus(false);
@@ -197,9 +166,7 @@ const PayOSWebViewScreen = () => {
         setModalVisible(true);
       }
       // If status is HELD, payment might still be processing
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-    } finally {
+    } catch (error) {} finally {
       setIsCheckingStatus(false);
     }
   };
@@ -209,19 +176,13 @@ const PayOSWebViewScreen = () => {
     setCanGoForward(navState.canGoForward);
 
     // Check if payment is successful or cancelled based on URL
-    const url = navState.url.toLowerCase();
-
-    console.log("[PayOSWebView] URL changed:", url);
-
-    // Detect PayOS return URL patterns
+    const url = navState.url.toLowerCase();// Detect PayOS return URL patterns
     // PayOS returns to: returnUrl?code=00&id=xxx&cancel=false&status=PAID&orderCode=xxx
     if (
       url.includes("code=") ||
       url.includes("ordercode=") ||
       url.includes("cancel=")
-    ) {
-      console.log("[PayOSWebView] Detected PayOS callback URL");
-      handlePayOSClientCallback(navState.url);
+    ) {handlePayOSClientCallback(navState.url);
     }
     // Legacy patterns for other payment gateways
     else if (url.includes("payment-success") || url.includes("/success")) {
@@ -246,10 +207,7 @@ const PayOSWebViewScreen = () => {
   };
 
   const handleWebViewError = (syntheticEvent: any) => {
-    const { nativeEvent } = syntheticEvent;
-    console.log("WebView error:", nativeEvent);
-
-    // If error is about redirect/connection after payment
+    const { nativeEvent } = syntheticEvent;// If error is about redirect/connection after payment
     // It might be because the callback URL is not accessible from mobile
     // Check payment status instead of showing error immediately
     if (
@@ -257,9 +215,7 @@ const PayOSWebViewScreen = () => {
       (nativeEvent.url.includes("payment") ||
         nativeEvent.url.includes("callback") ||
         nativeEvent.url.includes("return"))
-    ) {
-      console.log("Callback URL error, checking payment status...");
-      checkPaymentStatus();
+    ) {checkPaymentStatus();
       return;
     }
 

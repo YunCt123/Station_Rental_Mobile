@@ -31,55 +31,24 @@ const BookingsScreen = () => {
   /** Lấy danh sách booking */
   const fetchBookings = useCallback(async () => {
     try {
-      setLoading(true);
-
-      console.log("[BookingsScreen] Active tab:", activeTab);
-
-      // Use status filter on the main /bookings endpoint. Backend doesn't provide /bookings/active or /bookings/history.
+      setLoading(true);// Use status filter on the main /bookings endpoint. Backend doesn't provide /bookings/active or /bookings/history.
       const params = {
-        status: activeTab === "active" ? "HELD,CONFIRMED" : "CANCELLED,EXPIRED",
+        status: activeTab === "active" ? "HELD,CONFIRMED" : "CANCELLED,EXPIRED,CONFIRMED,HELD",
         limit: 50,
-      };
-
-      console.log(
-        "[BookingsScreen] Calling bookingService.getUserBookings with params:",
-        params
-      );
-      const result = await bookingService.getUserBookings(params);
-
-      console.log(
-        `[BookingsScreen] Final result: ${
-          result?.length || 0
-        } ${activeTab} bookings`
-      );
-      if (result && result.length > 0) {
-        console.log("[BookingsScreen] First booking:", result[0]);
-      }
+      };const result = await bookingService.getUserBookings(params);if (result && result.length > 0) {}
 
       // If backend returned empty for filtered request, try fetching all bookings and filter client-side
-      if ((!result || result.length === 0) && params.status) {
-        console.warn(
-          "[BookingsScreen] No bookings returned for filtered request. Falling back to fetch all and filter client-side."
-        );
-        const all = await bookingService.getUserBookings();
+      if ((!result || result.length === 0) && params.status) {const all = await bookingService.getUserBookings();
         const statusList = (params.status as string)
           .split(",")
           .map((s) => s.trim().toUpperCase());
         const filtered = (all || []).filter((b) =>
           statusList.includes((b.status || "").toString().toUpperCase())
-        );
-        console.log(
-          `[BookingsScreen] Fallback filtered result: ${filtered.length}`
-        );
-        setBookings(filtered);
+        );setBookings(filtered);
       } else {
         setBookings(result || []);
       }
-    } catch (error: any) {
-      console.error("❌ Error fetching bookings:", error);
-      console.error("❌ Error response:", error.response?.data);
-
-      setErrorMessage(
+    } catch (error: any) {setErrorMessage(
         error.response?.data?.message || "Không thể tải danh sách đặt chỗ"
       );
       setErrorModalVisible(true);
@@ -107,29 +76,12 @@ const BookingsScreen = () => {
     setRefreshing(false);
   };
 
-  const handleBookingPress = (booking: Booking) => {
-    console.log("[BookingsScreen] Booking pressed:", {
-      id: booking._id,
-      status: booking.status,
-    });
-
-    const screenName =
+  const handleBookingPress = (booking: Booking) => {const screenName =
       booking.status === "CONFIRMED" || booking.status === "HELD"
         ? "ActiveBookingDetail"
-        : "HistoryBookingDetail";
-
-    console.log(
-      "[BookingsScreen] Navigating to:",
-      screenName,
-      "with bookingId:",
-      booking._id
-    );
-
-    try {
+        : "HistoryBookingDetail";try {
       (navigation as any).navigate(screenName, { bookingId: booking._id });
-    } catch (error) {
-      console.error("[BookingsScreen] Navigation error:", error);
-      setErrorMessage("Không thể mở chi tiết booking");
+    } catch (error) {setErrorMessage("Không thể mở chi tiết booking");
       setErrorModalVisible(true);
     }
   };

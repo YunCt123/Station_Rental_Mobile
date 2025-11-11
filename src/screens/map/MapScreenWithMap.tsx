@@ -87,8 +87,7 @@ const MapScreenWithMap = () => {
         longitudeDelta: LONGITUDE_DELTA,
       });
     } catch (error) {
-      console.error("Error getting location:", error);
-      setErrorMessage("Không thể lấy vị trí của bạn");
+setErrorMessage("Không thể lấy vị trí của bạn");
       setErrorModalVisible(true);
       setLoading(false);
     }
@@ -108,8 +107,7 @@ const MapScreenWithMap = () => {
       });
       setStations(nearbyStations);
     } catch (error) {
-      console.error("Error fetching nearby stations:", error);
-      setErrorMessage("Không thể tải danh sách trạm");
+setErrorMessage("Không thể tải danh sách trạm");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);

@@ -41,14 +41,8 @@ const HistoryBookingDetailScreen = () => {
 
   const loadBookingDetails = async () => {
     try {
-      setLoading(true);
-      console.log("[HistoryBookingDetail] Loading booking:", bookingId);
-      const data = await bookingService.getBookingById(bookingId);
-      console.log("[HistoryBookingDetail] Booking data:", data);
-      setBooking(data);
-    } catch (error: any) {
-      console.error("[HistoryBookingDetail] Error loading booking:", error);
-      Alert.alert("Lỗi", "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.", [
+      setLoading(true);const data = await bookingService.getBookingById(bookingId);setBooking(data);
+    } catch (error: any) {Alert.alert("Lỗi", "Không thể tải thông tin đặt chỗ. Vui lòng thử lại.", [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } finally {
@@ -255,9 +249,15 @@ const HistoryBookingDetailScreen = () => {
   const startDateTime = formatDateTime(booking.start_at || booking.startAt);
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
-  const hourlyRate = booking.pricing_snapshot?.hourly_rate || 0;
-  const totalPrice =
-    booking.pricing_snapshot?.total_price || booking.totalPrice || 0;
+  
+  // 💰 Pricing information from backend
+  const pricingSnapshot = booking.pricing_snapshot;
+  const basePrice = pricingSnapshot?.base_price || 0;
+  const taxes = pricingSnapshot?.taxes || 0;
+  const insurancePrice = pricingSnapshot?.insurance_price || 0;
+  const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
+  const depositAmount = pricingSnapshot?.deposit || 0;
+  const remainingAmount = totalPrice - depositAmount;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -458,16 +458,101 @@ const HistoryBookingDetailScreen = () => {
 
             <View style={styles.divider} />
 
+            {/* 💰 Chi tiết giá - Price Breakdown */}
+            <Text style={styles.breakdownTitle}>Chi tiết giá thuê</Text>
+
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>
-                Giá thuê ({totalHours}h x {hourlyRate.toLocaleString("vi-VN")}{" "}
-                VND)
-              </Text>
+              <Text style={styles.paymentLabel}>Giá cơ bản</Text>
               <Text style={styles.paymentValue}>
+                {basePrice.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            {taxes > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Thuế & phí</Text>
+                <Text style={styles.paymentValue}>
+                  {taxes.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            {insurancePrice > 0 && (
+              <View style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>Bảo hiểm</Text>
+                <Text style={styles.paymentValue}>
+                  {insurancePrice.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.paymentRow}>
+              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>
+                Tổng giá thuê
+              </Text>
+              <Text style={[styles.paymentValue, { fontWeight: '700', color: COLORS.primary }]}>
                 {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
 
+            <View style={styles.divider} />
+
+            {/* 💰 Chi tiết thanh toán - Payment Details */}
+            <Text style={styles.breakdownTitle}>Chi tiết thanh toán</Text>
+
+            {/* Deposit Info */}
+            <View style={styles.paymentRow}>
+              <View style={styles.paymentLabelWithNote}>
+                <Text style={[styles.paymentLabel, styles.depositLabel]}>
+                  💰 Tiền cọc{" "}
+                  {totalPrice > 0 && depositAmount > 0
+                    ? `(${Math.round((depositAmount / totalPrice) * 100)}%)`
+                    : ""}
+                </Text>
+                {booking.payment?.status === "SUCCESS" && (
+                  <Text style={styles.paymentNote}>
+                    ✓ Đã thanh toán qua VNPAY
+                  </Text>
+                )}
+                {booking.payment?.status === "PENDING" && (
+                  <Text style={[styles.paymentNote, { color: COLORS.warning }]}>
+                    ⏳ Chờ thanh toán
+                  </Text>
+                )}
+                {booking.status === "CANCELLED" && booking.payment?.status === "SUCCESS" && (
+                  <Text style={[styles.paymentNote, { color: COLORS.error }]}>
+                    ✗ Đã hủy - Chờ hoàn tiền
+                  </Text>
+                )}
+              </View>
+              <Text style={[styles.paymentValue, styles.depositValue]}>
+                {depositAmount.toLocaleString("vi-VN")} VND
+              </Text>
+            </View>
+
+            {/* Remaining Payment */}
+            {booking.status === "CONFIRMED" && (
+              <View style={styles.paymentRow}>
+                <View style={styles.paymentLabelWithNote}>
+                  <Text style={[styles.paymentLabel, styles.remainingLabel]}>
+                    🔄 Còn lại{" "}
+                    {totalPrice > 0 && remainingAmount > 0
+                      ? `(${Math.round((remainingAmount / totalPrice) * 100)}%)`
+                      : ""}
+                  </Text>
+                  <Text style={styles.paymentNote}>
+                    Đã thanh toán trực tiếp tại trạm
+                  </Text>
+                </View>
+                <Text style={styles.paymentValue}>
+                  {remainingAmount.toLocaleString("vi-VN")} VND
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.divider} />
+
+            {/* Total */}
             <View style={styles.paymentRow}>
               <Text style={styles.totalLabel}>Tổng cộng</Text>
               <Text style={styles.totalValue}>
@@ -476,41 +561,8 @@ const HistoryBookingDetailScreen = () => {
             </View>
           </View>
 
-          {/* Receipt */}
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.receiptButton}
-              onPress={handleViewInvoice}
-            >
-              <Ionicons
-                name="receipt-outline"
-                size={24}
-                color={COLORS.primary}
-              />
-              <Text style={styles.receiptText}>Xem hóa đơn</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={COLORS.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
           <View style={{ height: 100 }} />
         </ScrollView>
-
-        {/* Bottom Action - Only for cancelled/expired bookings to rebook */}
-        {(booking.status === "CANCELLED" || booking.status === "EXPIRED") && (
-          <View style={styles.bottomContainer}>
-            <TouchableOpacity
-              style={styles.bookAgainButton}
-              onPress={handleBookAgain}
-            >
-              <Ionicons name="refresh-outline" size={20} color={COLORS.white} />
-              <Text style={styles.bookAgainButtonText}>Đặt lại xe này</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Success Modal */}
         <StatusModal
@@ -521,28 +573,6 @@ const HistoryBookingDetailScreen = () => {
           onClose={() => setModalVisible(false)}
           actionButtonText="Xem đặt chỗ"
           onActionPress={handleModalActionPress}
-        />
-
-        {/* Invoice Modal */}
-        <InvoiceModal
-          visible={invoiceModalVisible}
-          onClose={() => setInvoiceModalVisible(false)}
-          bookingCode={booking._id.slice(-8).toUpperCase()}
-          vehicleName={getVehicleName()}
-          vehicleModel={getVehicleModel()}
-          startDate={startDateTime.date}
-          endDate={endDateTime.date}
-          startTime={startDateTime.time}
-          endTime={endDateTime.time}
-          actualStartTime={startDateTime.time}
-          actualEndTime={endDateTime.time}
-          hourlyRate={hourlyRate}
-          totalHours={totalHours}
-          actualHours={totalHours}
-          totalPrice={totalPrice}
-          actualPrice={totalPrice}
-          paymentMethod={booking.payment?.method || "Chưa thanh toán"}
-          location={getStationName()}
         />
       </LinearGradient>
     </SafeAreaView>
@@ -739,6 +769,31 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     fontWeight: "600",
     color: COLORS.text,
+  },
+  breakdownTitle: {
+    fontSize: FONTS.body,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  paymentLabelWithNote: {
+    flex: 1,
+  },
+  depositLabel: {
+    fontWeight: "600",
+  },
+  remainingLabel: {
+    fontWeight: "600",
+  },
+  depositValue: {
+    color: COLORS.success,
+    fontWeight: "700",
+  },
+  paymentNote: {
+    fontSize: FONTS.caption,
+    color: COLORS.success,
+    marginTop: SPACING.xs / 2,
   },
   totalLabel: {
     fontSize: FONTS.bodyLarge,

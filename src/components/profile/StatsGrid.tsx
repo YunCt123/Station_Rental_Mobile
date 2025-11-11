@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface UserStats {
-  totalRides: number;
-  totalDistance: string;
+  totalBookings: number;
+  totalSpent: number;
 }
 
 interface StatsGridProps {
@@ -29,19 +29,28 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon }) => (
 );
 
 const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}M VND`;
+    } else if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(0)}K VND`;
+    }
+    return `${amount.toLocaleString('vi-VN')} VND`;
+  };
+
   return (
     <View style={styles.statsSection}>
       <Text style={styles.sectionTitle}>Thống kê của bạn</Text>
       <View style={styles.statsGrid}>
         <StatCard
-          title="Chuyến đi"
-          value={stats.totalRides.toString()}
-          icon="bicycle-outline"
+          title="Tổng booking"
+          value={stats.totalBookings.toString()}
+          icon="document-text-outline"
         />
         <StatCard
-          title="Quãng đường"
-          value={stats.totalDistance}
-          icon="speedometer-outline"
+          title="Tổng đã tiêu"
+          value={formatCurrency(stats.totalSpent)}
+          icon="wallet-outline"
         />
       </View>
     </View>

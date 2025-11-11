@@ -7,7 +7,6 @@ import {
   RegisterRequest,
   AuthResponse,
   RefreshTokenRequest,
-  LogoutRequest,
 } from '../types/auth';
 import { ApiResponse } from '../types/apiResponse';
 
@@ -34,8 +33,6 @@ class AuthService {
       requestBody
     );
 
-    console.log('Register response:', JSON.stringify(response, null, 2));
-
     // Save tokens and user info
     await this.saveAuthData(response.data);
 
@@ -47,8 +44,6 @@ class AuthService {
    */
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, data);
-
-    console.log('Login response:', JSON.stringify(response, null, 2));
 
     // Save tokens and user info
     await this.saveAuthData(response.data);
@@ -66,7 +61,7 @@ class AuthService {
         await api.post(AUTH_ENDPOINTS.LOGOUT, { refreshToken });
       }
     } catch (error) {
-      console.error('Logout API error:', error);
+      // Silent error handling
     } finally {
       // Clear all local data
       await this.clearAuthData();
@@ -93,10 +88,19 @@ class AuthService {
   async getCurrentUser(): Promise<User> {
     const response = await api.get<ApiResponse<User>>(AUTH_ENDPOINTS.ME);
 
-    // Update user info in storage
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    // api.get already returns response.data, so response is { success, data }
+    // We need to extract the user from response.data
+    const userData = (response as any).data || response;
+    
+    // Backend returns _id but we need id, so normalize it
+    if (userData._id && !userData.id) {
+      userData.id = userData._id;
+    }
 
-    return response.data;
+    // Update user info in storage
+    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+
+    return userData;
   }
 
   /**
@@ -135,10 +139,18 @@ class AuthService {
   async updateProfile(data: Partial<User>): Promise<User> {
     const response = await api.patch<ApiResponse<User>>('/users/profile', data);
 
-    // Update user info in storage
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    // api.patch already returns response.data, extract user data correctly
+    const userData = (response as any).data || response;
 
-    return response.data;
+    // Backend returns _id but we need id, so normalize it
+    if (userData._id && !userData.id) {
+      userData.id = userData._id;
+    }
+
+    // Update user info in storage
+    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+
+    return userData;
   }
 
   /**
@@ -146,6 +158,12 @@ class AuthService {
    */
   private async saveAuthData(authData: AuthResponse['data']): Promise<void> {
     const { tokens, user } = authData;
+    
+    // Normalize _id to id for consistency
+    if (user._id && !user._id) {
+      user._id = user._id;
+    }
+    
     await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
     await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));

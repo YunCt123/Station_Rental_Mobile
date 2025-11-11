@@ -56,17 +56,11 @@ const VerifyAccountScreen = () => {
   const requestPermissions = async () => {
     try {
       const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-      if (cameraStatus.status !== 'granted') {
-        console.warn('Camera permission not granted');
-      }
+      if (cameraStatus.status !== 'granted') {}
 
       const mediaStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (mediaStatus.status !== 'granted') {
-        console.warn('Media library permission not granted');
-      }
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
-    }
+      if (mediaStatus.status !== 'granted') {}
+    } catch (error) {}
   };
 
   const loadExistingDocuments = async () => {
@@ -107,9 +101,7 @@ const VerifyAccountScreen = () => {
           backImage: null,
         },
       ]);
-    } catch (error) {
-      console.error('Error loading verification data:', error);
-    } finally {
+    } catch (error) {} finally {
       setLoadingDocs(false);
     }
   };
@@ -221,9 +213,7 @@ const VerifyAccountScreen = () => {
 
       Alert.alert('Thành công', `Đã chọn ảnh ${side === 'front' ? 'mặt trước' : 'mặt sau'}`);
       
-    } catch (error: any) {
-      console.error('Error selecting image:', error);
-      Alert.alert('Lỗi', error.message || 'Không thể chọn hình ảnh');
+    } catch (error: any) {Alert.alert('Lỗi', error.message || 'Không thể chọn hình ảnh');
     } finally {
       setUploading(false);
     }
@@ -305,9 +295,7 @@ const VerifyAccountScreen = () => {
       setModalTitle('Gửi thành công!');
       setModalMessage('Đã gửi tài liệu xác minh. Vui lòng chờ admin phê duyệt trong vòng 24-48 giờ.');
       setModalVisible(true);
-    } catch (error: any) {
-      console.error('Error submitting documents:', error);
-      setModalType('error');
+    } catch (error: any) {setModalType('error');
       setModalTitle('Lỗi');
       setModalMessage(error.response?.data?.message || 'Không thể gửi tài liệu. Vui lòng thử lại.');
       setModalVisible(true);

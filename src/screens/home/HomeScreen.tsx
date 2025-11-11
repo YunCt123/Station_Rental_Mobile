@@ -57,9 +57,7 @@ const HomeScreen = () => {
       const featured = await vehicleService.getFeaturedVehicles(4);
       const featuredData = mapVehiclesToUI(featured);
       setFeaturedVehicles(featuredData);
-    } catch (err) {
-      console.error("Error loading vehicles:", err);
-      setError("Không thể tải danh sách xe");
+    } catch (err) {setError("Không thể tải danh sách xe");
     } finally {
       if (showLoading) setLoading(false);
     }

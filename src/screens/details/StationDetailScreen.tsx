@@ -44,8 +44,7 @@ export const StationDetailScreen = () => {
       setStation(stationData);
       setVehicles(vehiclesData.vehicles);
     } catch (error) {
-      console.error("Error fetching station details:", error);
-      setErrorMessage("Không thể tải thông tin trạm");
+setErrorMessage("Không thể tải thông tin trạm");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);

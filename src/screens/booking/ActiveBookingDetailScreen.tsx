@@ -50,14 +50,8 @@ const ActiveBookingDetailScreen = () => {
 
   const loadBookingDetails = async () => {
     try {
-      setLoading(true);
-      console.log("[ActiveBookingDetail] Loading booking:", bookingId);
-      const data = await bookingService.getBookingById(bookingId);
-      console.log("[ActiveBookingDetail] Booking data:", data);
-      setBooking(data);
-    } catch (error: any) {
-      console.error("[ActiveBookingDetail] Error loading booking:", error);
-      setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
+      setLoading(true);const data = await bookingService.getBookingById(bookingId);setBooking(data);
+    } catch (error: any) {setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);

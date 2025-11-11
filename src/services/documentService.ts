@@ -81,12 +81,8 @@ class DocumentService {
     const results: Document[] = [];
     
     // Upload tuần tự thay vì parallel
-    for (const doc of documents) {
-      console.log(`⬆️ Uploading document: ${doc.type}`);
-      const result = await this.uploadDocumentMeta(doc);
-      results.push(result);
-      console.log(`✅ Uploaded: ${doc.type}, ID: ${result._id}`);
-    }
+    for (const doc of documents) {const result = await this.uploadDocumentMeta(doc);
+      results.push(result);}
     
     return results;
   }
