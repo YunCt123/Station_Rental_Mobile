@@ -63,12 +63,22 @@ const RegisterScreen = () => {
       },
     );
 
-Alert.alert("Thành công", "Đăng ký thành công! Chào mừng bạn.", [
-        {
-          text: "OK",
-          onPress: () => navigation.navigate("MainTabs"),
-        },
-      ]);
+      // Chuyển đến màn hình xác thực email sau khi đăng ký thành công
+      Alert.alert(
+        "Đăng ký thành công!", 
+        "Vui lòng kiểm tra email để xác thực tài khoản.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              (navigation as any).navigate("EmailVerification", {
+                email: email.trim(),
+                fromRegistration: true,
+              });
+            },
+          },
+        ]
+      );
     } catch (error: any) {
 const errorMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
       Alert.alert("Lỗi", errorMessage);

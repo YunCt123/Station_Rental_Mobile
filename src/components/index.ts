@@ -3,6 +3,9 @@ export { default as ProfileHeader } from './profile/ProfileHeader';
 export { default as StatsGrid } from './profile/StatsGrid';
 export { default as ProfileMenu } from './profile/ProfileMenu';
 
+// Policy Components
+export * from './policy';
+
 // Home Components
 export { default as FeaturedVehicles } from './home/FeaturedVehicles';
 export { default as AvailableVehicles } from './home/AvailableVehicles';

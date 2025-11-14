@@ -140,6 +140,12 @@ const ProfileScreen = () => {
       onPress: () => navigation.navigate("EditProfile" as never),
     },
     {
+      id: "policies and terms",
+      title: "Chính sách & Điều khoản",
+      icon: "document-text-outline",
+      onPress: () => navigation.navigate("Policy" as never),
+    },
+    {
       id: "help",
       title: "Trợ giúp & Hỗ trợ",
       icon: "help-circle-outline",

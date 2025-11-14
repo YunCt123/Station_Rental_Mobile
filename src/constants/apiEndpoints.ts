@@ -16,13 +16,18 @@
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
     ME: '/auth/me',
+    VERIFY_EMAIL: '/auth/verify-email',
+    RESEND_VERIFICATION: '/auth/resend-verification',
+    SEND_VERIFICATION: '/auth/send-verification',
+    VERIFICATION_STATUS: (email: string) => `/auth/verification-status/${email}`,
+    ACCOUNT_VERIFICATION_STATUS: '/users/verification/status', // ✅ Check account verification status (document verification)
   };
 
   /**
    * Station Endpoints
    */
   export const STATION_ENDPOINTS = {
-    LIST: '/stations',
+    LIST: '/stations',  
     NEARBY: '/stations/nearby',
     BY_ID: (id: string) => `/stations/${id}`,
     VEHICLES: (id: string) => `/stations/${id}/vehicles`,

@@ -4,6 +4,7 @@ export type RootStackParamList = {
   AuthLanding: undefined;
   Register: undefined;
   Login: undefined;
+  EmailVerification: { email: string; fromRegistration?: boolean };
   
   // Main App (Bottom Tabs)
   MainTabs: undefined;
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   Help: undefined;
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
+  Policy: undefined;
   VerifyAccount: undefined;
   MapView: undefined;
 };
