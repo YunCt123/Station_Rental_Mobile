@@ -1,5 +1,6 @@
 export interface User {
   _id?: string;
+  id?: string;
   email: string;
   phone?: string;
   phoneNumber?: string; // API might return phoneNumber instead of phone
@@ -8,6 +9,13 @@ export interface User {
   dateOfBirth?: string;
   role: 'customer' | 'staff' | 'admin';
   isVerified?: boolean;
+  
+  // Email verification
+  email_verified?: boolean;
+  isEmailVerified?: boolean;
+  
+  // Account status
+  status?: 'active' | 'inactive' | 'blocked';
   
   // Driver's License Information
   licenseNumber?: string;
@@ -61,4 +69,17 @@ export interface RefreshTokenRequest {
 
 export interface LogoutRequest {
   refreshToken: string;
+}
+
+export interface VerificationStatusResponse {
+  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  hasImages: {
+    idCardFront: boolean;
+    idCardBack: boolean;
+    driverLicense: boolean;
+    selfiePhoto: boolean;
+  };
+  verifiedAt?: string;
+  verifiedBy?: string;
 }

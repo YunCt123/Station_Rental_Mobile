@@ -13,10 +13,12 @@ import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
+import PolicyScreen from "../screens/profile/PolicyScreen";
 import { COLORS, FONTS, RADII, SPACING } from "../utils/theme";
 import AuthLandingScreen from "../screens/auth/AuthLandingScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
+import EmailVerificationScreen from "../screens/auth/EmailVerificationScreen";
 import MapScreen from "../screens/map/MapScreen";
 import { StationDetailScreen } from "../screens/details/StationDetailScreen";
 
@@ -48,6 +50,11 @@ const MainNavigator = () => {
         <Stack.Screen
           name="Register"
           component={RegisterScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EmailVerification"
+          component={EmailVerificationScreen}
           options={{ headerShown: false }}
         />
 
@@ -118,6 +125,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="RentalHistory"
           component={RentalHistoryScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Policy"
+          component={PolicyScreen}
           options={{
             headerShown: false,
           }}

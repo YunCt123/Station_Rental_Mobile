@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { RootStackParamList } from "../../types/navigation";
 import { authApi } from "../../api/authApi";
+import { emailVerificationService } from "../../services/emailVerificationService";
 
 type LoginNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -39,20 +40,107 @@ const LoginScreen = () => {
 
     try {
       setLoading(true);
+      
+      // Bước 1: Kiểm tra trạng thái xác thực email trước khi đăng nhập
+      const verificationStatus = await emailVerificationService.getVerificationStatus(
+        email.trim()
+      );
+
+      // Nếu tài khoản chưa xác thực email và status inactive
+      if (
+        verificationStatus.success &&
+        verificationStatus.data &&
+        !verificationStatus.data.isVerified
+      ) {
+        Alert.alert(
+          "Tài khoản chưa xác thực",
+          "Email của bạn chưa được xác thực. Vui lòng xác thực email để có thể đăng nhập.",
+          [
+            {
+              text: "Hủy",
+              style: "cancel",
+            },
+            {
+              text: "Xác thực ngay",
+              onPress: () => {
+                // Chuyển đến màn hình xác thực email
+                (navigation as any).navigate("EmailVerification", {
+                  email: email.trim(),
+                  fromRegistration: false,
+                });
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Bước 2: Nếu đã xác thực, tiến hành đăng nhập
       const response = await authApi.login({
         email: email.trim(),
         password: password.trim(),
       });
 
-Alert.alert("Thành công", "Đăng nhập thành công!", [
+      // Kiểm tra response user status
+      const userData = response.data?.user || response.user;
+      if (userData && userData.status === "inactive") {
+        Alert.alert(
+          "Tài khoản chưa kích hoạt",
+          "Tài khoản của bạn đang ở trạng thái inactive. Vui lòng xác thực email.",
+          [
+            {
+              text: "Xác thực ngay",
+              onPress: () => {
+                (navigation as any).navigate("EmailVerification", {
+                  email: email.trim(),
+                  fromRegistration: false,
+                });
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      Alert.alert("Thành công", "Đăng nhập thành công!", [
         {
           text: "OK",
           onPress: () => navigation.navigate("MainTabs"),
         },
       ]);
     } catch (error: any) {
-const errorMessage = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
-      Alert.alert("Lỗi", errorMessage);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
+      
+      // Kiểm tra xem có phải lỗi do chưa xác thực không
+      if (
+        errorMessage.toLowerCase().includes("verify") ||
+        errorMessage.toLowerCase().includes("inactive") ||
+        errorMessage.toLowerCase().includes("not verified")
+      ) {
+        Alert.alert(
+          "Tài khoản chưa xác thực",
+          "Vui lòng xác thực email trước khi đăng nhập.",
+          [
+            {
+              text: "Hủy",
+              style: "cancel",
+            },
+            {
+              text: "Xác thực ngay",
+              onPress: () => {
+                (navigation as any).navigate("EmailVerification", {
+                  email: email.trim(),
+                  fromRegistration: false,
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Lỗi", errorMessage);
+      }
     } finally {
       setLoading(false);
     }

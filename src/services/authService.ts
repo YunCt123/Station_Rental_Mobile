@@ -45,8 +45,19 @@ class AuthService {
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, data);
 
-    // Save tokens and user info
-    await this.saveAuthData(response.data);
+    // Save tokens first (required for /auth/me API call)
+    const { tokens, user } = response.data;
+    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
+    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+
+    // Fetch complete user data from /auth/me to get verification fields
+    try {
+      const completeUser = await this.getCurrentUser();
+      response.data.user = completeUser;
+    } catch (error) {
+      console.error("Failed to fetch complete user data:", error);
+      await this.saveAuthData(response.data);
+    }
 
     return response;
   }
@@ -83,24 +94,178 @@ class AuthService {
   }
 
   /**
+   * Get account verification status (for booking permission)
+   * Calls: GET /users/verification/status
+   * Returns verification status for CCCD + GPLX documents
+   */
+  async getAccountVerificationStatus(): Promise<{
+    verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rejectionReason?: string;
+    hasImages: {
+      idCardFront: boolean;
+      idCardBack: boolean;
+      driverLicense: boolean;
+      selfiePhoto: boolean;
+    };
+    verifiedAt?: string;
+    verifiedBy?: string;
+  }> {
+    try {
+      console.log('🔍 [AuthService] Calling API:', AUTH_ENDPOINTS.ACCOUNT_VERIFICATION_STATUS);
+      const response = await api.get<ApiResponse<any>>(AUTH_ENDPOINTS.ACCOUNT_VERIFICATION_STATUS);
+      console.log('📦 [AuthService] Raw API Response:', JSON.stringify(response, null, 2));
+      
+      // api.get already extracts response.data, so response is likely { success: true, data: {...} }
+      // OR it might be the data directly depending on axios interceptor
+      let verificationData = response;
+      
+      // If response has 'data' property, extract it
+      if (verificationData && typeof verificationData === 'object' && 'data' in verificationData) {
+        verificationData = (verificationData as any).data;
+        console.log('📦 [AuthService] Extracted nested data:', JSON.stringify(verificationData, null, 2));
+      }
+      
+      // Now verificationData should be the actual verification object from backend
+      console.log('👤 [AuthService] Verification Data:', JSON.stringify(verificationData, null, 2));
+      
+      // Backend returns this structure from getVerificationStatus:
+      // {
+      //   verificationStatus: user.verificationStatus,
+      //   rejectionReason: user.rejectionReason,
+      //   hasImages: { idCardFront: !!user.idCardFront, ... },
+      //   verifiedAt: user.verifiedAt,
+      //   verifiedBy: user.verifiedBy,
+      // }
+      
+      // Validate that we have the expected structure
+      if (!verificationData || typeof verificationData !== 'object') {
+        console.error('❌ [AuthService] Invalid verification data structure');
+        throw new Error('Invalid response from verification status API');
+      }
+      
+      // Check if verificationStatus exists in response
+      const rawVerificationStatus = (verificationData as any).verificationStatus;
+      console.log('🔍 [AuthService] Raw verificationStatus from API:', rawVerificationStatus);
+      
+      if (!rawVerificationStatus) {
+        console.error('❌ [AuthService] verificationStatus is missing in API response!');
+        console.error('❌ [AuthService] Full response data:', verificationData);
+        throw new Error('verificationStatus field is missing from API response. Please check backend.');
+      }
+      
+      // Return the data as-is since backend already returns correct structure
+      const result = {
+        verificationStatus: rawVerificationStatus,
+        rejectionReason: (verificationData as any).rejectionReason,
+        hasImages: (verificationData as any).hasImages || {
+          idCardFront: false,
+          idCardBack: false,
+          driverLicense: false,
+          selfiePhoto: false,
+        },
+        verifiedAt: (verificationData as any).verifiedAt,
+        verifiedBy: (verificationData as any).verifiedBy,
+      };
+      
+      console.log('✅ [AuthService] Final Result:', JSON.stringify(result, null, 2));
+      console.log('✅ [AuthService] Verification Status =', result.verificationStatus);
+      
+      return result;
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error fetching verification status:', error);
+      console.error('❌ [AuthService] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get current user from API
    */
   async getCurrentUser(): Promise<User> {
-    const response = await api.get<ApiResponse<User>>(AUTH_ENDPOINTS.ME);
+    try {
+      const response = await api.get<ApiResponse<User>>(AUTH_ENDPOINTS.ME);
 
-    // api.get already returns response.data, so response is { success, data }
-    // We need to extract the user from response.data
-    const userData = (response as any).data || response;
-    
-    // Backend returns _id but we need id, so normalize it
-    if (userData._id && !userData.id) {
-      userData.id = userData._id;
+      // api.get already returns response.data, so response is { success, data }
+      // We need to extract the user from response.data
+      const userData = (response as any).data || response;
+      
+      console.log('👤 [AuthService] getCurrentUser - verificationStatus:', userData.verificationStatus);
+      
+      // Normalize _id and id (support both directions)
+      if (userData._id && !userData.id) {
+        userData.id = userData._id;
+      }
+      if (userData.id && !userData._id) {
+        userData._id = userData.id;
+      }
+
+      // Update user info in storage
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      console.error("Failed to fetch current user from API:", error);
+      // If API fails, try to return stored user as fallback
+      const storedUser = await this.getStoredUser();
+      if (storedUser) {
+        return storedUser;
+      }
+      throw error;
     }
+  }
 
-    // Update user info in storage
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-
-    return userData;
+  /**
+   * Alternative method: Get verification status from /auth/me endpoint
+   * Use this as fallback if /users/verification/status fails
+   */
+  async getAccountVerificationStatusFromMe(): Promise<{
+    verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rejectionReason?: string;
+    hasImages: {
+      idCardFront: boolean;
+      idCardBack: boolean;
+      driverLicense: boolean;
+      selfiePhoto: boolean;
+    };
+    verifiedAt?: string;
+    verifiedBy?: string;
+  }> {
+    try {
+      console.log('🔍 [AuthService] Fallback: Getting verification from /auth/me');
+      const user = await this.getCurrentUser();
+      
+      console.log('👤 [AuthService] User verificationStatus from /auth/me:', user.verificationStatus);
+      
+      // Check if verificationStatus is available
+      if (!user.verificationStatus) {
+        console.error('❌ [AuthService] /auth/me does NOT return verificationStatus field!');
+        console.error('❌ [AuthService] This means backend /auth/me endpoint needs to include this field.');
+        throw new Error('verificationStatus not available in /auth/me response. Backend needs to include this field.');
+      }
+      
+      const result = {
+        verificationStatus: user.verificationStatus,
+        rejectionReason: user.rejectionReason,
+        hasImages: {
+          idCardFront: !!user.idCardFront,
+          idCardBack: !!user.idCardBack,
+          driverLicense: !!user.driverLicense,
+          selfiePhoto: !!user.selfiePhoto,
+        },
+        verifiedAt: user.verifiedAt,
+        verifiedBy: user.verifiedBy,
+      };
+      
+      console.log('✅ [AuthService] Verification from /auth/me:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error('❌ [AuthService] Failed to get verification from /auth/me:', error);
+      throw error;
+    }
   }
 
   /**
@@ -160,8 +325,8 @@ class AuthService {
     const { tokens, user } = authData;
     
     // Normalize _id to id for consistency
-    if (user._id && !user._id) {
-      user._id = user._id;
+    if (user._id && !user.id) {
+      user.id = user._id;
     }
     
     await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);

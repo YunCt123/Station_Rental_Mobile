@@ -95,7 +95,10 @@ const BookingPaymentScreen = () => {
 
   const checkAuthentication = async () => {
     try {
+      console.log("🔍 Checking authentication...");
       const isAuth = await authService.isAuthenticated();
+      console.log("🔍 Is authenticated:", isAuth);
+      
       if (!isAuth) {
         Alert.alert(
           "Yêu cầu đăng nhập",
@@ -111,42 +114,103 @@ const BookingPaymentScreen = () => {
         return false;
       }
 
-      // ✅ Fetch latest user data from API to get current verification status
-      const user = await authService.getCurrentUser();
-      if (!user || !user._id) {
-        Alert.alert(
-          "Lỗi xác thực",
-          "Không tìm thấy thông tin người dùng.",
-          [
-            {
-              text: "Đăng nhập",
-              onPress: () => navigation.reset({ index: 0, routes: [{ name: "Login" }] }),
-            },
-            { text: "Hủy", style: "cancel", onPress: () => navigation.goBack() },
-          ]
-        );
-        return false;
-      }
-
-      // ✅ Use verificationStatus directly from getCurrentUser() response
-      const verificationStatus = user.verificationStatus;// ✅ Check verification status
-      if (verificationStatus !== "APPROVED") {
-        Alert.alert(
-          "Yêu cầu xác thực tài khoản",
-          "Bạn cần xác thực tài khoản trước khi đặt xe. Vui lòng hoàn tất xác thực để tiếp tục.",
-          [
-            {
-              text: "Xác thực ngay",
-              onPress: () => navigation.navigate("VerifyAccount" as never),
-            },
-            { text: "Hủy", style: "cancel", onPress: () => navigation.goBack() },
-          ]
-        );
-        return false;
-      }
-
       return true;
-    } catch (error) {Alert.alert("Lỗi", "Không thể xác thực. Vui lòng đăng nhập lại.");
+    } catch (error) {
+      console.error("❌ Authentication check failed:", error);
+      Alert.alert("Lỗi", "Không thể xác thực. Vui lòng đăng nhập lại.");
+      return false;
+    }
+  };
+
+  /**
+   * Check if user account is verified (document verification)
+   * User must have APPROVED verification status to book vehicle
+   */
+  const checkAccountVerification = async (): Promise<boolean> => {
+    try {
+      console.log("🔍 [BookingPayment] Checking account verification status...");
+      
+      // Try primary endpoint first
+      let verificationData;
+      try {
+        verificationData = await authService.getAccountVerificationStatus();
+      } catch (primaryError) {
+        console.warn("⚠️ [BookingPayment] Primary endpoint failed, trying fallback from /auth/me");
+        // Fallback to /auth/me endpoint
+        verificationData = await authService.getAccountVerificationStatusFromMe();
+      }
+      
+      console.log("📋 [BookingPayment] Verification data received:", JSON.stringify(verificationData, null, 2));
+      console.log("🎯 [BookingPayment] Verification Status:", verificationData.verificationStatus);
+      console.log("🖼️ [BookingPayment] Has Images:", verificationData.hasImages);
+      
+      // Check if verification is approved
+      if (verificationData.verificationStatus !== "APPROVED") {
+        console.log("⚠️ [BookingPayment] Account not verified. Status:", verificationData.verificationStatus);
+        
+        let alertTitle = "Yêu cầu xác thực tài khoản";
+        let alertMessage = "";
+        let actionButtonText = "Xác thực ngay";
+
+        if (verificationData.verificationStatus === "REJECTED") {
+          alertMessage = `Tài khoản của bạn đã bị từ chối xác thực.\n\nLý do: ${
+            verificationData.rejectionReason || "Không rõ"
+          }\n\nVui lòng cập nhật lại thông tin và gửi lại yêu cầu xác thực.`;
+          actionButtonText = "Gửi lại xác thực";
+        } else if (verificationData.verificationStatus === "PENDING") {
+          // Check if user has submitted documents
+          const hasSubmittedDocuments = 
+            verificationData.hasImages.idCardFront ||
+            verificationData.hasImages.idCardBack ||
+            verificationData.hasImages.driverLicense ||
+            verificationData.hasImages.selfiePhoto;
+
+          console.log("📄 [BookingPayment] Has submitted documents:", hasSubmittedDocuments);
+
+          if (hasSubmittedDocuments) {
+            alertMessage = "Tài khoản của bạn đang được xét duyệt.\n\nVui lòng đợi quản trị viên xác nhận hoặc liên hệ hỗ trợ để được xử lý nhanh hơn.";
+            actionButtonText = "Liên hệ hỗ trợ";
+          } else {
+            alertMessage = "Bạn cần hoàn tất xác thực tài khoản (CMND/CCCD và GPLX) trước khi có thể đặt xe.";
+            actionButtonText = "Xác thực ngay";
+          }
+        }
+        
+        console.log("🚫 [BookingPayment] Showing alert:", alertTitle, alertMessage);
+        Alert.alert(
+          alertTitle,
+          alertMessage,
+          [
+            {
+              text: actionButtonText,
+              onPress: () => {
+                // Navigate to verification screen
+                navigation.navigate("VerifyAccount" as never);
+              },
+            },
+            { 
+              text: "Đóng", 
+              style: "cancel", 
+              onPress: () => navigation.goBack() 
+            },
+          ]
+        );
+        return false;
+      }
+
+      console.log("✅ [BookingPayment] Account verification APPROVED! User can proceed with booking.");
+      return true;
+    } catch (error: any) {
+      console.error("❌ [BookingPayment] Account verification check failed:", error);
+      console.error("❌ [BookingPayment] Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack,
+      });
+      Alert.alert(
+        "Lỗi kiểm tra xác thực", 
+        error.response?.data?.message || error.message || "Không thể kiểm tra trạng thái xác thực tài khoản. Vui lòng thử lại."
+      );
       return false;
     }
   };
@@ -395,8 +459,15 @@ const BookingPaymentScreen = () => {
   };
 
   const handleConfirmBooking = async () => {
+    // Step 1: Check if user is authenticated
     const isAuth = await checkAuthentication();
     if (!isAuth) return;
+
+    // Step 2: Check if user account is verified (document verification)
+    const isVerified = await checkAccountVerification();
+    if (!isVerified) return;
+
+    // Step 3: Proceed with payment
     await handleVNPAYPayment();
   };
 
