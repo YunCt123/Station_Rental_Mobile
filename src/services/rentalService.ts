@@ -65,6 +65,34 @@ class RentalService {
 
     return rentalData;
   }
+
+  /**
+   * Complete return - Customer confirms final payment
+   * This endpoint handles direct payment (not via VNPAY)
+   */
+  async completeReturn(rentalId: string): Promise<{
+    rental: Rental;
+    finalPayment: {
+      amount: number;
+      depositPaid: number;
+      totalCharges: number;
+      message: string;
+    };
+  }> {
+    const response = await api.post(`/rentals/${rentalId}/complete-return`);
+
+    // Handle double-wrapped response
+    let data: any;
+    if ((response as any).success && (response as any).data) {
+      data = (response as any).data;
+    } else if ((response as any).data) {
+      data = (response as any).data;
+    } else {
+      data = response;
+    }
+
+    return data;
+  }
 }
 
 export const rentalService = new RentalService();

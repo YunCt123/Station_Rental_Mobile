@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
 import { paymentService } from "../../services/paymentService";
+import { rentalService } from "../../services/rentalService";
 import StatusModal from "../../components/common/StatusModal";
 
 type FinalPaymentRouteProp = RouteProp<RootStackParamList, "FinalPayment">;
@@ -39,40 +40,57 @@ const FinalPaymentScreen = () => {
   const needsRefund = finalAmount < 0;
 
   const handlePayment = async () => {
-    if (!needsPayment) {
-      Alert.alert("Thông báo", "Bạn đã thanh toán đủ khi đặt cọc.");
-      return;
-    }
-
     try {
       setIsProcessing(true);
 
-      const response = await paymentService.createFinalPayment(rentalId, false);
+      // Call complete-return endpoint (direct payment, not via VNPAY)
+      const response = await rentalService.completeReturn(rentalId);
 
-      const checkoutUrl = response?.data?.checkoutUrl;
+      setIsProcessing(false);
+      setModalType("success");
+      setModalTitle("Hoàn tất thuê xe");
 
-      if (checkoutUrl) {
-        setIsProcessing(false);
+      const { finalPayment } = response;
 
-        navigation.navigate("VNPAYWebView", {
-          paymentUrl: checkoutUrl,
-          rentalId: rentalId,
-          amount: finalAmount,
-          vehicleName: vehicleName || "Xe",
-          isFinalPayment: true,
-        });
+      if (finalPayment.amount > 0) {
+        setModalMessage(
+          `Bạn đã thanh toán ${finalPayment.amount.toLocaleString(
+            "vi-VN"
+          )} VND trực tiếp tại trạm. Cảm ơn bạn đã sử dụng dịch vụ!`
+        );
+      } else if (finalPayment.amount < 0) {
+        setModalMessage(
+          `Bạn đã được hoàn ${Math.abs(finalPayment.amount).toLocaleString(
+            "vi-VN"
+          )} VND. Tiền sẽ được hoàn về tài khoản trong 3-5 ngày làm việc.`
+        );
       } else {
-        throw new Error("Không nhận được URL thanh toán");
+        setModalMessage(
+          "Bạn đã thanh toán đủ khi đặt cọc. Cảm ơn bạn đã sử dụng dịch vụ!"
+        );
       }
+
+      setModalVisible(true);
     } catch (error: any) {
       setIsProcessing(false);
       setModalType("error");
       setModalTitle("Thanh toán thất bại");
-      setModalMessage(
-        error.response?.data?.message ||
-          error.message ||
-          "Không thể khởi tạo thanh toán cuối."
-      );
+
+      const errorMsg = error.response?.data?.message || error.message;
+
+      // Handle specific error cases
+      if (errorMsg?.includes("not ready for completion")) {
+        setModalMessage(
+          "Nhân viên chưa hoàn tất kiểm tra trả xe. Vui lòng liên hệ trạm để được hỗ trợ."
+        );
+      } else if (errorMsg?.includes("Access denied")) {
+        setModalMessage("Bạn không có quyền thực hiện thao tác này.");
+      } else {
+        setModalMessage(
+          errorMsg || "Không thể hoàn tất thanh toán. Vui lòng thử lại."
+        );
+      }
+
       setModalVisible(true);
     }
   };
@@ -80,7 +98,11 @@ const FinalPaymentScreen = () => {
   const handleModalClose = () => {
     setModalVisible(false);
     if (modalType === "success") {
-      navigation.goBack();
+      // Navigate back to bookings list after successful completion
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "MainTabs" as never }],
+      });
     }
   };
 
@@ -175,11 +197,15 @@ const FinalPaymentScreen = () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
               <View style={styles.paymentOption}>
-                <Ionicons name="logo-usd" size={28} color={COLORS.primary} />
+                <Ionicons
+                  name="cash-outline"
+                  size={28}
+                  color={COLORS.primary}
+                />
                 <View style={styles.paymentInfo}>
-                  <Text style={styles.paymentTitle}>VNPAY</Text>
+                  <Text style={styles.paymentTitle}>Thanh toán trực tiếp</Text>
                   <Text style={styles.paymentDesc}>
-                    Thanh toán nhanh qua cổng VNPAY
+                    Thanh toán trực tiếp tại trạm khi trả xe
                   </Text>
                 </View>
               </View>
@@ -205,41 +231,51 @@ const FinalPaymentScreen = () => {
           <View style={{ height: 150 }} />
         </ScrollView>
 
-        {/* Bottom Action */}
-        {needsPayment && (
-          <View style={styles.bottomContainer}>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Số tiền cần thanh toán</Text>
-              <Text style={styles.priceValue}>
-                {finalAmount.toLocaleString("vi-VN")} VND
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.payButton,
-                isProcessing && styles.payButtonDisabled,
-              ]}
-              onPress={handlePayment}
-              disabled={isProcessing}
+        {/* Bottom Action - Always show for confirmation */}
+        <View style={styles.bottomContainer}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>
+              {needsPayment
+                ? "Số tiền cần thanh toán"
+                : needsRefund
+                ? "Số tiền hoàn lại"
+                : "Tổng thanh toán"}
+            </Text>
+            <Text
+              style={[styles.priceValue, needsRefund && styles.refundAmount]}
             >
-              {isProcessing ? (
-                <>
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                  <Text style={styles.processingText}>Đang xử lý...</Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons
-                    name="card-outline"
-                    size={20}
-                    color={COLORS.white}
-                  />
-                  <Text style={styles.payButtonText}>Thanh toán qua VNPay</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              {needsRefund ? "+" : ""}
+              {Math.abs(finalAmount).toLocaleString("vi-VN")} VND
+            </Text>
           </View>
-        )}
+          <TouchableOpacity
+            style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
+            onPress={handlePayment}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <ActivityIndicator size="small" color={COLORS.white} />
+                <Text style={styles.processingText}>Đang xử lý...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={20}
+                  color={COLORS.white}
+                />
+                <Text style={styles.payButtonText}>
+                  {needsPayment
+                    ? "Xác nhận đã thanh toán"
+                    : needsRefund
+                    ? "Xác nhận nhận hoàn tiền"
+                    : "Hoàn tất"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Status Modal */}
         <StatusModal
@@ -440,6 +476,9 @@ const styles = StyleSheet.create({
     fontSize: FONTS.title,
     fontWeight: "700",
     color: COLORS.error,
+  },
+  refundAmount: {
+    color: COLORS.success,
   },
   payButton: {
     backgroundColor: COLORS.primary,
