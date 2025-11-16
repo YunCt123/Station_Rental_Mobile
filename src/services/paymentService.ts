@@ -13,10 +13,11 @@ export const paymentService = {
     redirect = false,
     amount: number
   ): Promise<{ checkoutUrl: string; transaction_ref: string }> {
-    try {const res = await api.post(
+    try {
+      const res = await api.post(
         `${PAYMENT_ENDPOINTS.CREATE_DEPOSIT(bookingId)}?redirect=${redirect}`,
         { amount }
-      );// Backend returns: { success: true, data: { payment, checkoutUrl, transaction_ref } }
+      ); // Backend returns: { success: true, data: { payment, checkoutUrl, transaction_ref } }
       const responseData = res.data?.data || res.data;
 
       if (!responseData.checkoutUrl) {
@@ -27,7 +28,8 @@ export const paymentService = {
         checkoutUrl: responseData.checkoutUrl,
         transaction_ref: responseData.transaction_ref || bookingId,
       };
-    } catch (error: any) {throw error;
+    } catch (error: any) {
+      throw error;
     }
   },
 
@@ -35,22 +37,25 @@ export const paymentService = {
     bookingId: string,
     amount: number
   ): Promise<{ checkoutUrl: string; transaction_ref: string }> {
-    try {// Backend validator requires 'amount' field (required)
+    try {
+      // Backend validator requires 'amount' field (required)
       // Send deposit amount from booking.pricing_snapshot.deposit
       const res = await api.post(
         PAYMENT_ENDPOINTS.CREATE_DEPOSIT(bookingId),
         { amount } // Required field
-      );// Backend returns: { payment, checkoutUrl, transaction_ref }
+      ); // Backend returns: { payment, checkoutUrl, transaction_ref }
       const data = res.data?.data || res.data;
 
-      if (!data.checkoutUrl) {throw new Error("No checkoutUrl in response");
+      if (!data.checkoutUrl) {
+        throw new Error("No checkoutUrl in response");
       }
 
       return {
         checkoutUrl: data.checkoutUrl,
         transaction_ref: data.transaction_ref || bookingId,
       };
-    } catch (error: any) {throw error;
+    } catch (error: any) {
+      throw error;
     }
   },
 
@@ -60,14 +65,18 @@ export const paymentService = {
     try {
       const response = await api.post(PAYMENT_ENDPOINTS.CREATE_PAYOS, payload);
       return response.data;
-    } catch (error: any) {throw error;
+    } catch (error: any) {
+      throw error;
     }
   },
 
   async createFinalPayment(
     rentalId: string,
     redirect = false
-  ): Promise<CreatePayOSPaymentResponse> {
+  ): Promise<{
+    success: boolean;
+    data: { payment: any; checkoutUrl: string; message: string };
+  }> {
     const res = await api.post(
       `${PAYMENT_ENDPOINTS.CREATE_FINAL(rentalId)}?redirect=${redirect}`
     );
@@ -104,20 +113,26 @@ export const paymentService = {
     code: string;
     bookingId: string;
   }): Promise<{ status: string; bookingId: string }> {
-    try {const res = await api.post(
+    try {
+      const res = await api.post(
         PAYMENT_ENDPOINTS.PAYOS_CLIENT_CALLBACK,
         params
-      );return res.data?.data || res.data;
-    } catch (error: any) {throw error;
+      );
+      return res.data?.data || res.data;
+    } catch (error: any) {
+      throw error;
     }
   },
 
   async handleVnpayCallback(
     params: Record<string, any>
   ): Promise<PaymentResponse> {
-    try {// VNPay callback can be GET or POST
-      const res = await api.post(PAYMENT_ENDPOINTS.VNPAY_CALLBACK, params);return res.data;
-    } catch (error: any) {throw error;
+    try {
+      // VNPay callback can be GET or POST
+      const res = await api.post(PAYMENT_ENDPOINTS.VNPAY_CALLBACK, params);
+      return res.data;
+    } catch (error: any) {
+      throw error;
     }
   },
 
