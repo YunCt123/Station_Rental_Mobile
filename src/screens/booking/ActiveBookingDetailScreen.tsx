@@ -1102,6 +1102,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.success,
     paddingVertical: SPACING.lg,
     borderRadius: RADII.button,
+    marginTop: -SPACING.md,
     ...SHADOWS.sm,
   },
   disabledButton: {

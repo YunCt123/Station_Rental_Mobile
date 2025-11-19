@@ -15,7 +15,6 @@ import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import { paymentService } from "../../services/paymentService";
 import { rentalService } from "../../services/rentalService";
 import StatusModal from "../../components/common/StatusModal";
 
@@ -476,9 +475,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.title,
     fontWeight: "700",
     color: COLORS.error,
-  },
-  refundAmount: {
-    color: COLORS.success,
   },
   payButton: {
     backgroundColor: COLORS.primary,
