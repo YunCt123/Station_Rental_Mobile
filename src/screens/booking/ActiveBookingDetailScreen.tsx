@@ -25,6 +25,7 @@ import {
 // import QRCode from "react-native-qrcode-svg";
 import StatusModal from "../../components/common/StatusModal";
 import { bookingService } from "../../services/bookingService";
+import { rentalService, Rental } from "../../services/rentalService";
 import { Booking } from "../../types/booking";
 
 interface RouteParams {
@@ -39,6 +40,7 @@ const ActiveBookingDetailScreen = () => {
   // ❌ REMOVED QR Modal state - no longer needed
   // const [qrModalVisible, setQrModalVisible] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [rental, setRental] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -50,8 +52,37 @@ const ActiveBookingDetailScreen = () => {
 
   const loadBookingDetails = async () => {
     try {
-      setLoading(true);const data = await bookingService.getBookingById(bookingId);setBooking(data);
-    } catch (error: any) {setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
+      setLoading(true);
+      const data = await bookingService.getBookingById(bookingId);
+      setBooking(data);
+
+      // ✅ If booking has rental_id, check rental status for final payment
+      if (data.rental_id) {
+        try {
+          // Rental ID could be string or object
+          const rentalId =
+            typeof data.rental_id === "string"
+              ? data.rental_id
+              : (data.rental_id as any)?._id;
+
+          if (rentalId) {
+            // ✅ Fetch real rental data from API
+            const rentalData = await rentalService.getRentalById(rentalId);
+            setRental(rentalData);
+            console.log("📦 [Booking] Rental loaded:", {
+              id: rentalData._id,
+              status: rentalData.status,
+              charges: rentalData.charges,
+            });
+          }
+        } catch (rentalError) {
+          console.error("❌ Failed to load rental:", rentalError);
+          // Don't show rental-related buttons if fetch fails
+          setRental(null);
+        }
+      }
+    } catch (error: any) {
+      setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -148,7 +179,6 @@ const ActiveBookingDetailScreen = () => {
           onPress: async () => {
             try {
               await bookingService.cancelBooking(booking._id, {
-                bookingId: booking._id,
                 reason: "Người dùng hủy",
                 cancelledBy: "USER",
               });
@@ -156,7 +186,13 @@ const ActiveBookingDetailScreen = () => {
                 { text: "OK", onPress: () => navigation.goBack() },
               ]);
             } catch (error: any) {
-              Alert.alert("Lỗi", error.message || "Không thể hủy đặt chỗ");
+              console.error("❌ Cancel booking error:", error);
+              Alert.alert(
+                "Lỗi",
+                error.response?.data?.message ||
+                  error.message ||
+                  "Không thể hủy đặt chỗ"
+              );
             }
           },
         },
@@ -276,7 +312,7 @@ const ActiveBookingDetailScreen = () => {
   const startDateTime = formatDateTime(booking.start_at || booking.startAt);
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
-  
+
   // 💰 Pricing information from backend
   const pricingSnapshot = booking.pricing_snapshot;
   const basePrice = pricingSnapshot?.base_price || 0;
@@ -284,7 +320,27 @@ const ActiveBookingDetailScreen = () => {
   const insurancePrice = pricingSnapshot?.insurance_price || 0;
   const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
   const depositAmount = pricingSnapshot?.deposit || 0;
-  const remainingAmount = totalPrice - depositAmount;
+
+  // ✅ Calculate final amount based on rental status
+  // When RETURN_PENDING: actualCharges - deposit
+  // Positive = need payment, Negative = refund, Zero = balanced
+  const actualTotalCharges =
+    rental?.status === "RETURN_PENDING"
+      ? rental.charges?.total || 0
+      : totalPrice;
+  const finalAmount = actualTotalCharges - depositAmount;
+  const needsPayment = finalAmount > 0;
+  const needsRefund = finalAmount < 0;
+
+  // Debug logging
+  console.log("💰 [Final Payment Calculation]", {
+    rentalStatus: rental?.status,
+    actualCharges: rental?.charges?.total,
+    depositPaid: depositAmount,
+    finalAmount,
+    needsPayment,
+    needsRefund,
+  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -452,14 +508,8 @@ const ActiveBookingDetailScreen = () => {
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Phương thức</Text>
               <View style={styles.paymentMethodBadge}>
-                <Ionicons
-                  name="logo-usd"
-                  size={16}
-                  color={COLORS.primary}
-                />
-                <Text style={styles.paymentMethodText}>
-                  VNPAY
-                </Text>
+                <Ionicons name="logo-usd" size={16} color={COLORS.primary} />
+                <Text style={styles.paymentMethodText}>VNPAY</Text>
               </View>
             </View>
 
@@ -514,10 +564,15 @@ const ActiveBookingDetailScreen = () => {
             )}
 
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>
+              <Text style={[styles.paymentLabel, { fontWeight: "600" }]}>
                 Tổng giá thuê
               </Text>
-              <Text style={[styles.paymentValue, { fontWeight: '700', color: COLORS.primary }]}>
+              <Text
+                style={[
+                  styles.paymentValue,
+                  { fontWeight: "700", color: COLORS.primary },
+                ]}
+              >
                 {totalPrice.toLocaleString("vi-VN")} VND
               </Text>
             </View>
@@ -557,8 +612,8 @@ const ActiveBookingDetailScreen = () => {
               <View style={styles.paymentLabelWithNote}>
                 <Text style={[styles.paymentLabel, styles.remainingLabel]}>
                   🔄 Còn lại{" "}
-                  {totalPrice > 0 && remainingAmount > 0
-                    ? `(${Math.round((remainingAmount / totalPrice) * 100)}%)`
+                  {totalPrice > 0 && finalAmount > 0
+                    ? `(${Math.round((finalAmount / totalPrice) * 100)}%)`
                     : ""}
                 </Text>
                 <Text style={styles.paymentNote}>
@@ -566,7 +621,7 @@ const ActiveBookingDetailScreen = () => {
                 </Text>
               </View>
               <Text style={styles.paymentValue}>
-                {remainingAmount.toLocaleString("vi-VN")} VND
+                {finalAmount.toLocaleString("vi-VN")} VND
               </Text>
             </View>
 
@@ -592,30 +647,127 @@ const ActiveBookingDetailScreen = () => {
         </ScrollView>
 
         {/* Bottom Actions */}
-        {(booking.status === "HELD" || booking.status === "CONFIRMED") && (
+        {/* Show cancel/contact buttons only for HELD/CONFIRMED bookings without rental or with rental not yet started */}
+        {(booking.status === "HELD" || booking.status === "CONFIRMED") &&
+          (!rental || rental.status === "CONFIRMED") && (
+            <View style={styles.bottomContainer}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelBooking}
+              >
+                <Ionicons
+                  name="close-circle-outline"
+                  size={20}
+                  color={COLORS.error}
+                />
+                <Text style={styles.cancelButtonText}>Hủy đặt chỗ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.contactButton}
+                onPress={handleContactSupport}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={20}
+                  color={COLORS.white}
+                />
+                <Text style={styles.contactButtonText}>Liên hệ hỗ trợ</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        {/* ✅ Settlement Button - Show when rental is ONGOING or RETURN_PENDING */}
+        {rental &&
+          (rental.status === "ONGOING" ||
+            rental.status === "RETURN_PENDING") && (
+            <View style={styles.bottomContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.finalPaymentButton,
+                  rental.status !== "RETURN_PENDING" && styles.disabledButton,
+                ]}
+                onPress={() => {
+                  if (rental.status === "RETURN_PENDING") {
+                    const rentalId = rental._id;
+                    const totalCharges = rental.charges?.total || 0;
+                    const depositPaid = depositAmount;
+                    const vehicleName = getVehicleName();
+
+                    // Check if there's actually an amount to pay
+                    const finalAmount = totalCharges - depositPaid;
+
+                    if (finalAmount <= 0) {
+                      Alert.alert(
+                        "Thông báo",
+                        finalAmount === 0
+                          ? "Bạn đã thanh toán đủ khi đặt cọc. Không cần thanh toán thêm."
+                          : `Bạn đã thanh toán thừa ${Math.abs(
+                              finalAmount
+                            ).toLocaleString(
+                              "vi-VN"
+                            )} VND. Vui lòng liên hệ nhân viên để được hoàn tiền.`,
+                        [{ text: "Đóng" }]
+                      );
+                      return;
+                    }
+
+                    (navigation as any).navigate("FinalPayment", {
+                      rentalId,
+                      totalCharges,
+                      depositPaid,
+                      vehicleName,
+                    });
+                  }
+                }}
+                disabled={rental.status !== "RETURN_PENDING"}
+              >
+                <Ionicons
+                  name={
+                    needsRefund ? "arrow-back-circle-outline" : "cash-outline"
+                  }
+                  size={24}
+                  color={COLORS.white}
+                />
+                <Text style={styles.finalPaymentButtonText}>
+                  {rental.status === "RETURN_PENDING"
+                    ? needsRefund
+                      ? `Hoàn cọc (+${Math.abs(finalAmount).toLocaleString(
+                          "vi-VN"
+                        )} VND)`
+                      : needsPayment
+                      ? `Thanh toán còn lại (${finalAmount.toLocaleString(
+                          "vi-VN"
+                        )} VND)`
+                      : "Hoàn tất thanh toán"
+                    : "Thanh toán cuối (Chờ trả xe)"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        {/* ✅ Re-book Button - Show when rental is COMPLETED or booking is CANCELLED */}
+        {((rental && rental.status === "COMPLETED") ||
+          booking.status === "CANCELLED" ||
+          booking.status === "EXPIRED") && (
           <View style={styles.bottomContainer}>
             <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancelBooking}
-            >
-              <Ionicons
-                name="close-circle-outline"
-                size={20}
-                color={COLORS.error}
-              />
-              <Text style={styles.cancelButtonText}>Hủy đặt chỗ</Text>
-            </TouchableOpacity>
+              style={styles.rebookButton}
+              onPress={() => {
+                const vehicleId =
+                  typeof booking.vehicle_id === "string"
+                    ? booking.vehicle_id
+                    : (booking.vehicle_id as any)?._id;
 
-            <TouchableOpacity
-              style={styles.contactButton}
-              onPress={handleContactSupport}
+                if (vehicleId) {
+                  (navigation as any).navigate("Detail", { vehicleId });
+                } else {
+                  Alert.alert("Lỗi", "Không tìm thấy thông tin xe");
+                }
+              }}
             >
-              <Ionicons
-                name="chatbubble-outline"
-                size={20}
-                color={COLORS.white}
-              />
-              <Text style={styles.contactButtonText}>Liên hệ hỗ trợ</Text>
+              <Ionicons name="refresh-outline" size={24} color={COLORS.white} />
+              <Text style={styles.rebookButtonText}>Đặt lại xe này</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -936,6 +1088,43 @@ const styles = StyleSheet.create({
     marginTop: -SPACING.md,
   },
   contactButtonText: {
+    fontSize: FONTS.body,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  // ✅ Final Payment Button Styles
+  finalPaymentButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.success,
+    paddingVertical: SPACING.lg,
+    borderRadius: RADII.button,
+    ...SHADOWS.sm,
+  },
+  disabledButton: {
+    backgroundColor: COLORS.border,
+    opacity: 0.6,
+  },
+  finalPaymentButtonText: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  rebookButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.lg,
+    borderRadius: RADII.button,
+    ...SHADOWS.sm,
+  },
+  rebookButtonText: {
     fontSize: FONTS.bodyLarge,
     fontWeight: "700",
     color: COLORS.white,

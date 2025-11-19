@@ -32,7 +32,8 @@ import {
 } from "../../components/booking";
 
 type BookingPaymentRouteProp = RouteProp<RootStackParamList, "BookingPayment">;
-type BookingPaymentNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type BookingPaymentNavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
 
 const BookingPaymentScreen = () => {
   const route = useRoute<BookingPaymentRouteProp>();
@@ -42,14 +43,26 @@ const BookingPaymentScreen = () => {
   // Vehicle & UI states
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Rental configuration
   const [rentalType, setRentalType] = useState<"hourly" | "daily">("hourly");
   const [rentalHours, setRentalHours] = useState("4");
   const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [endDate, setEndDate] = useState(
+    new Date(Date.now() + 24 * 60 * 60 * 1000)
+  );
   const [pickupDate, setPickupDate] = useState(new Date());
-  
+
+  // Time states for hourly rental
+  const [pickupTime, setPickupTime] = useState({
+    hour: new Date().getHours() + 1,
+    minute: 0,
+  });
+
+  // Time states for daily rental
+  const [startTime, setStartTime] = useState({ hour: 9, minute: 0 });
+  const [endTime, setEndTime] = useState({ hour: 18, minute: 0 });
+
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error">("success");
@@ -83,7 +96,17 @@ const BookingPaymentScreen = () => {
 
   useEffect(() => {
     fetchBackendPricing();
-  }, [vehicleId, rentalType, rentalHours, startDate, endDate]);
+  }, [
+    vehicleId,
+    rentalType,
+    rentalHours,
+    startDate,
+    endDate,
+    pickupDate,
+    pickupTime,
+    startTime,
+    endTime,
+  ]);
 
   // Authentication & data loading
   const checkAuthenticationAndLoadVehicle = async () => {
@@ -98,19 +121,16 @@ const BookingPaymentScreen = () => {
       console.log("🔍 Checking authentication...");
       const isAuth = await authService.isAuthenticated();
       console.log("🔍 Is authenticated:", isAuth);
-      
+
       if (!isAuth) {
-        Alert.alert(
-          "Yêu cầu đăng nhập",
-          "Bạn cần đăng nhập để đặt xe.",
-          [
-            {
-              text: "Đăng nhập",
-              onPress: () => navigation.reset({ index: 0, routes: [{ name: "Login" }] }),
-            },
-            { text: "Hủy", style: "cancel", onPress: () => navigation.goBack() },
-          ]
-        );
+        Alert.alert("Yêu cầu đăng nhập", "Bạn cần đăng nhập để đặt xe.", [
+          {
+            text: "Đăng nhập",
+            onPress: () =>
+              navigation.reset({ index: 0, routes: [{ name: "Login" }] }),
+          },
+          { text: "Hủy", style: "cancel", onPress: () => navigation.goBack() },
+        ]);
         return false;
       }
 
@@ -128,20 +148,43 @@ const BookingPaymentScreen = () => {
    */
   const checkAccountVerification = async (): Promise<boolean> => {
     try {
-      console.log("🔍 [BookingPayment] Checking account verification status...");
-      
-      // IMPORTANT: Always use primary endpoint /users/verification/status
-      // DO NOT fallback to /auth/me because it doesn't return verificationStatus field
-      const verificationData = await authService.getAccountVerificationStatus();
-      
-      console.log("📋 [BookingPayment] Verification data received:", JSON.stringify(verificationData, null, 2));
-      console.log("🎯 [BookingPayment] Verification Status:", verificationData.verificationStatus);
-      console.log("🖼️ [BookingPayment] Has Images:", verificationData.hasImages);
-      
+      console.log(
+        "🔍 [BookingPayment] Checking account verification status..."
+      );
+
+      // Try primary endpoint first
+      let verificationData;
+      try {
+        verificationData = await authService.getAccountVerificationStatus();
+      } catch (primaryError) {
+        console.warn(
+          "⚠️ [BookingPayment] Primary endpoint failed, trying fallback from /auth/me"
+        );
+        // Fallback to /auth/me endpoint
+        verificationData =
+          await authService.getAccountVerificationStatusFromMe();
+      }
+
+      console.log(
+        "📋 [BookingPayment] Verification data received:",
+        JSON.stringify(verificationData, null, 2)
+      );
+      console.log(
+        "🎯 [BookingPayment] Verification Status:",
+        verificationData.verificationStatus
+      );
+      console.log(
+        "🖼️ [BookingPayment] Has Images:",
+        verificationData.hasImages
+      );
+
       // Check if verification is approved
       if (verificationData.verificationStatus !== "APPROVED") {
-        console.log("⚠️ [BookingPayment] Account not verified. Status:", verificationData.verificationStatus);
-        
+        console.log(
+          "⚠️ [BookingPayment] Account not verified. Status:",
+          verificationData.verificationStatus
+        );
+
         let alertTitle = "Yêu cầu xác thực tài khoản";
         let alertMessage = "";
         let actionButtonText = "Xác thực ngay";
@@ -153,57 +196,69 @@ const BookingPaymentScreen = () => {
           actionButtonText = "Gửi lại xác thực";
         } else if (verificationData.verificationStatus === "PENDING") {
           // Check if user has submitted documents
-          const hasSubmittedDocuments = 
+          const hasSubmittedDocuments =
             verificationData.hasImages.idCardFront ||
             verificationData.hasImages.idCardBack ||
             verificationData.hasImages.driverLicense ||
             verificationData.hasImages.selfiePhoto;
 
-          console.log("📄 [BookingPayment] Has submitted documents:", hasSubmittedDocuments);
+          console.log(
+            "📄 [BookingPayment] Has submitted documents:",
+            hasSubmittedDocuments
+          );
 
           if (hasSubmittedDocuments) {
-            alertMessage = "Tài khoản của bạn đang được xét duyệt.\n\nVui lòng đợi quản trị viên xác nhận hoặc liên hệ hỗ trợ để được xử lý nhanh hơn.";
+            alertMessage =
+              "Tài khoản của bạn đang được xét duyệt.\n\nVui lòng đợi quản trị viên xác nhận hoặc liên hệ hỗ trợ để được xử lý nhanh hơn.";
             actionButtonText = "Liên hệ hỗ trợ";
           } else {
-            alertMessage = "Bạn cần hoàn tất xác thực tài khoản (CMND/CCCD và GPLX) trước khi có thể đặt xe.";
+            alertMessage =
+              "Bạn cần hoàn tất xác thực tài khoản (CMND/CCCD và GPLX) trước khi có thể đặt xe.";
             actionButtonText = "Xác thực ngay";
           }
         }
-        
-        console.log("🚫 [BookingPayment] Showing alert:", alertTitle, alertMessage);
-        Alert.alert(
+
+        console.log(
+          "🚫 [BookingPayment] Showing alert:",
           alertTitle,
-          alertMessage,
-          [
-            {
-              text: actionButtonText,
-              onPress: () => {
-                // Navigate to verification screen
-                navigation.navigate("VerifyAccount" as never);
-              },
-            },
-            { 
-              text: "Đóng", 
-              style: "cancel", 
-              onPress: () => navigation.goBack() 
-            },
-          ]
+          alertMessage
         );
+        Alert.alert(alertTitle, alertMessage, [
+          {
+            text: actionButtonText,
+            onPress: () => {
+              // Navigate to verification screen
+              navigation.navigate("VerifyAccount" as never);
+            },
+          },
+          {
+            text: "Đóng",
+            style: "cancel",
+            onPress: () => navigation.goBack(),
+          },
+        ]);
         return false;
       }
 
-      console.log("✅ [BookingPayment] Account verification APPROVED! User can proceed with booking.");
+      console.log(
+        "✅ [BookingPayment] Account verification APPROVED! User can proceed with booking."
+      );
       return true;
     } catch (error: any) {
-      console.error("❌ [BookingPayment] Account verification check failed:", error);
+      console.error(
+        "❌ [BookingPayment] Account verification check failed:",
+        error
+      );
       console.error("❌ [BookingPayment] Error details:", {
         message: error.message,
         response: error.response?.data,
         stack: error.stack,
       });
       Alert.alert(
-        "Lỗi kiểm tra xác thực", 
-        error.response?.data?.message || error.message || "Không thể kiểm tra trạng thái xác thực tài khoản. Vui lòng thử lại."
+        "Lỗi kiểm tra xác thực",
+        error.response?.data?.message ||
+          error.message ||
+          "Không thể kiểm tra trạng thái xác thực tài khoản. Vui lòng thử lại."
       );
       return false;
     }
@@ -232,7 +287,9 @@ const BookingPaymentScreen = () => {
         return;
       }
       if (rentalType === "daily") {
-        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const days = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
         if (days <= 0) return;
       }
 
@@ -252,7 +309,8 @@ const BookingPaymentScreen = () => {
         deposit: pricingData.deposit || 0,
         basePrice: pricingData.basePrice || pricingData.base_price || 0,
         taxes: pricingData.taxes || 0,
-        insurancePrice: pricingData.insurancePrice || pricingData.insurance_price || 0,
+        insurancePrice:
+          pricingData.insurancePrice || pricingData.insurance_price || 0,
         hourlyRate: pricingData.hourly_rate || 0,
         dailyRate: pricingData.daily_rate || 0,
       };
@@ -281,7 +339,10 @@ const BookingPaymentScreen = () => {
         throw new Error("Vui lòng nhập số giờ thuê hợp lệ (> 0)");
       }
 
-      const startAt = new Date();
+      // Combine pickupDate + pickupTime
+      const startAt = new Date(pickupDate);
+      startAt.setHours(pickupTime.hour, pickupTime.minute, 0, 0);
+
       const endAt = new Date(startAt);
       endAt.setHours(endAt.getHours() + hours);
 
@@ -290,16 +351,18 @@ const BookingPaymentScreen = () => {
         endAt: endAt.toISOString(),
       };
     } else {
-      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (days <= 0) {
-        throw new Error("Vui lòng chọn ngày kết thúc sau ngày bắt đầu");
-      }
-
+      // Combine startDate + startTime
       const startAt = new Date(startDate);
-      startAt.setHours(0, 0, 0, 0);
+      startAt.setHours(startTime.hour, startTime.minute, 0, 0);
 
+      // Combine endDate + endTime
       const endAt = new Date(endDate);
-      endAt.setHours(23, 59, 59, 999);
+      endAt.setHours(endTime.hour, endTime.minute, 0, 0);
+
+      // Validate end is after start
+      if (endAt <= startAt) {
+        throw new Error("Thời gian kết thúc phải sau thời gian bắt đầu");
+      }
 
       return {
         startAt: startAt.toISOString(),
@@ -321,7 +384,10 @@ const BookingPaymentScreen = () => {
   };
 
   // Booking creation
-  const createBooking = async (): Promise<{ bookingId: string; deposit: number }> => {
+  const createBooking = async (): Promise<{
+    bookingId: string;
+    deposit: number;
+  }> => {
     try {
       const latestVehicle = await vehicleService.getVehicleById(vehicleId);
       setVehicle(latestVehicle);
@@ -331,11 +397,18 @@ const BookingPaymentScreen = () => {
       }
 
       if (!latestVehicle.station_id) {
-        throw new Error("Xe chưa được gán trạm. Vui lòng liên hệ quản trị viên.");
+        throw new Error(
+          "Xe chưa được gán trạm. Vui lòng liên hệ quản trị viên."
+        );
       }
 
-      if (latestVehicle.status !== "AVAILABLE" && latestVehicle.status !== "RESERVED") {
-        throw new Error(`Xe không khả dụng. Trạng thái: ${latestVehicle.status}.`);
+      if (
+        latestVehicle.status !== "AVAILABLE" &&
+        latestVehicle.status !== "RESERVED"
+      ) {
+        throw new Error(
+          `Xe không khả dụng. Trạng thái: ${latestVehicle.status}.`
+        );
       }
 
       const { startAt, endAt } = calculateBookingTimes();
@@ -352,7 +425,8 @@ const BookingPaymentScreen = () => {
         deposit: pricingData.deposit || 0,
         totalPrice: pricingData.totalPrice || pricingData.total_price || 0,
         basePrice: pricingData.basePrice || pricingData.base_price || 0,
-        insurancePrice: pricingData.insurancePrice || pricingData.insurance_price || 0,
+        insurancePrice:
+          pricingData.insurancePrice || pricingData.insurance_price || 0,
         taxes: pricingData.taxes || 0,
         hourly_rate: pricingData.hourly_rate || 0,
         daily_rate: pricingData.daily_rate || 0,
@@ -386,7 +460,8 @@ const BookingPaymentScreen = () => {
           insurance_price: normalizedPricing.insurancePrice,
           taxes: normalizedPricing.taxes,
           details: {
-            rawBase: normalizedPricing.details.rawBase || normalizedPricing.basePrice,
+            rawBase:
+              normalizedPricing.details.rawBase || normalizedPricing.basePrice,
             rentalType: normalizedPricing.details.rentalType || rentalType,
             hours: normalizedPricing.details.hours || 0,
             days: normalizedPricing.details.days || 0,
@@ -405,7 +480,10 @@ const BookingPaymentScreen = () => {
 
       return { bookingId: booking._id, deposit: depositAmount };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "Không thể tạo booking";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo booking";
       throw new Error(errorMessage);
     }
   };
@@ -418,7 +496,9 @@ const BookingPaymentScreen = () => {
         throw new Error("Vui lòng nhập số giờ thuê hợp lệ");
       }
       if (rentalType === "daily") {
-        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const days = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
         if (days <= 0) {
           throw new Error("Vui lòng chọn ngày kết thúc sau ngày bắt đầu");
         }
@@ -429,7 +509,10 @@ const BookingPaymentScreen = () => {
         throw new Error("Không thể tạo booking");
       }
 
-      const response = await paymentService.createVNPAYDeposit(result.bookingId, result.deposit);
+      const response = await paymentService.createVNPAYDeposit(
+        result.bookingId,
+        result.deposit
+      );
 
       if (response?.checkoutUrl) {
         setIsProcessing(false);
@@ -447,7 +530,11 @@ const BookingPaymentScreen = () => {
       setIsProcessing(false);
       setModalType("error");
       setModalTitle("Thanh toán thất bại");
-      setModalMessage(error.response?.data?.message || error.message || "Không thể khởi tạo thanh toán.");
+      setModalMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Không thể khởi tạo thanh toán."
+      );
       setModalVisible(true);
     }
   };
@@ -480,7 +567,10 @@ const BookingPaymentScreen = () => {
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
               <Ionicons name="chevron-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Đặt xe & Thanh toán</Text>
@@ -503,7 +593,10 @@ const BookingPaymentScreen = () => {
       <LinearGradient colors={COLORS.gradient_4} style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="chevron-back" size={24} color={COLORS.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Đặt xe & Thanh toán</Text>
@@ -511,7 +604,10 @@ const BookingPaymentScreen = () => {
         </View>
 
         {/* Content */}
-        <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Vehicle Info */}
           <VehicleInfoCard vehicle={vehicle} hourlyRate={hourlyRate} />
 
@@ -532,6 +628,10 @@ const BookingPaymentScreen = () => {
                 stationLocation={stationLocation}
                 pickupDate={pickupDate}
                 onPickupDateChange={setPickupDate}
+                pickupTime={pickupTime}
+                onPickupTimeChange={(hour, minute) =>
+                  setPickupTime({ hour, minute })
+                }
               />
             ) : (
               <DailyRentalInput
@@ -540,6 +640,12 @@ const BookingPaymentScreen = () => {
                 onStartDateChange={onStartDateChange}
                 onEndDateChange={onEndDateChange}
                 stationLocation={stationLocation}
+                startTime={startTime}
+                endTime={endTime}
+                onStartTimeChange={(hour, minute) =>
+                  setStartTime({ hour, minute })
+                }
+                onEndTimeChange={(hour, minute) => setEndTime({ hour, minute })}
               />
             )}
           </View>
@@ -551,7 +657,9 @@ const BookingPaymentScreen = () => {
               <Ionicons name="logo-usd" size={28} color={COLORS.primary} />
               <View style={styles.paymentInfo}>
                 <Text style={styles.paymentTitle}>VNPAY</Text>
-                <Text style={styles.paymentDesc}>Thanh toán nhanh qua cổng VNPAY</Text>
+                <Text style={styles.paymentDesc}>
+                  Thanh toán nhanh qua cổng VNPAY
+                </Text>
               </View>
             </View>
           </View>
@@ -591,11 +699,18 @@ const BookingPaymentScreen = () => {
               )}
             </Text>
             <Text style={styles.depositSubLabel}>
-              (Tiền cọc {backendPricing?.deposit ? `${backendPricing.deposit.toLocaleString("vi-VN")} VND` : ""} - Thanh toán trước)
+              (Tiền cọc{" "}
+              {backendPricing?.deposit
+                ? `${backendPricing.deposit.toLocaleString("vi-VN")} VND`
+                : ""}{" "}
+              - Thanh toán trước)
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.confirmButton, isProcessing && styles.confirmButtonDisabled]}
+            style={[
+              styles.confirmButton,
+              isProcessing && styles.confirmButtonDisabled,
+            ]}
             onPress={handleConfirmBooking}
             disabled={isProcessing}
           >

@@ -11,6 +11,7 @@ import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailS
 import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
+import FinalPaymentScreen from "../screens/payment/FinalPaymentScreen";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import PolicyScreen from "../screens/profile/PolicyScreen";
@@ -90,6 +91,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="VNPAYWebView"
           component={VNPAYWebView}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="FinalPayment"
+          component={FinalPaymentScreen}
           options={{
             headerShown: false,
           }}

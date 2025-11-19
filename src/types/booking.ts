@@ -126,7 +126,6 @@ export interface ConfirmBookingRequest {
 }
 
 export interface CancelBookingRequest {
-  bookingId: string;
   reason: string;
   cancelledBy?: "USER" | "STAFF" | "SYSTEM";
 }

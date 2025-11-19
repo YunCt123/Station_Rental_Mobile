@@ -31,24 +31,107 @@ const BookingsScreen = () => {
   /** Lấy danh sách booking */
   const fetchBookings = useCallback(async () => {
     try {
-      setLoading(true);// Use status filter on the main /bookings endpoint. Backend doesn't provide /bookings/active or /bookings/history.
-      const params = {
-        status: activeTab === "active" ? "HELD,CONFIRMED" : "CANCELLED,EXPIRED,CONFIRMED,HELD",
-        limit: 50,
-      };const result = await bookingService.getUserBookings(params);if (result && result.length > 0) {}
+      setLoading(true);
 
-      // If backend returned empty for filtered request, try fetching all bookings and filter client-side
-      if ((!result || result.length === 0) && params.status) {const all = await bookingService.getUserBookings();
-        const statusList = (params.status as string)
-          .split(",")
-          .map((s) => s.trim().toUpperCase());
-        const filtered = (all || []).filter((b) =>
-          statusList.includes((b.status || "").toString().toUpperCase())
-        );setBookings(filtered);
+      // Fetch all bookings from backend
+      const allBookings = await bookingService.getUserBookings({ limit: 100 });
+
+      console.log("📦 All bookings fetched:", allBookings?.length);
+
+      // Filter client-side based on tab
+      let filtered: Booking[] = [];
+
+      if (activeTab === "active") {
+        // Show bookings that are:
+        // 1. HELD or CONFIRMED (waiting for pickup)
+        // 2. Have rental with status ONGOING or RETURN_PENDING
+        filtered = (allBookings || []).filter((b) => {
+          const bookingStatus = b.status?.toUpperCase();
+
+          // If booking is cancelled or expired, exclude
+          if (bookingStatus === "CANCELLED" || bookingStatus === "EXPIRED") {
+            return false;
+          }
+
+          // Check rental status if exists
+          if (b.rental_id) {
+            const rental = typeof b.rental_id === "object" ? b.rental_id : null;
+            const rentalStatus = (rental as any)?.status?.toUpperCase();
+
+            // Show if rental is active (ONGOING, RETURN_PENDING)
+            return (
+              rentalStatus === "ONGOING" || rentalStatus === "RETURN_PENDING"
+            );
+          }
+
+          // Show HELD/CONFIRMED bookings without rental yet
+          return bookingStatus === "HELD" || bookingStatus === "CONFIRMED";
+        });
+
+        console.log("✅ Active bookings filtered:", filtered.length);
       } else {
-        setBookings(result || []);
+        // Show bookings that are:
+        // 1. CANCELLED or EXPIRED
+        // 2. Have rental with status COMPLETED
+        filtered = (allBookings || []).filter((b) => {
+          const bookingStatus = b.status?.toUpperCase();
+
+          console.log(`📋 Checking booking ${b._id}:`, {
+            bookingStatus,
+            hasRental: !!b.rental_id,
+            rentalType: typeof b.rental_id,
+            rentalStatus:
+              b.rental_id && typeof b.rental_id === "object"
+                ? (b.rental_id as any)?.status
+                : "N/A",
+          });
+
+          // If booking is cancelled or expired
+          if (bookingStatus === "CANCELLED" || bookingStatus === "EXPIRED") {
+            console.log(`  ✅ Included: Booking is ${bookingStatus}`);
+            return true;
+          }
+
+          // Check rental status if exists
+          if (b.rental_id) {
+            // If rental_id is a string, we need to fetch rental separately
+            if (typeof b.rental_id === "string") {
+              console.log(
+                `  ⚠️ rental_id is string (not populated): ${b.rental_id}`
+              );
+              // Cannot determine rental status, assume it might be completed
+              // This is a limitation - backend should populate rental_id
+              return true; // Include it anyway for history
+            }
+
+            const rental = b.rental_id as any;
+            const rentalStatus = rental?.status?.toUpperCase();
+
+            // Show if rental is completed
+            const isHistoryRental =
+              rentalStatus === "COMPLETED" ||
+              rentalStatus === "REJECTED" ||
+              rentalStatus === "DISPUTED";
+
+            console.log(
+              `  ${
+                isHistoryRental ? "✅" : "❌"
+              } Rental status: ${rentalStatus}`
+            );
+            return isHistoryRental;
+          }
+
+          console.log(`  ❌ Excluded: No rental and not cancelled/expired`);
+          return false;
+        });
+
+        console.log("📜 History bookings filtered:", filtered.length);
       }
-    } catch (error: any) {setErrorMessage(
+
+      setBookings(filtered);
+    } catch (error: any) {
+      console.error("❌ Error fetching bookings:", error);
+      setErrorMessage(
         error.response?.data?.message || "Không thể tải danh sách đặt chỗ"
       );
       setErrorModalVisible(true);
@@ -76,12 +159,35 @@ const BookingsScreen = () => {
     setRefreshing(false);
   };
 
-  const handleBookingPress = (booking: Booking) => {const screenName =
-      booking.status === "CONFIRMED" || booking.status === "HELD"
-        ? "ActiveBookingDetail"
-        : "HistoryBookingDetail";try {
+  const handleBookingPress = (booking: Booking) => {
+    // Determine which screen to navigate based on booking and rental status
+    let screenName = "ActiveBookingDetail";
+
+    // Check if booking is cancelled/expired or rental is completed
+    const bookingStatus = booking.status?.toUpperCase();
+    const isCancelled =
+      bookingStatus === "CANCELLED" || bookingStatus === "EXPIRED";
+
+    let isCompleted = false;
+    if (booking.rental_id) {
+      const rental =
+        typeof booking.rental_id === "object" ? booking.rental_id : null;
+      const rentalStatus = (rental as any)?.status?.toUpperCase();
+      isCompleted =
+        rentalStatus === "COMPLETED" ||
+        rentalStatus === "REJECTED" ||
+        rentalStatus === "DISPUTED";
+    }
+
+    // Use history detail screen for cancelled bookings or completed rentals
+    if (isCancelled || isCompleted) {
+      screenName = "HistoryBookingDetail";
+    }
+
+    try {
       (navigation as any).navigate(screenName, { bookingId: booking._id });
-    } catch (error) {setErrorMessage("Không thể mở chi tiết booking");
+    } catch (error) {
+      setErrorMessage("Không thể mở chi tiết booking");
       setErrorModalVisible(true);
     }
   };
