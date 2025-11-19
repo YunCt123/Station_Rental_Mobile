@@ -189,10 +189,26 @@ class AuthService {
     try {
       const response = await api.get<ApiResponse<User>>(AUTH_ENDPOINTS.ME);
 
-      // api.get already returns response.data, so response is { success, data }
-      // We need to extract the user from response.data
-      const userData = (response as any).data || response;
+      console.log('🔍 [AuthService] getCurrentUser - Raw API response:', JSON.stringify(response, null, 2));
       
+      // api.get might return { success: true, data: { user } } or { success: true, data: user } or just user
+      let userData: any = response;
+      
+      // Extract nested data if present
+      if (userData && typeof userData === 'object') {
+        // Case 1: { success, data: { ...user fields } }
+        if ('data' in userData && userData.data && typeof userData.data === 'object') {
+          userData = userData.data;
+          console.log('📦 [AuthService] Extracted from response.data');
+        }
+        // Case 2: { success, data: { user: {...} } }
+        if ('user' in userData && userData.user && typeof userData.user === 'object') {
+          userData = userData.user;
+          console.log('📦 [AuthService] Extracted from response.data.user');
+        }
+      }
+      
+      console.log('👤 [AuthService] Final userData:', JSON.stringify(userData, null, 2));
       console.log('👤 [AuthService] getCurrentUser - verificationStatus:', userData.verificationStatus);
       
       // Normalize _id and id (support both directions)
@@ -206,7 +222,7 @@ class AuthService {
       // Update user info in storage
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
 
-      return userData;
+      return userData as User;
     } catch (error) {
       console.error("Failed to fetch current user from API:", error);
       // If API fails, try to return stored user as fallback

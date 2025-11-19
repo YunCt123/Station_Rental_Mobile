@@ -130,15 +130,9 @@ const BookingPaymentScreen = () => {
     try {
       console.log("🔍 [BookingPayment] Checking account verification status...");
       
-      // Try primary endpoint first
-      let verificationData;
-      try {
-        verificationData = await authService.getAccountVerificationStatus();
-      } catch (primaryError) {
-        console.warn("⚠️ [BookingPayment] Primary endpoint failed, trying fallback from /auth/me");
-        // Fallback to /auth/me endpoint
-        verificationData = await authService.getAccountVerificationStatusFromMe();
-      }
+      // IMPORTANT: Always use primary endpoint /users/verification/status
+      // DO NOT fallback to /auth/me because it doesn't return verificationStatus field
+      const verificationData = await authService.getAccountVerificationStatus();
       
       console.log("📋 [BookingPayment] Verification data received:", JSON.stringify(verificationData, null, 2));
       console.log("🎯 [BookingPayment] Verification Status:", verificationData.verificationStatus);
