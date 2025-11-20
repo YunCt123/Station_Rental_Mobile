@@ -193,7 +193,7 @@ const BookingsScreen = () => {
   };
 
   const tabs = [
-    { id: "active", label: "Đang hoạt động" },
+    { id: "active", label: "Đang xử lý" },
     { id: "history", label: "Lịch sử" },
   ];
 

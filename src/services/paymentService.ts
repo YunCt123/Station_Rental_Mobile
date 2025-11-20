@@ -77,10 +77,19 @@ export const paymentService = {
     success: boolean;
     data: { payment: any; checkoutUrl: string; message: string };
   }> {
-    const res = await api.post(
-      `${PAYMENT_ENDPOINTS.CREATE_FINAL(rentalId)}?redirect=${redirect}`
-    );
-    return res.data;
+    try {
+      const res = await api.post(
+        `${PAYMENT_ENDPOINTS.CREATE_FINAL(rentalId)}?redirect=${redirect}`
+      );
+      return res.data;
+    } catch (error: any) {
+      console.error('❌ [PaymentService] Create final payment error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw error;
+    }
   },
 
   async getBookingPayments(bookingId: string): Promise<PaymentsResponse> {
