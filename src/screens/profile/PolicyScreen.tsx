@@ -17,7 +17,7 @@ import {
   RequirementCard,
   PaymentMethodCard,
   FeeTable,
-} from "../../components/policy";
+} from "../../components/index";
 
 const PolicyScreen = () => {
   const navigation = useNavigation();

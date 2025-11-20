@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import { TimePicker } from "./TimePicker";
+import { TimePicker } from "../index";
 
 interface DailyRentalInputProps {
   startDate: Date;
@@ -19,28 +19,23 @@ interface DailyRentalInputProps {
   onEndDateChange: (date: Date) => void;
   stationLocation: string;
   startTime: { hour: number; minute: number };
-  endTime: { hour: number; minute: number };
   onStartTimeChange: (hour: number, minute: number) => void;
-  onEndTimeChange: (hour: number, minute: number) => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
+const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
   startDate,
   endDate,
   onStartDateChange,
   onEndDateChange,
   stationLocation,
   startTime,
-  endTime,
   onStartTimeChange,
-  onEndTimeChange,
 }) => {
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showStartTimeModal, setShowStartTimeModal] = useState(false);
-  const [showEndTimeModal, setShowEndTimeModal] = useState(false);
 
   // Generate dates for next 90 days
   const generateDates = (fromDate: Date, minDate?: Date) => {
@@ -182,17 +177,18 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
   };
 
   const getDayCount = () => {
-    const startDateTime = new Date(startDate);
-    startDateTime.setHours(startTime.hour, startTime.minute, 0, 0);
+    // Reset time to start of day for accurate day calculation
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
 
-    const endDateTime = new Date(endDate);
-    endDateTime.setHours(endTime.hour, endTime.minute, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
 
-    const hours = Math.ceil(
-      (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60)
-    );
-    const days = Math.ceil(hours / 24);
-    return days > 0 ? days : 0;
+    // Calculate difference in days
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
   };
 
   const formatTime = (hour: number, minute: number) => {
@@ -214,18 +210,6 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
         return { hour: now.getHours() + 1, minute: 0 };
       }
       return { hour: now.getHours(), minute: roundedMinutes };
-    }
-
-    return undefined;
-  };
-
-  // Get minimum time for end time picker
-  const getMinEndTime = () => {
-    const isSameDay = startDate.toDateString() === endDate.toDateString();
-
-    if (isSameDay) {
-      // End time must be after start time on the same day
-      return { hour: startTime.hour, minute: startTime.minute + 15 };
     }
 
     return undefined;
@@ -297,7 +281,7 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.inputGroup}>
+      {/* <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Giờ kết thúc</Text>
         <TouchableOpacity
           style={styles.dateButton}
@@ -313,7 +297,7 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
             color={COLORS.textSecondary}
           />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Duration Info */}
       <View style={styles.durationInfo}>
@@ -365,16 +349,6 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
         selectedMinute={startTime.minute}
         title="Chọn giờ bắt đầu"
         minTime={getMinStartTime()}
-      />
-
-      <TimePicker
-        visible={showEndTimeModal}
-        onClose={() => setShowEndTimeModal(false)}
-        onSelect={onEndTimeChange}
-        selectedHour={endTime.hour}
-        selectedMinute={endTime.minute}
-        title="Chọn giờ kết thúc"
-        minTime={getMinEndTime()}
       />
     </>
   );
@@ -529,3 +503,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+export default DailyRentalInput;

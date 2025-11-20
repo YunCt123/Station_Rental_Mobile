@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import { TimePicker } from "./TimePicker";
+import { TimePicker } from "../index";
 
 interface HourlyRentalInputProps {
   rentalHours: string;
@@ -26,7 +26,7 @@ interface HourlyRentalInputProps {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
+const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
   rentalHours,
   onChangeHours,
   onQuickSelect,
@@ -468,3 +468,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+export default HourlyRentalInput;

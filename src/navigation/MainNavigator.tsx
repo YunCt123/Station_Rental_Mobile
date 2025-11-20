@@ -8,7 +8,8 @@ import DetailScreen from "../screens/details/DetailScreen";
 import BookingPaymentScreen from "../screens/booking/BookingPaymentScreen";
 import ActiveBookingDetailScreen from "../screens/booking/ActiveBookingDetailScreen";
 import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailScreen";
-import RentalHistoryScreen from "../screens/booking/RentalHistoryScreen";
+import RentalsScreen from "../screens/rental/RentalsScreen"; // ✅ New
+import RentalDetailScreen from "../screens/rental/RentalDetailScreen"; // ✅ New
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
 import FinalPaymentScreen from "../screens/payment/FinalPaymentScreen";
@@ -131,8 +132,15 @@ const MainNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="RentalHistory"
-          component={RentalHistoryScreen}
+          name="Rentals"
+          component={RentalsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="RentalDetail"
+          component={RentalDetailScreen}
           options={{
             headerShown: false,
           }}

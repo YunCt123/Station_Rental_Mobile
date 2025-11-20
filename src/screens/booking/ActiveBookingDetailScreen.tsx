@@ -20,12 +20,10 @@ import {
   getPaymentStatusLabel,
   getPaymentStatusColor,
 } from "../../utils/statusHelper";
-// ❌ REMOVED QR Code imports - no longer needed
-// import QRCodeModal from "../../components/common/QRCodeModal";
-// import QRCode from "react-native-qrcode-svg";
 import StatusModal from "../../components/common/StatusModal";
 import { bookingService } from "../../services/bookingService";
-import { rentalService, Rental } from "../../services/rentalService";
+import { rentalService } from "../../services/rentalService";
+import { Rental } from "../../types/rental";
 import { Booking } from "../../types/booking";
 
 interface RouteParams {
@@ -36,9 +34,6 @@ const ActiveBookingDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<{ params: RouteParams }, "params">>();
   const { bookingId } = route.params;
-
-  // ❌ REMOVED QR Modal state - no longer needed
-  // const [qrModalVisible, setQrModalVisible] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [rental, setRental] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,36 +51,51 @@ const ActiveBookingDetailScreen = () => {
       const data = await bookingService.getBookingById(bookingId);
       setBooking(data);
 
-      // ✅ If booking has rental_id, check rental status for final payment
-      if (data.rental_id) {
-        try {
-          // Rental ID could be string or object
-          const rentalId =
-            typeof data.rental_id === "string"
-              ? data.rental_id
-              : (data.rental_id as any)?._id;
-
-          if (rentalId) {
-            // ✅ Fetch real rental data from API
-            const rentalData = await rentalService.getRentalById(rentalId);
-            setRental(rentalData);
-            console.log("📦 [Booking] Rental loaded:", {
-              id: rentalData._id,
-              status: rentalData.status,
-              charges: rentalData.charges,
-            });
-          }
-        } catch (rentalError) {
-          console.error("❌ Failed to load rental:", rentalError);
-          // Don't show rental-related buttons if fetch fails
-          setRental(null);
-        }
-      }
+      // ✅ Load rental data if exists
+      await loadRentalData(data);
     } catch (error: any) {
       setErrorMessage("Không thể tải thông tin đặt chỗ. Vui lòng thử lại.");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Load rental data from booking's rental_id
+   * Rental contains actual charges (late fees, damage fees, etc.)
+   */
+  const loadRentalData = async (bookingData: Booking) => {
+    if (!bookingData.rental_id) {
+      setRental(null);
+      return;
+    }
+
+    try {
+      // Extract rental ID (could be string or populated object)
+      const rentalId =
+        typeof bookingData.rental_id === "string"
+          ? bookingData.rental_id
+          : (bookingData.rental_id as any)?._id;
+
+      if (!rentalId) {
+        console.warn("⚠️ [Booking] Invalid rental_id format");
+        setRental(null);
+        return;
+      }
+
+      // Fetch rental data from API
+      const rentalData = await rentalService.getRentalById(rentalId);
+      setRental(rentalData);
+      
+      console.log("📦 [Booking] Rental loaded:", {
+        id: rentalData._id,
+        status: rentalData.status,
+        charges: rentalData.charges,
+      });
+    } catch (rentalError) {
+      console.error("❌ [Booking] Failed to load rental:", rentalError);
+      setRental(null);
     }
   };
 
@@ -261,6 +271,67 @@ const ActiveBookingDetailScreen = () => {
     };
   };
 
+  /**
+   * Extract and calculate pricing information from booking and rental
+   * @returns Pricing details including base price, fees, deposit, and final amount
+   */
+  const getPricingInfo = () => {
+    const pricingSnapshot = booking.pricing_snapshot;
+    
+    // Base pricing from booking
+    const basePrice = pricingSnapshot?.base_price || 0;
+    const taxes = pricingSnapshot?.taxes || 0;
+    const insurancePrice = pricingSnapshot?.insurance_price || 0;
+    const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
+    const depositAmount = pricingSnapshot?.deposit || 0;
+    
+    // Additional charges from rental (late fees, damage fees, etc.)
+    const lateFee = rental?.charges?.late_fee || 0;
+    const damageFee = rental?.charges?.damage_fee || 0;
+    const cleaningFee = rental?.charges?.cleaning_fee || 0;
+    const otherFees = rental?.charges?.other_fees || 0;
+    
+    // Calculate final amount based on rental status
+    // When RETURN_PENDING: use actual charges from rental
+    const actualTotalCharges =
+      rental?.status === "RETURN_PENDING"
+        ? rental.charges?.total || 0
+        : totalPrice + lateFee;
+    
+    const finalAmount = actualTotalCharges - depositAmount;
+    const needsPayment = finalAmount > 0;
+    const needsRefund = finalAmount < 0;
+
+    // Debug logging
+    console.log("💰 [Pricing Calculation]", {
+      basePrice,
+      totalPrice,
+      depositAmount,
+      lateFee,
+      damageFee,
+      cleaningFee,
+      actualTotalCharges,
+      finalAmount,
+      rentalStatus: rental?.status,
+    });
+
+    return {
+      basePrice,
+      taxes,
+      insurancePrice,
+      totalPrice,
+      depositAmount,
+      lateFee,
+      damageFee,
+      cleaningFee,
+      otherFees,
+      actualTotalCharges,
+      finalAmount,
+      needsPayment,
+      needsRefund,
+    };
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -313,35 +384,16 @@ const ActiveBookingDetailScreen = () => {
   const endDateTime = formatDateTime(booking.end_at || booking.endAt);
   const totalHours = calculateHours();
 
-  // 💰 Pricing information from backend
-  const pricingSnapshot = booking.pricing_snapshot;
-  const basePrice = pricingSnapshot?.base_price || 0;
-  const taxes = pricingSnapshot?.taxes || 0;
-  const insurancePrice = pricingSnapshot?.insurance_price || 0;
-  const totalPrice = pricingSnapshot?.total_price || booking.totalPrice || 0;
-  const depositAmount = pricingSnapshot?.deposit || 0;
-
-  // ✅ Calculate final amount based on rental status
-  // When RETURN_PENDING: actualCharges - deposit
-  // Positive = need payment, Negative = refund, Zero = balanced
-  const actualTotalCharges =
-    rental?.status === "RETURN_PENDING"
-      ? rental.charges?.total || 0
-      : totalPrice;
-  const finalAmount = actualTotalCharges - depositAmount;
-  const needsPayment = finalAmount > 0;
-  const needsRefund = finalAmount < 0;
-
-  // Debug logging
-  console.log("💰 [Final Payment Calculation]", {
-    rentalStatus: rental?.status,
-    actualCharges: rental?.charges?.total,
-    depositPaid: depositAmount,
+  // 💰 Extract pricing information
+  const {
+    basePrice,
+    taxes,
+    insurancePrice,
+    totalPrice,
+    depositAmount,
     finalAmount,
-    needsPayment,
-    needsRefund,
-  });
-
+  } = getPricingInfo();
+  
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* Header */}
@@ -393,16 +445,6 @@ const ActiveBookingDetailScreen = () => {
             <View style={styles.vehicleInfo}>
               <Text style={styles.vehicleName}>{getVehicleName()}</Text>
               <Text style={styles.vehicleModel}>{getVehicleModel()}</Text>
-              <View style={styles.detailRow}>
-                <Ionicons
-                  name="car-outline"
-                  size={16}
-                  color={COLORS.textSecondary}
-                />
-                <Text style={styles.detailText}>
-                  {(booking.vehicle_id as any)?.license_plate || "N/A"}
-                </Text>
-              </View>
               {booking.vehicle_snapshot?.battery_kWh && (
                 <View style={styles.detailRow}>
                   <Ionicons
@@ -617,7 +659,9 @@ const ActiveBookingDetailScreen = () => {
                     : ""}
                 </Text>
                 <Text style={styles.paymentNote}>
-                  Thanh toán trực tiếp tại trạm khi trả xe
+                  {rental?.status === "RETURN_PENDING"
+                    ? "Vào mục 'Xe đang thuê & Lịch sử' để thanh toán"
+                    : "Thanh toán trực tiếp tại trạm khi trả xe"}
                 </Text>
               </View>
               <Text style={styles.paymentValue}>
@@ -627,7 +671,7 @@ const ActiveBookingDetailScreen = () => {
 
             <View style={styles.divider} />
 
-            {/* Total */}
+            {/* Total - Include late fee if exists */}
             <View style={styles.paymentRow}>
               <Text style={styles.totalLabel}>Tổng cộng</Text>
               <Text style={styles.totalValue}>
@@ -635,6 +679,26 @@ const ActiveBookingDetailScreen = () => {
               </Text>
             </View>
           </View>
+
+          {/* ℹ️ Payment Info Banner for RETURN_PENDING status */}
+          {rental?.status === "RETURN_PENDING" && (
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle" size={24} color={COLORS.primary} />
+              <View style={styles.infoContent}>
+                <Text style={styles.infoTitle}>Xe đang chờ trả</Text>
+                <Text style={styles.infoText}>
+                  Nhân viên đã kiểm tra xe. Vui lòng vào{" "}
+                  <Text
+                    style={styles.infoLink}
+                    onPress={() => (navigation as any).navigate("Rentals")}
+                  >
+                    Xe đang thuê & Lịch sử
+                  </Text>{" "}
+                  để thanh toán hoàn tất.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* ❌ REMOVED QR Code Section - no longer needed for check-in */}
           {/* Staff will manually check-in customer at station */}
@@ -673,75 +737,6 @@ const ActiveBookingDetailScreen = () => {
                   color={COLORS.white}
                 />
                 <Text style={styles.contactButtonText}>Liên hệ hỗ trợ</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-        {/* ✅ Settlement Button - Show when rental is ONGOING or RETURN_PENDING */}
-        {rental &&
-          (rental.status === "ONGOING" ||
-            rental.status === "RETURN_PENDING") && (
-            <View style={styles.bottomContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.finalPaymentButton,
-                  rental.status !== "RETURN_PENDING" && styles.disabledButton,
-                ]}
-                onPress={() => {
-                  if (rental.status === "RETURN_PENDING") {
-                    const rentalId = rental._id;
-                    const totalCharges = rental.charges?.total || 0;
-                    const depositPaid = depositAmount;
-                    const vehicleName = getVehicleName();
-
-                    // Check if there's actually an amount to pay
-                    const finalAmount = totalCharges - depositPaid;
-
-                    if (finalAmount <= 0) {
-                      Alert.alert(
-                        "Thông báo",
-                        finalAmount === 0
-                          ? "Bạn đã thanh toán đủ khi đặt cọc. Không cần thanh toán thêm."
-                          : `Bạn đã thanh toán thừa ${Math.abs(
-                              finalAmount
-                            ).toLocaleString(
-                              "vi-VN"
-                            )} VND. Vui lòng liên hệ nhân viên để được hoàn tiền.`,
-                        [{ text: "Đóng" }]
-                      );
-                      return;
-                    }
-
-                    (navigation as any).navigate("FinalPayment", {
-                      rentalId,
-                      totalCharges,
-                      depositPaid,
-                      vehicleName,
-                    });
-                  }
-                }}
-                disabled={rental.status !== "RETURN_PENDING"}
-              >
-                <Ionicons
-                  name={
-                    needsRefund ? "arrow-back-circle-outline" : "cash-outline"
-                  }
-                  size={24}
-                  color={COLORS.white}
-                />
-                <Text style={styles.finalPaymentButtonText}>
-                  {rental.status === "RETURN_PENDING"
-                    ? needsRefund
-                      ? `Hoàn cọc (+${Math.abs(finalAmount).toLocaleString(
-                          "vi-VN"
-                        )} VND)`
-                      : needsPayment
-                      ? `Thanh toán còn lại (${finalAmount.toLocaleString(
-                          "vi-VN"
-                        )} VND)`
-                      : "Hoàn tất thanh toán"
-                    : "Thanh toán cuối (Chờ trả xe)"}
-                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1092,27 +1087,36 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
   },
-  // ✅ Final Payment Button Styles
-  finalPaymentButton: {
-    flex: 1,
+  // ℹ️ Info Card Styles for RETURN_PENDING
+  infoCard: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: `${COLORS.primary}15`,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: RADII.card,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
     gap: SPACING.sm,
-    backgroundColor: COLORS.success,
-    paddingVertical: SPACING.lg,
-    borderRadius: RADII.button,
-    marginTop: -SPACING.md,
-    ...SHADOWS.sm,
   },
-  disabledButton: {
-    backgroundColor: COLORS.border,
-    opacity: 0.6,
+  infoContent: {
+    flex: 1,
   },
-  finalPaymentButtonText: {
+  infoTitle: {
     fontSize: FONTS.bodyLarge,
     fontWeight: "700",
-    color: COLORS.white,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  infoText: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  infoLink: {
+    color: COLORS.primary,
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
   rebookButton: {
     flex: 1,

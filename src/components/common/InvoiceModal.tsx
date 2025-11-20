@@ -27,6 +27,7 @@ interface InvoiceModalProps {
   actualHours?: number;
   totalPrice: number;
   actualPrice?: number;
+  lateFee?: number; // ✅ Add late fee prop
   paymentMethod: string;
   location: string;
 }
@@ -48,6 +49,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   actualHours,
   totalPrice,
   actualPrice,
+  lateFee = 0, // ✅ Default to 0
   paymentMethod,
   location,
 }) => {
@@ -168,10 +170,25 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
                 <View style={styles.divider} />
 
+                {/* ⚠️ Late Fee - Only show if exists */}
+                {lateFee > 0 && (
+                  <>
+                    <View style={styles.priceRow}>
+                      <Text style={[styles.priceLabel, { color: COLORS.warning }]}>
+                        ⚠️ Phí phát sinh
+                      </Text>
+                      <Text style={[styles.priceValue, { color: COLORS.warning }]}>
+                        +{lateFee.toLocaleString("vi-VN")} VND
+                      </Text>
+                    </View>
+                    <View style={styles.divider} />
+                  </>
+                )}
+
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Tổng cộng</Text>
                   <Text style={styles.totalValue}>
-                    {finalPrice.toLocaleString("vi-VN")} VND
+                    {(finalPrice + lateFee).toLocaleString("vi-VN")} VND
                   </Text>
                 </View>
               </View>

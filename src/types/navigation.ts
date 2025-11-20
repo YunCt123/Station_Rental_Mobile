@@ -38,6 +38,8 @@ export type RootStackParamList = {
   ActiveBookingDetail: { bookingId: string };
   HistoryBookingDetail: { bookingId: string };
   RentalHistory: undefined;
+  Rentals: undefined; // ✅ New: List of rentals
+  RentalDetail: { rentalId: string }; // ✅ New: Rental detail screen
   UserInfo: undefined;
   EditProfile: undefined;
   Settings: undefined;

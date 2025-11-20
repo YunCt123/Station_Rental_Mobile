@@ -40,10 +40,9 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ vehicle }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
     padding: SPACING.md,
     borderRadius: RADII.card,
+    marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
   vehicleImage: {

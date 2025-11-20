@@ -17,7 +17,7 @@ interface PricingSummaryProps {
   loading?: boolean;
 }
 
-export const PricingSummary: React.FC<PricingSummaryProps> = ({
+const PricingSummary: React.FC<PricingSummaryProps> = ({
   rentalType,
   rentalHours,
   startDate,
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADII.card,
     padding: SPACING.md,
+    marginBottom: -SPACING.md,
   },
   sectionTitle: {
     fontSize: FONTS.bodyLarge,
@@ -229,3 +230,5 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.md,
   },
 });
+
+export default PricingSummary;

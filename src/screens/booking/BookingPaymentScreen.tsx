@@ -21,7 +21,7 @@ import { paymentService } from "../../services/paymentService";
 import { bookingService } from "../../services/bookingService";
 import { Vehicle } from "../../types/vehicle";
 import { CreateBookingRequest } from "../../types/booking";
-import { vehicleService } from "../../services/vehicleService";
+import { vehicleService, UIVehicle, mapVehicleToUI } from "../../services/vehicleService";
 import { authService } from "../../services/authService";
 import {
   VehicleInfoCard,
@@ -29,7 +29,7 @@ import {
   PricingSummary,
   HourlyRentalInput,
   DailyRentalInput,
-} from "../../components/booking";
+} from "../../components/index";
 
 type BookingPaymentRouteProp = RouteProp<RootStackParamList, "BookingPayment">;
 type BookingPaymentNavigationProp =
@@ -41,7 +41,7 @@ const BookingPaymentScreen = () => {
   const { vehicleId } = route.params;
 
   // Vehicle & UI states
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [vehicle, setVehicle] = useState<UIVehicle | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Rental configuration
@@ -61,7 +61,6 @@ const BookingPaymentScreen = () => {
 
   // Time states for daily rental
   const [startTime, setStartTime] = useState({ hour: 9, minute: 0 });
-  const [endTime, setEndTime] = useState({ hour: 18, minute: 0 });
 
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -105,7 +104,6 @@ const BookingPaymentScreen = () => {
     pickupDate,
     pickupTime,
     startTime,
-    endTime,
   ]);
 
   // Authentication & data loading
@@ -268,7 +266,8 @@ const BookingPaymentScreen = () => {
     try {
       setLoading(true);
       const vehicleData = await vehicleService.getVehicleById(vehicleId);
-      setVehicle(vehicleData);
+      const uiVehicle = mapVehicleToUI(vehicleData);
+      setVehicle(uiVehicle);
       await fetchBackendPricingWithVehicle(vehicleData);
     } catch (error) {
       Alert.alert("Lỗi", "Không thể tải thông tin xe");
@@ -355,9 +354,9 @@ const BookingPaymentScreen = () => {
       const startAt = new Date(startDate);
       startAt.setHours(startTime.hour, startTime.minute, 0, 0);
 
-      // Combine endDate + endTime
+      // Combine endDate + same time as start (not end of day)
       const endAt = new Date(endDate);
-      endAt.setHours(endTime.hour, endTime.minute, 0, 0);
+      endAt.setHours(startTime.hour, startTime.minute, 0, 0);
 
       // Validate end is after start
       if (endAt <= startAt) {
@@ -390,7 +389,8 @@ const BookingPaymentScreen = () => {
   }> => {
     try {
       const latestVehicle = await vehicleService.getVehicleById(vehicleId);
-      setVehicle(latestVehicle);
+      const uiVehicle = mapVehicleToUI(latestVehicle);
+      setVehicle(uiVehicle);
 
       if (!latestVehicle) {
         throw new Error("Không tìm thấy thông tin xe");
@@ -609,7 +609,7 @@ const BookingPaymentScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Vehicle Info */}
-          <VehicleInfoCard vehicle={vehicle} hourlyRate={hourlyRate} />
+          <VehicleInfoCard vehicle={vehicle} />
 
           {/* Rental Details */}
           <View style={styles.section}>
@@ -641,11 +641,9 @@ const BookingPaymentScreen = () => {
                 onEndDateChange={onEndDateChange}
                 stationLocation={stationLocation}
                 startTime={startTime}
-                endTime={endTime}
                 onStartTimeChange={(hour, minute) =>
                   setStartTime({ hour, minute })
                 }
-                onEndTimeChange={(hour, minute) => setEndTime({ hour, minute })}
               />
             )}
           </View>
@@ -819,9 +817,8 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     padding: SPACING.md,
-    paddingVertical: SPACING.xxl,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.sm,
     ...SHADOWS.md,
   },
   priceContainer: {

@@ -22,7 +22,7 @@ interface TimePickerProps {
   maxTime?: { hour: number; minute: number };
 }
 
-export const TimePicker: React.FC<TimePickerProps> = ({
+const TimePicker: React.FC<TimePickerProps> = ({
   visible,
   onClose,
   onSelect,
@@ -323,3 +323,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 });
+
+export default TimePicker;
