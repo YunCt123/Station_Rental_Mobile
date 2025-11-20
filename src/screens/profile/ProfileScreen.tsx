@@ -134,6 +134,12 @@ const ProfileScreen = () => {
       onPress: () => navigation.navigate("Rentals" as never),
     },
     {
+      id: "my-issues",
+      title: "Vấn đề về phương tiện",
+      icon: "alert-circle-outline",
+      onPress: () => navigation.navigate("MyIssues" as never),
+    },
+    {
       id: "settings",
       title: "Chỉnh sửa thông tin",
       icon: "person-outline",

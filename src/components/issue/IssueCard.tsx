@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IssueModel } from '../../types/issue';
-import { theme } from '../../utils/theme';
+import { COLORS } from '../../utils/theme';
 
 interface IssueCardProps {
   issue: IssueModel;
@@ -48,6 +48,19 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue, onPress }) => {
         return 'checkmark-circle-outline';
       default:
         return 'help-circle-outline';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'OPEN':
+        return 'Chờ xử lý';
+      case 'IN_PROGRESS':
+        return 'Đang xử lý';
+      case 'RESOLVED':
+        return 'Đã giải quyết';
+      default:
+        return status;
     }
   };
 
@@ -108,7 +121,7 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue, onPress }) => {
             <Text
               style={[styles.statusText, { color: getStatusColor(issue.status) }]}
             >
-              {issue.status}
+              {getStatusLabel(issue.status)}
             </Text>
           </View>
         </View>

@@ -9,6 +9,7 @@ export { vehicleService } from "./vehicleService";
 export { documentService } from "./documentService";
 export { emailVerificationService } from "./emailVerificationService";
 export { rentalService } from "./rentalService";
+export { issueService } from "./issueService";
 
 // Export types for convenience
 export type {

@@ -10,6 +10,7 @@ import ActiveBookingDetailScreen from "../screens/booking/ActiveBookingDetailScr
 import HistoryBookingDetailScreen from "../screens/booking/HistoryBookingDetailScreen";
 import RentalsScreen from "../screens/rental/RentalsScreen"; // ✅ New
 import RentalDetailScreen from "../screens/rental/RentalDetailScreen"; // ✅ New
+import MyIssuesScreen from "../screens/profile/MyIssuesScreen"; // ✅ New: Issue tracking
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
 import FinalPaymentScreen from "../screens/payment/FinalPaymentScreen";
@@ -141,6 +142,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="RentalDetail"
           component={RentalDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="MyIssues"
+          component={MyIssuesScreen}
           options={{
             headerShown: false,
           }}

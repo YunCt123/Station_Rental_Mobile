@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IssueModel } from '../../types/issue';
-import { theme } from '../../utils/theme';
+import { COLORS } from '../../utils/theme';
 import { issueService } from '../../services/issueService';
 
 interface IssueDetailModalProps {
@@ -124,7 +124,7 @@ const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
       <Modal visible={visible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         </View>
@@ -222,90 +222,102 @@ const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             </View>
 
             {/* Resolution Info */}
-            {issue.resolution && (
+            {issue.status !== 'OPEN' && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Giải pháp xử lý</Text>
 
-                <View style={styles.resolutionCard}>
-                  {issue.resolution.solution_description && (
-                    <View style={styles.resolutionSection}>
-                      <Text style={styles.resolutionLabel}>Mô tả giải pháp:</Text>
-                      <Text style={styles.resolutionText}>
-                        {issue.resolution.solution_description}
-                      </Text>
-                    </View>
-                  )}
-
-                  {issue.resolution.resolution_actions &&
-                    issue.resolution.resolution_actions.length > 0 && (
+                {!issue.resolution || !issue.resolution.solution_description ? (
+                  <View style={styles.emptyResolutionCard}>
+                    <Ionicons name="hourglass-outline" size={48} color="#999" />
+                    <Text style={styles.emptyResolutionTitle}>
+                      Chưa có giải pháp
+                    </Text>
+                    <Text style={styles.emptyResolutionText}>
+                      Nhân viên đang xem xét và sẽ cập nhật giải pháp sớm nhất
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.resolutionCard}>
+                    {issue.resolution.solution_description && (
                       <View style={styles.resolutionSection}>
-                        <Text style={styles.resolutionLabel}>
-                          Các bước đã thực hiện:
-                        </Text>
-                        {issue.resolution.resolution_actions.map(
-                          (action, index) => (
-                            <View key={index} style={styles.actionItem}>
-                              <Ionicons
-                                name="checkmark-circle"
-                                size={16}
-                                color={theme.colors.primary}
-                              />
-                              <Text style={styles.actionText}>{action}</Text>
-                            </View>
-                          )
-                        )}
-                      </View>
-                    )}
-
-                  {issue.resolution.resolution_notes && (
-                    <View style={styles.resolutionSection}>
-                      <Text style={styles.resolutionLabel}>Ghi chú:</Text>
-                      <Text style={styles.resolutionText}>
-                        {issue.resolution.resolution_notes}
-                      </Text>
-                    </View>
-                  )}
-
-                  {issue.resolution.resolved_at && (
-                    <View style={styles.resolutionSection}>
-                      <View style={styles.detailRow}>
-                        <Ionicons
-                          name="checkmark-done-circle"
-                          size={16}
-                          color="#66BB6A"
-                        />
-                        <Text style={styles.detailLabel}>Giải quyết lúc:</Text>
-                        <Text style={styles.detailValue}>
-                          {formatDate(issue.resolution.resolved_at)}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {issue.resolution.customer_satisfaction &&
-                    issue.resolution.customer_satisfaction !== 'NOT_RATED' && (
-                      <View style={styles.satisfactionBox}>
-                        <Ionicons
-                          name={
-                            getSatisfactionIcon(
-                              issue.resolution.customer_satisfaction
-                            ) as any
-                          }
-                          size={24}
-                          color={theme.colors.primary}
-                        />
-                        <Text style={styles.satisfactionText}>
-                          Đánh giá:{' '}
-                          {issue.resolution.customer_satisfaction === 'SATISFIED' &&
-                            'Hài lòng'}
-                          {issue.resolution.customer_satisfaction === 'NEUTRAL' &&
-                            'Bình thường'}
-                          {issue.resolution.customer_satisfaction ===
-                            'UNSATISFIED' && 'Không hài lòng'}
+                        <Text style={styles.resolutionLabel}>Mô tả giải pháp:</Text>
+                        <Text style={styles.resolutionText}>
+                          {issue.resolution.solution_description}
                         </Text>
                       </View>
                     )}
-                </View>
+
+                    {issue.resolution.resolution_actions &&
+                      issue.resolution.resolution_actions.length > 0 && (
+                        <View style={styles.resolutionSection}>
+                          <Text style={styles.resolutionLabel}>
+                            Các bước cần thực hiện:
+                          </Text>
+                          {issue.resolution.resolution_actions.map(
+                            (action, index) => (
+                              <View key={index} style={styles.actionItem}>
+                                <Ionicons
+                                  name="checkmark-circle"
+                                  size={16}
+                                  color={COLORS.primary}
+                                />
+                                <Text style={styles.actionText}>{action}</Text>
+                              </View>
+                            )
+                          )}
+                        </View>
+                      )}
+
+                    {issue.resolution.resolution_notes && (
+                      <View style={styles.resolutionSection}>
+                        <Text style={styles.resolutionLabel}>Ghi chú:</Text>
+                        <Text style={styles.resolutionText}>
+                          {issue.resolution.resolution_notes}
+                        </Text>
+                      </View>
+                    )}
+
+                    {issue.resolution.resolved_at && (
+                      <View style={styles.resolutionSection}>
+                        <View style={styles.detailRow}>
+                          <Ionicons
+                            name="checkmark-done-circle"
+                            size={16}
+                            color="#66BB6A"
+                          />
+                          <Text style={styles.detailLabel}>Giải quyết lúc:</Text>
+                          <Text style={styles.detailValue}>
+                            {formatDate(issue.resolution.resolved_at)}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {issue.resolution.customer_satisfaction &&
+                      issue.resolution.customer_satisfaction !== 'NOT_RATED' && (
+                        <View style={styles.satisfactionBox}>
+                          <Ionicons
+                            name={
+                              getSatisfactionIcon(
+                                issue.resolution.customer_satisfaction
+                              ) as any
+                            }
+                            size={24}
+                            color={COLORS.primary}
+                          />
+                          <Text style={styles.satisfactionText}>
+                            Đánh giá:{' '}
+                            {issue.resolution.customer_satisfaction === 'SATISFIED' &&
+                              'Hài lòng'}
+                            {issue.resolution.customer_satisfaction === 'NEUTRAL' &&
+                              'Bình thường'}
+                            {issue.resolution.customer_satisfaction ===
+                              'UNSATISFIED' && 'Không hài lòng'}
+                          </Text>
+                        </View>
+                      )}
+                  </View>
+                )}
               </View>
             )}
 
@@ -315,7 +327,7 @@ const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 <Ionicons
                   name="headset-outline"
                   size={24}
-                  color={theme.colors.primary}
+                  color={COLORS.primary}
                 />
                 <Text style={styles.supportText}>
                   Cần hỗ trợ thêm? Liên hệ hotline: 1900-xxxx
@@ -450,6 +462,27 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#66BB6A',
   },
+  emptyResolutionCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#999',
+  },
+  emptyResolutionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  emptyResolutionText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   resolutionSection: {
     marginBottom: 16,
   },
@@ -506,3 +539,4 @@ const styles = StyleSheet.create({
 });
 
 export default IssueDetailModal;
+

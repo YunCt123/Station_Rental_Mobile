@@ -40,6 +40,7 @@ export type RootStackParamList = {
   RentalHistory: undefined;
   Rentals: undefined; // ✅ New: List of rentals
   RentalDetail: { rentalId: string }; // ✅ New: Rental detail screen
+  MyIssues: undefined; // ✅ New: My issues screen
   UserInfo: undefined;
   EditProfile: undefined;
   Settings: undefined;

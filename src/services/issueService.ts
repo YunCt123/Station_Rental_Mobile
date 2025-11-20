@@ -24,7 +24,10 @@ export const issueService = {
   ): Promise<IssueModel> => {
     const response = await api.post<ApiResponse<IssueModel>>(
       ISSUE_ENDPOINTS.CREATE_RENTAL_ISSUE(rentalId),
-      issueData
+      {
+        ...issueData,
+        rental_id: rentalId, // Backend validator requires this
+      }
     );
     return response.data;
   },
