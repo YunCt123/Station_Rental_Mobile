@@ -263,12 +263,18 @@ const VNPAYWebView = () => {
   const handleModalClose = () => {
     setModalVisible(false);
     if (modalType === "success") {
-      // ✅ Thanh toán thành công → về MainTabs
+      // ✅ Thanh toán thành công → về Bookings tab
       setTimeout(() => {
         navigation.reset({
           index: 0,
           routes: [{ name: "MainTabs" }],
         });
+        // Navigate to Bookings tab after resetting
+        setTimeout(() => {
+          (navigation as any).navigate("MainTabs", {
+            screen: "Bookings",
+          });
+        }, 100);
       }, 300);
     } else {
       // ❌ Thanh toán thất bại → back 2 pages (VNPAYWebView + BookingPaymentScreen)
@@ -290,7 +296,7 @@ const VNPAYWebView = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+            <Ionicons name="chevron-back" size={24} color={COLORS.white} />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
@@ -449,7 +455,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: FONTS.bodyLarge,
+    fontSize: FONTS.title,
     fontWeight: "700",
     color: COLORS.white,
     marginTop: SPACING.md,

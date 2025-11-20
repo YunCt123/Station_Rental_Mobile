@@ -23,6 +23,7 @@ import {
 import StatusModal from "../../components/common/StatusModal";
 import { bookingService } from "../../services/bookingService";
 import { rentalService } from "../../services/rentalService";
+import { paymentService } from "../../services/paymentService";
 import { Rental } from "../../types/rental";
 import { Booking } from "../../types/booking";
 
@@ -212,6 +213,44 @@ const ActiveBookingDetailScreen = () => {
 
   const handleContactSupport = () => {
     Alert.alert("Hỗ trợ", "Hotline: 1900-xxxx\nEmail: support@station.vn");
+  };
+
+  const handleRetryPayment = async () => {
+    if (!booking) return;
+
+    try {
+      // ✅ Use UI calculation instead of backend pricing_snapshot
+      const { depositAmount } = getPricingInfo();
+      
+      console.log("🔄 [Booking] Retrying deposit payment:", {
+        bookingId: booking._id,
+        depositFromUI: depositAmount,
+        depositFromSnapshot: booking.pricing_snapshot?.deposit,
+        usingUICalculation: true
+      });
+
+      // Create VNPAY payment with UI-calculated amount
+      const paymentResult = await paymentService.createVNPAYDeposit(
+        booking._id,
+        depositAmount
+      );
+
+      console.log("✅ [Booking] Payment URL created:", paymentResult.checkoutUrl);
+
+      // Navigate to VNPAY WebView with UI-calculated amount
+      (navigation as any).navigate("VNPAYWebView", {
+        paymentUrl: paymentResult.checkoutUrl,
+        bookingId: booking._id,
+        amount: depositAmount, // ✅ Use UI calculation
+        vehicleName: getVehicleName(),
+      });
+    } catch (error: any) {
+      console.error("❌ [Booking] Retry payment error:", error);
+      Alert.alert(
+        "Lỗi thanh toán",
+        error.response?.data?.message || error.message || "Không thể tạo thanh toán. Vui lòng thử lại."
+      );
+    }
   };
 
   const getStatusInfo = () => {
@@ -680,6 +719,26 @@ const ActiveBookingDetailScreen = () => {
             </View>
           </View>
 
+          {/* 🔄 Retry Payment Button for PENDING deposit */}
+          {booking.payment?.status === "PENDING" && (
+            <TouchableOpacity
+              style={styles.retryPaymentButton}
+              onPress={handleRetryPayment}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.success]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.retryPaymentGradient}
+              >
+                <Ionicons name="card-outline" size={24} color={COLORS.white} />
+                <Text style={styles.retryPaymentText}>Thanh toán đặt cọc</Text>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* ℹ️ Payment Info Banner for RETURN_PENDING status */}
           {rental?.status === "RETURN_PENDING" && (
             <View style={styles.infoCard}>
@@ -699,13 +758,6 @@ const ActiveBookingDetailScreen = () => {
               </View>
             </View>
           )}
-
-          {/* ❌ REMOVED QR Code Section - no longer needed for check-in */}
-          {/* Staff will manually check-in customer at station */}
-          {/* <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Mã QR nhận xe</Text>
-            ...QR code UI removed...
-          </View> */}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -1086,6 +1138,28 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  retryPaymentButton: {
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.lg,
+    borderRadius: RADII.lg,
+    overflow: "hidden",
+    ...SHADOWS.md,
+  },
+  retryPaymentGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  retryPaymentText: {
+    flex: 1,
+    fontSize: FONTS.bodyLarge,
+    color: COLORS.white,
+    fontWeight: "700",
+    textAlign: "center",
   },
   // ℹ️ Info Card Styles for RETURN_PENDING
   infoCard: {

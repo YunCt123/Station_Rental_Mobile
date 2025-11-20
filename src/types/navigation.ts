@@ -20,11 +20,16 @@ export type RootStackParamList = {
   };
   VNPAYWebView: {
     paymentUrl: string;
-    bookingId?: string;
-    rentalId?: string;
+    bookingId: string;
     amount: number;
     vehicleName: string;
-    isFinalPayment?: boolean;
+  };
+  RentalFinalPaymentWebView: {
+    paymentUrl: string;
+    rentalId: string;
+    bookingId: string;
+    amount: number;
+    vehicleName: string;
   };
   FinalPayment: {
     rentalId: string;

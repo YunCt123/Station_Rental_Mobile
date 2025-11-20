@@ -99,24 +99,39 @@ const RentalDetailScreen = () => {
               // Backend will validate if payment record exists
               const paymentResult = await paymentService.createFinalPayment(rental._id!);
 
-              console.log("✅ [RentalDetail] Payment result:", paymentResult);
+              console.log("✅ [RentalDetail] Payment result FULL:", JSON.stringify(paymentResult, null, 2));
+              console.log("✅ [RentalDetail] paymentResult.data:", paymentResult.data);
+              console.log("✅ [RentalDetail] paymentResult.data type:", typeof paymentResult.data);
+              console.log("✅ [RentalDetail] paymentResult.data.checkoutUrl:", paymentResult.data?.checkoutUrl);
 
-              if (paymentResult.data?.checkoutUrl) {
-                // Navigate to payment screen with URL
-                (navigation as any).navigate("PaymentWebView", {
-                  paymentUrl: paymentResult.data.checkoutUrl,
+              // Backend may return in different formats:
+              // Format 1: { success: true, data: { checkoutUrl, payment, message } }
+              // Format 2: { checkoutUrl, payment, message } (direct)
+              const checkoutUrl = paymentResult.data?.checkoutUrl || (paymentResult as any).checkoutUrl;
+
+              console.log("🔗 [RentalDetail] Final checkoutUrl:", checkoutUrl);
+
+              // ⚠️ WARNING: Backend payment.amount may be incorrect (not subtracting deposit)
+              // Use UI-calculated finalAmount instead of backend payment.amount
+              const backendAmount = paymentResult.data?.payment?.amount || (paymentResult as any).payment?.amount;
+              console.log("⚠️ [RentalDetail] Backend amount:", backendAmount, "vs UI calculated:", finalAmount);
+
+              if (checkoutUrl) {
+                // Navigate to dedicated Rental Final Payment WebView
+                console.log("✅ [RentalDetail] Navigating to RentalFinalPaymentWebView...");
+                console.log("💰 [RentalDetail] Using UI-calculated amount:", finalAmount);
+                (navigation as any).navigate("RentalFinalPaymentWebView", {
+                  paymentUrl: checkoutUrl,
                   rentalId: rental._id,
-                  amount: finalAmount,
+                  bookingId: rental.booking_id?._id || rental.booking_id,
+                  amount: finalAmount, // ✅ Use UI calculation, NOT backend payment.amount
+                  vehicleName: rental.vehicle_id?.name || "Xe thuê",
                 });
               } else {
-                // Payment completed directly (cash/wallet)
-                setStatusModalType("success");
-                setStatusModalTitle("Thanh toán thành công");
-                setStatusModalMessage("Bạn đã hoàn tất trả xe thành công!");
-                setStatusModalVisible(true);
-
-                // Reload rental data
-                await loadRentalDetails();
+                // This should NOT happen - backend always returns checkoutUrl for VNPAY
+                console.error("❌ [RentalDetail] No checkoutUrl found in response!");
+                console.error("❌ [RentalDetail] Response keys:", Object.keys(paymentResult));
+                throw new Error("Không nhận được URL thanh toán từ server");
               }
             } catch (error: any) {
               console.error("❌ [RentalDetail] Payment error:", error);
@@ -164,7 +179,7 @@ const RentalDetailScreen = () => {
     const statusMap: { [key: string]: string } = {
       CONFIRMED: "Đã xác nhận",
       ONGOING: "Đang thuê",
-      RETURN_PENDING: "Chờ trả xe",
+      RETURN_PENDING: "Chờ thanh toán cuối",
       COMPLETED: "Hoàn thành",
       DISPUTED: "Tranh chấp",
       REJECTED: "Đã từ chối",
@@ -451,7 +466,7 @@ const RentalDetailScreen = () => {
                     <>
                       <Ionicons name="card-outline" size={24} color={COLORS.white} />
                       <Text style={styles.paymentButtonText}>
-                        Thanh toán hoàn tất
+                        Hoàn tất thanh toán
                       </Text>
                     </>
                   )}

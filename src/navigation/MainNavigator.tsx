@@ -13,6 +13,7 @@ import RentalDetailScreen from "../screens/rental/RentalDetailScreen"; // ✅ Ne
 import MyIssuesScreen from "../screens/profile/MyIssuesScreen"; // ✅ New: Issue tracking
 import PayOSWebViewScreen from "../screens/payment/PayOSWebViewScreen";
 import VNPAYWebView from "../screens/payment/VNPAYWebView";
+import RentalFinalPaymentWebView from "../screens/payment/RentalFinalPaymentWebView";
 import FinalPaymentScreen from "../screens/payment/FinalPaymentScreen";
 import VerifyAccountScreen from "../screens/profile/VerifyAccountScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
@@ -93,6 +94,13 @@ const MainNavigator = () => {
         <Stack.Screen
           name="VNPAYWebView"
           component={VNPAYWebView}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="RentalFinalPaymentWebView"
+          component={RentalFinalPaymentWebView}
           options={{
             headerShown: false,
           }}
