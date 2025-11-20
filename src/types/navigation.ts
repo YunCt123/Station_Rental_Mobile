@@ -5,21 +5,42 @@ export type RootStackParamList = {
   Register: undefined;
   Login: undefined;
   EmailVerification: { email: string; fromRegistration?: boolean };
-  
+
   // Main App (Bottom Tabs)
   MainTabs: undefined;
-  
+
   // Other screens that can be accessed from anywhere
   VehicleDetails: { vehicleId: string };
   BookingPayment: { vehicleId: string };
-  PayOSWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
-  VNPAYWebView: { paymentUrl: string; bookingId: string; amount: number; vehicleName: string };
+  PayOSWebView: {
+    paymentUrl: string;
+    bookingId: string;
+    amount: number;
+    vehicleName: string;
+  };
+  VNPAYWebView: {
+    paymentUrl: string;
+    bookingId?: string;
+    rentalId?: string;
+    amount: number;
+    vehicleName: string;
+    isFinalPayment?: boolean;
+  };
+  FinalPayment: {
+    rentalId: string;
+    totalCharges: number;
+    depositPaid: number;
+    vehicleName: string;
+  };
   StationDetails: { stationId: string };
   StationDetail: { stationId: string };
   BookingDetails: { bookingId: string };
   ActiveBookingDetail: { bookingId: string };
   HistoryBookingDetail: { bookingId: string };
   RentalHistory: undefined;
+  Rentals: undefined; // ✅ New: List of rentals
+  RentalDetail: { rentalId: string }; // ✅ New: Rental detail screen
+  MyIssues: undefined; // ✅ New: My issues screen
   UserInfo: undefined;
   EditProfile: undefined;
   Settings: undefined;
@@ -48,7 +69,7 @@ export type HomeStackParamList = {
   MapView: undefined;
 };
 
-// Search Stack Navigator  
+// Search Stack Navigator
 export type SearchStackParamList = {
   SearchMain: undefined;
   SearchResults: {
@@ -81,12 +102,17 @@ export type ProfileStackParamList = {
 };
 
 // Navigation Props Types
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
-export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+export type RootStackNavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
 export type MainTabNavigationProp = BottomTabNavigationProp<MainTabParamList>;
-export type HomeStackNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-export type SearchStackNavigationProp = NativeStackNavigationProp<SearchStackParamList>;
-export type BookingsStackNavigationProp = NativeStackNavigationProp<BookingsStackParamList>;
-export type ProfileStackNavigationProp = NativeStackNavigationProp<ProfileStackParamList>;
+export type HomeStackNavigationProp =
+  NativeStackNavigationProp<HomeStackParamList>;
+export type SearchStackNavigationProp =
+  NativeStackNavigationProp<SearchStackParamList>;
+export type BookingsStackNavigationProp =
+  NativeStackNavigationProp<BookingsStackParamList>;
+export type ProfileStackNavigationProp =
+  NativeStackNavigationProp<ProfileStackParamList>;

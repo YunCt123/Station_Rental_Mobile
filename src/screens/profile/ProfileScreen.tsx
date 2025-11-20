@@ -128,10 +128,16 @@ const ProfileScreen = () => {
       onPress: () => navigation.navigate("VerifyAccount" as never),
     },
     {
-      id: "rental-history",
-      title: "Lịch sử thuê xe",
-      icon: "time-outline",
-      onPress: () => navigation.navigate("RentalHistory" as never),
+      id: "rentals",
+      title: "Xe đang thuê & Lịch sử",
+      icon: "car-outline",
+      onPress: () => navigation.navigate("Rentals" as never),
+    },
+    {
+      id: "my-issues",
+      title: "Vấn đề về phương tiện",
+      icon: "alert-circle-outline",
+      onPress: () => navigation.navigate("MyIssues" as never),
     },
     {
       id: "settings",

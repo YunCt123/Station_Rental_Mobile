@@ -8,7 +8,7 @@ interface RentalTypeSelectorProps {
   onSelect: (type: "hourly" | "daily") => void;
 }
 
-export const RentalTypeSelector: React.FC<RentalTypeSelectorProps> = ({
+const RentalTypeSelector: React.FC<RentalTypeSelectorProps> = ({
   rentalType,
   onSelect,
 }) => {
@@ -93,3 +93,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 });
+
+export default RentalTypeSelector;

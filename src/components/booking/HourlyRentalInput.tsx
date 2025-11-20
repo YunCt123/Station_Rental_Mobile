@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import { TimePicker } from "../index";
 
 interface HourlyRentalInputProps {
   rentalHours: string;
@@ -19,27 +20,32 @@ interface HourlyRentalInputProps {
   stationLocation: string;
   pickupDate: Date;
   onPickupDateChange: (date: Date) => void;
+  pickupTime: { hour: number; minute: number };
+  onPickupTimeChange: (hour: number, minute: number) => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
+const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
   rentalHours,
   onChangeHours,
   onQuickSelect,
   stationLocation,
   pickupDate,
   onPickupDateChange,
+  pickupTime,
+  onPickupTimeChange,
 }) => {
   const quickHours = [2, 4, 6, 8];
   const [showPickupModal, setShowPickupModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
 
   // Generate dates for next 90 days
   const generateDates = () => {
     const dates = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
@@ -89,7 +95,10 @@ export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
             </View>
 
             {/* Date List */}
-            <ScrollView style={styles.dateList} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.dateList}
+              showsVerticalScrollIndicator={false}
+            >
               {dates.map((date, index) => {
                 const { dayName, day, month, year } = formatDateDisplay(date);
                 const isSelected = isSameDate(date, pickupDate);
@@ -157,6 +166,31 @@ export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
     );
   };
 
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour.toString().padStart(2, "0")}:${minute
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Get current time to set minimum time for today
+  const getMinTime = () => {
+    const now = new Date();
+    const isToday = pickupDate.toDateString() === now.toDateString();
+
+    if (isToday) {
+      // Round up to next 15-minute interval
+      const currentMinutes = now.getMinutes();
+      const roundedMinutes = Math.ceil(currentMinutes / 15) * 15;
+
+      if (roundedMinutes >= 60) {
+        return { hour: now.getHours() + 1, minute: 0 };
+      }
+      return { hour: now.getHours(), minute: roundedMinutes };
+    }
+
+    return undefined;
+  };
+
   return (
     <>
       <View style={styles.inputGroup}>
@@ -174,7 +208,29 @@ export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
               year: "numeric",
             })}
           </Text>
-          <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Giờ nhận xe</Text>
+        <TouchableOpacity
+          style={styles.dateTimeButton}
+          onPress={() => setShowTimeModal(true)}
+        >
+          <Ionicons name="time-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.dateTimeButtonText}>
+            {formatTime(pickupTime.hour, pickupTime.minute)}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -196,14 +252,16 @@ export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
             key={hours}
             style={[
               styles.quickSelectButton,
-              rentalHours === hours.toString() && styles.quickSelectButtonActive,
+              rentalHours === hours.toString() &&
+                styles.quickSelectButtonActive,
             ]}
             onPress={() => onQuickSelect(hours)}
           >
             <Text
               style={[
                 styles.quickSelectText,
-                rentalHours === hours.toString() && styles.quickSelectTextActive,
+                rentalHours === hours.toString() &&
+                  styles.quickSelectTextActive,
               ]}
             >
               {hours}h
@@ -222,6 +280,17 @@ export const HourlyRentalInput: React.FC<HourlyRentalInputProps> = ({
 
       {/* Date Picker Modal */}
       <DatePickerModal />
+
+      {/* Time Picker Modal */}
+      <TimePicker
+        visible={showTimeModal}
+        onClose={() => setShowTimeModal(false)}
+        onSelect={onPickupTimeChange}
+        selectedHour={pickupTime.hour}
+        selectedMinute={pickupTime.minute}
+        title="Chọn giờ nhận xe"
+        minTime={getMinTime()}
+      />
     </>
   );
 };
@@ -399,3 +468,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+export default HourlyRentalInput;

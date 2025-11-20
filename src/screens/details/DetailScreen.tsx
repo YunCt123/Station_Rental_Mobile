@@ -62,7 +62,8 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
       const vehicleData = await vehicleService.getVehicleById(vehicleId);
       const mappedVehicle = mapVehicleToUI(vehicleData);
       setVehicle(mappedVehicle);
-    } catch (err) {setError("Không thể tải thông tin xe");
+    } catch (err) {
+      setError("Không thể tải thông tin xe");
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,17 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
       }
 
       // ✅ Use verificationStatus directly from getCurrentUser() response
-      const verificationStatus = user.verificationStatus;// Check verification status
+      const verificationStatus = user.verificationStatus;
+
+      // Debug logging
+      console.log("🔍 User verification check:", {
+        userId: user._id,
+        email: user.email,
+        verificationStatus,
+        userKeys: Object.keys(user),
+      });
+
+      // Check verification status
       if (verificationStatus !== "APPROVED") {
         Alert.alert(
           "Yêu cầu xác thực tài khoản",
@@ -141,7 +152,8 @@ const DetailScreen: React.FC<DetailScreenProps> = ({
         );
         return;
       }
-    } catch (error) {Alert.alert(
+    } catch (error) {
+      Alert.alert(
         "Lỗi",
         "Không thể kiểm tra trạng thái xác thực. Vui lòng thử lại.",
         [{ text: "OK" }]

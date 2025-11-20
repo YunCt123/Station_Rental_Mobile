@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
+import { TimePicker } from "../index";
 
 interface DailyRentalInputProps {
   startDate: Date;
@@ -17,28 +18,33 @@ interface DailyRentalInputProps {
   onStartDateChange: (date: Date) => void;
   onEndDateChange: (date: Date) => void;
   stationLocation: string;
+  startTime: { hour: number; minute: number };
+  onStartTimeChange: (hour: number, minute: number) => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
+const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
   startDate,
   endDate,
   onStartDateChange,
   onEndDateChange,
   stationLocation,
+  startTime,
+  onStartTimeChange,
 }) => {
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [showStartTimeModal, setShowStartTimeModal] = useState(false);
 
   // Generate dates for next 90 days
   const generateDates = (fromDate: Date, minDate?: Date) => {
     const dates = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const startFrom = minDate && minDate > today ? minDate : today;
-    
+
     for (let i = 0; i < 90; i++) {
       const date = new Date(startFrom);
       date.setDate(date.getDate() + i);
@@ -99,7 +105,10 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
             </View>
 
             {/* Date List */}
-            <ScrollView style={styles.dateList} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.dateList}
+              showsVerticalScrollIndicator={false}
+            >
               {dates.map((date, index) => {
                 const { dayName, day, month, year } = formatDateDisplay(date);
                 const isSelected = isSameDate(date, selectedDate);
@@ -168,10 +177,42 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
   };
 
   const getDayCount = () => {
-    const days = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return days > 0 ? days : 0;
+    // Reset time to start of day for accurate day calculation
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    // Calculate difference in days
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour.toString().padStart(2, "0")}:${minute
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Get minimum time for start time picker
+  const getMinStartTime = () => {
+    const now = new Date();
+    const isToday = startDate.toDateString() === now.toDateString();
+
+    if (isToday) {
+      const currentMinutes = now.getMinutes();
+      const roundedMinutes = Math.ceil(currentMinutes / 15) * 15;
+
+      if (roundedMinutes >= 60) {
+        return { hour: now.getHours() + 1, minute: 0 };
+      }
+      return { hour: now.getHours(), minute: roundedMinutes };
+    }
+
+    return undefined;
   };
 
   return (
@@ -191,7 +232,29 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
               year: "numeric",
             })}
           </Text>
-          <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Giờ bắt đầu</Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowStartTimeModal(true)}
+        >
+          <Ionicons name="time-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.dateButtonText}>
+            {formatTime(startTime.hour, startTime.minute)}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -210,9 +273,31 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
               year: "numeric",
             })}
           </Text>
-          <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
         </TouchableOpacity>
       </View>
+
+      {/* <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Giờ kết thúc</Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowEndTimeModal(true)}
+        >
+          <Ionicons name="time-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.dateButtonText}>
+            {formatTime(endTime.hour, endTime.minute)}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+      </View> */}
 
       {/* Duration Info */}
       <View style={styles.durationInfo}>
@@ -253,6 +338,17 @@ export const DailyRentalInput: React.FC<DailyRentalInputProps> = ({
         selectedDate={endDate}
         minDate={startDate}
         title="Chọn ngày kết thúc"
+      />
+
+      {/* Time Pickers */}
+      <TimePicker
+        visible={showStartTimeModal}
+        onClose={() => setShowStartTimeModal(false)}
+        onSelect={onStartTimeChange}
+        selectedHour={startTime.hour}
+        selectedMinute={startTime.minute}
+        title="Chọn giờ bắt đầu"
+        minTime={getMinStartTime()}
       />
     </>
   );
@@ -407,3 +503,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+export default DailyRentalInput;
