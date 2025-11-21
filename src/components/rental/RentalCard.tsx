@@ -13,7 +13,7 @@ interface RentalCardProps {
 const RentalCard: React.FC<RentalCardProps> = ({ rental, onPress }) => {
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      CONFIRMED: "Đã xác nhận",
+      CONFIRMED: "Đang chờ nhận",
       ONGOING: "Đang thuê",
       RETURN_PENDING: "Chờ trả xe",
       COMPLETED: "Hoàn thành",
@@ -25,10 +25,10 @@ const RentalCard: React.FC<RentalCardProps> = ({ rental, onPress }) => {
 
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
-      CONFIRMED: COLORS.primary,
+      CONFIRMED: COLORS.warning,
       ONGOING: COLORS.success,
       RETURN_PENDING: COLORS.warning,
-      COMPLETED: COLORS.textSecondary,
+      COMPLETED: COLORS.primary,
       DISPUTED: COLORS.error,
       REJECTED: COLORS.error,
     };

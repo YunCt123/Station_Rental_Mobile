@@ -1,27 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Station } from '../../types/station';
+import { Station, StationVehicle } from '../../types/station';
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from '../../utils/theme';
 
 interface StationDetailsCardProps {
   station: Station;
+  vehicles?: StationVehicle[];
+  vehiclesLoading?: boolean;
   onClose?: () => void;
 }
 
 const StationDetailsCard: React.FC<StationDetailsCardProps> = ({
   station,
+  vehicles = [],
+  vehiclesLoading = false,
 }) => {
-  const getUtilizationColor = (rate: number) => {
-    if (rate >= 80) return COLORS.error;
-    if (rate >= 60) return COLORS.warning;
-    return COLORS.success;
-  };
-
-  const getAvailabilityPercentage = () => {
-    if (station.metrics.vehicles_total === 0) return 0;
-    return (station.metrics.vehicles_available / station.metrics.vehicles_total) * 100;
-  };
 
   return (
     <View style={styles.container}>
@@ -56,49 +50,65 @@ const StationDetailsCard: React.FC<StationDetailsCardProps> = ({
             <Text style={styles.metricLabel}>Tổng số xe</Text>
           </View>
 
-          {/* Available Vehicles */}
+          {/* Available Vehicles - from actual vehicles list */}
           <View style={styles.metricCard}>
             <View style={[styles.metricIconContainer, { backgroundColor: COLORS.success + '15' }]}>
               <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.success} />
             </View>
             <Text style={[styles.metricValue, { color: COLORS.success }]}>
-              {station.metrics.vehicles_available}
+              {vehicles.length}
             </Text>
-            <Text style={styles.metricLabel}>Xe sẵn sàng</Text>
-          </View>
-
-          {/* In Use Vehicles */}
-          <View style={styles.metricCard}>
-            <View style={[styles.metricIconContainer, { backgroundColor: COLORS.warning + '15' }]}>
-              <Ionicons name="timer-outline" size={24} color={COLORS.warning} />
-            </View>
-            <Text style={[styles.metricValue, { color: COLORS.warning }]}>
-              {station.metrics.vehicles_in_use}
-            </Text>
-            <Text style={styles.metricLabel}>Đang thuê</Text>
-          </View>
-
-          {/* Utilization Rate */}
-          <View style={styles.metricCard}>
-            <View style={[
-              styles.metricIconContainer, 
-              { backgroundColor: getUtilizationColor(station.metrics.utilization_rate) + '15' }
-            ]}>
-              <Ionicons 
-                name="speedometer-outline" 
-                size={24} 
-                color={getUtilizationColor(station.metrics.utilization_rate)} 
-              />
-            </View>
-            <Text style={[
-              styles.metricValue, 
-              { color: getUtilizationColor(station.metrics.utilization_rate) }
-            ]}>
-              {station.metrics.utilization_rate.toFixed(0)}%
-            </Text>
-            <Text style={styles.metricLabel}>Tỷ lệ sử dụng</Text>
+            <Text style={styles.metricLabel}>Xe có sẵn</Text>
           </View>
         </View>
+      </View>
+
+      {/* Vehicles List */}
+      <View style={styles.vehiclesContainer}>
+        <Text style={styles.metricsTitle}>Xe có sẵn ({vehicles.length})</Text>
+        
+        {vehiclesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Đang tải xe...</Text>
+          </View>
+        ) : vehicles.length === 0 ? (
+          <View style={styles.emptyVehicles}>
+            <Ionicons name="car-sport-outline" size={48} color={COLORS.textSecondary} />
+            <Text style={styles.emptyText}>Không có xe khả dụng</Text>
+          </View>
+        ) : (
+          <View style={styles.vehiclesList}>
+            {vehicles.map((vehicle, index) => (
+              <View key={vehicle._id || index} style={styles.vehicleItem}>
+                {vehicle.image && (
+                  <Image
+                    source={{ uri: vehicle.image }}
+                    style={styles.vehicleImage}
+                  />
+                )}
+                <View style={styles.vehicleInfo}>
+                  <Text style={styles.vehicleName}>
+                    {vehicle.brand} {vehicle.model}
+                  </Text>
+                  <Text style={styles.vehicleType}>{vehicle.type}</Text>
+                  <View style={styles.vehicleDetails}>
+                    <Ionicons name="battery-full" size={14} color={COLORS.success} />
+                    <Text style={styles.vehicleDetailText}>
+                      {vehicle.batteryLevel * 100}%
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.vehiclePrice}>
+                  <Text style={styles.priceAmount}>
+                    {vehicle.pricePerHour.toLocaleString("vi-VN")}
+                  </Text>
+                  <Text style={styles.priceUnit}>VND/giờ</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -212,6 +222,84 @@ const styles = StyleSheet.create({
     fontSize: FONTS.body,
     fontWeight: '600',
     color: COLORS.text,
+    textAlign: 'center',
+  },
+  vehiclesContainer: {
+    marginTop: SPACING.lg,
+    paddingTop: SPACING.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderLight,
+  },
+  vehiclesList: {
+    gap: SPACING.md,
+  },
+  vehicleItem: {
+    flexDirection: 'row',
+    padding: SPACING.md,
+    backgroundColor: COLORS.background,
+    borderRadius: RADII.md,
+  },
+  vehicleImage: {
+    width: 60,
+    height: 60,
+    borderRadius: RADII.sm,
+    marginRight: SPACING.md,
+  },
+  vehicleInfo: {
+    flex: 1,
+  },
+  vehicleName: {
+    fontSize: FONTS.body,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  vehicleType: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  vehicleDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  vehicleDetailText: {
+    fontSize: FONTS.caption,
+    color: COLORS.success,
+  },
+  vehiclePrice: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  priceAmount: {
+    fontSize: FONTS.bodyLarge,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  priceUnit: {
+    fontSize: FONTS.caption,
+    color: COLORS.textSecondary,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.lg,
+  },
+  loadingText: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.sm,
+  },
+  emptyVehicles: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  emptyText: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
     textAlign: 'center',
   },
 });

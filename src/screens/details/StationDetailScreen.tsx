@@ -25,6 +25,7 @@ export const StationDetailScreen = () => {
 
   const [station, setStation] = useState<Station | null>(null);
   const [vehicles, setVehicles] = useState<StationVehicle[]>([]);
+  const [vehiclesCount, setVehiclesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,6 +44,7 @@ export const StationDetailScreen = () => {
 
       setStation(stationData);
       setVehicles(vehiclesData.vehicles);
+      setVehiclesCount(vehiclesData.count); // Use actual count from API
     } catch (error) {
 setErrorMessage("Không thể tải thông tin trạm");
       setErrorModalVisible(true);
@@ -170,9 +172,9 @@ setErrorMessage("Không thể tải thông tin trạm");
               <View style={styles.statItem}>
                 <Ionicons name="apps" size={24} color={COLORS.textSecondary} />
                 <Text style={styles.statValue}>
-                  {station.metrics.vehicles_total}
+                  {vehiclesCount}
                 </Text>
-                <Text style={styles.statLabel}>Tổng số xe</Text>
+                <Text style={styles.statLabel}>Có sẵn</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="trending-up" size={24} color={COLORS.success} />
@@ -240,38 +242,51 @@ setErrorMessage("Không thể tải thông tin trạm");
           {/* Available Vehicles */}
           <View style={styles.vehiclesCard}>
             <Text style={styles.cardTitle}>Xe có sẵn ({vehicles.length})</Text>
-            {vehicles.map((vehicle, index) => (
-              <TouchableOpacity key={index} style={styles.vehicleItem}>
-                {vehicle.image && (
-                  <Image
-                    source={{ uri: vehicle.image }}
-                    style={styles.vehicleImage}
-                  />
-                )}
-                <View style={styles.vehicleInfo}>
-                  <Text style={styles.vehicleName}>
-                    {vehicle.brand} {vehicle.model}
-                  </Text>
-                  <Text style={styles.vehicleType}>{vehicle.type}</Text>
-                  <View style={styles.vehicleDetails}>
-                    <Ionicons
-                      name="battery-half"
-                      size={14}
-                      color={COLORS.success}
+            {vehicles.length === 0 ? (
+              <View style={styles.emptyVehicles}>
+                <Ionicons name="car-sport-outline" size={48} color={COLORS.textSecondary} />
+                <Text style={styles.emptyText}>Không có xe khả dụng tại trạm này</Text>
+              </View>
+            ) : (
+              vehicles.map((vehicle, index) => (
+                <TouchableOpacity 
+                  key={vehicle._id || index} 
+                  style={styles.vehicleItem}
+                  onPress={() => {
+                    (navigation as any).navigate('VehicleDetail', { vehicleId: vehicle._id });
+                  }}
+                >
+                  {vehicle.image && (
+                    <Image
+                      source={{ uri: vehicle.image }}
+                      style={styles.vehicleImage}
                     />
-                    <Text style={styles.vehicleDetailText}>
-                      {vehicle.batteryLevel}%
+                  )}
+                  <View style={styles.vehicleInfo}>
+                    <Text style={styles.vehicleName}>
+                      {vehicle.brand} {vehicle.model}
                     </Text>
+                    <Text style={styles.vehicleType}>{vehicle.type}</Text>
+                    <View style={styles.vehicleDetails}>
+                      <Ionicons
+                        name="battery-half"
+                        size={14}
+                        color={COLORS.success}
+                      />
+                      <Text style={styles.vehicleDetailText}>
+                        {vehicle.batteryLevel}%
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.vehiclePrice}>
-                  <Text style={styles.priceAmount}>
-                    {vehicle.pricePerHour.toLocaleString("vi-VN")} VND
-                  </Text>
-                  <Text style={styles.priceUnit}>/giờ</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.vehiclePrice}>
+                    <Text style={styles.priceAmount}>
+                      {vehicle.pricePerHour.toLocaleString("vi-VN")}
+                    </Text>
+                    <Text style={styles.priceUnit}>VND/giờ</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </ScrollView>
 
@@ -524,6 +539,17 @@ const styles = StyleSheet.create({
     marginBottom: 100,
     borderRadius: RADII.card,
     ...SHADOWS.md,
+  },
+  emptyVehicles: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  emptyText: {
+    fontSize: FONTS.body,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    textAlign: 'center',
   },
   vehicleItem: {
     flexDirection: "row",

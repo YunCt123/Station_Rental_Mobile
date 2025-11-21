@@ -91,35 +91,21 @@ const RentalDetailScreen = () => {
             try {
               setPaymentLoading(true);
 
-              console.log("🔍 [RentalDetail] Creating final payment for rental:", rental._id);
-              console.log("🔍 [RentalDetail] Rental status:", rental.status);
-              console.log("🔍 [RentalDetail] Final amount:", finalAmount);
-
               // Try to create final payment directly
               // Backend will validate if payment record exists
               const paymentResult = await paymentService.createFinalPayment(rental._id!);
-
-              console.log("✅ [RentalDetail] Payment result FULL:", JSON.stringify(paymentResult, null, 2));
-              console.log("✅ [RentalDetail] paymentResult.data:", paymentResult.data);
-              console.log("✅ [RentalDetail] paymentResult.data type:", typeof paymentResult.data);
-              console.log("✅ [RentalDetail] paymentResult.data.checkoutUrl:", paymentResult.data?.checkoutUrl);
 
               // Backend may return in different formats:
               // Format 1: { success: true, data: { checkoutUrl, payment, message } }
               // Format 2: { checkoutUrl, payment, message } (direct)
               const checkoutUrl = paymentResult.data?.checkoutUrl || (paymentResult as any).checkoutUrl;
 
-              console.log("🔗 [RentalDetail] Final checkoutUrl:", checkoutUrl);
-
               // ⚠️ WARNING: Backend payment.amount may be incorrect (not subtracting deposit)
               // Use UI-calculated finalAmount instead of backend payment.amount
               const backendAmount = paymentResult.data?.payment?.amount || (paymentResult as any).payment?.amount;
-              console.log("⚠️ [RentalDetail] Backend amount:", backendAmount, "vs UI calculated:", finalAmount);
 
               if (checkoutUrl) {
                 // Navigate to dedicated Rental Final Payment WebView
-                console.log("✅ [RentalDetail] Navigating to RentalFinalPaymentWebView...");
-                console.log("💰 [RentalDetail] Using UI-calculated amount:", finalAmount);
                 (navigation as any).navigate("RentalFinalPaymentWebView", {
                   paymentUrl: checkoutUrl,
                   rentalId: rental._id,
@@ -129,14 +115,9 @@ const RentalDetailScreen = () => {
                 });
               } else {
                 // This should NOT happen - backend always returns checkoutUrl for VNPAY
-                console.error("❌ [RentalDetail] No checkoutUrl found in response!");
-                console.error("❌ [RentalDetail] Response keys:", Object.keys(paymentResult));
                 throw new Error("Không nhận được URL thanh toán từ server");
               }
             } catch (error: any) {
-              console.error("❌ [RentalDetail] Payment error:", error);
-              console.error("❌ [RentalDetail] Error response:", error.response?.data);
-              
               let errorMessage = "Không thể tạo thanh toán. Vui lòng thử lại.";
               
               if (error.response?.data?.message) {
@@ -177,7 +158,7 @@ const RentalDetailScreen = () => {
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      CONFIRMED: "Đã xác nhận",
+      CONFIRMED: "Đang chờ nhận",
       ONGOING: "Đang thuê",
       RETURN_PENDING: "Chờ thanh toán cuối",
       COMPLETED: "Hoàn thành",
@@ -189,10 +170,10 @@ const RentalDetailScreen = () => {
 
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
-      CONFIRMED: COLORS.primary,
+      CONFIRMED: COLORS.warning,
       ONGOING: COLORS.success,
       RETURN_PENDING: COLORS.warning,
-      COMPLETED: COLORS.textSecondary,
+      COMPLETED: COLORS.primary,
       DISPUTED: COLORS.error,
       REJECTED: COLORS.error,
     };

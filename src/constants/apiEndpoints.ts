@@ -2,7 +2,7 @@
  * API Configuration
  */
 export const API_CONFIG = {
-  BASE_URL: "http://192.168.100.190:3000/api/v1",
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL,
   TIMEOUT: 30000, // 30 seconds
   VERSION: "v1",
 };
@@ -44,7 +44,7 @@ export const VEHICLE_ENDPOINTS = {
   BY_STATION: (stationId: string) =>
     `/vehicles/stations/${stationId}/available`,
 };
-``;
+
 /**
  * Booking Endpoints
  */
