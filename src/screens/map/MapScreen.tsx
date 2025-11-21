@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { COLORS, SPACING, FONTS, RADII, SHADOWS } from "../../utils/theme";
-import { Station } from "../../types/station";
+import { Station, StationVehicle } from "../../types/station";
 import { stationService } from "../../services/stationService";
 import StationDetailsCard from "../../components/map/StationDetailsCard";
 import NearbyStations from "../../components/map/NearbyStations";
@@ -30,6 +30,8 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 const MapScreen = () => {
   const mapRef = useRef<MapView>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [selectedStationVehicles, setSelectedStationVehicles] = useState<StationVehicle[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [nearbyStations, setNearbyStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,9 +141,20 @@ setErrorMessage(
     animateToStation(station);
   };
 
-  const handleViewDetails = (station: Station) => {
+  const handleViewDetails = async (station: Station) => {
     setSelectedStation(station);
     setDetailsModalVisible(true);
+    
+    // Fetch vehicles for this station
+    try {
+      setVehiclesLoading(true);
+      const vehiclesData = await stationService.getStationVehicles(station._id, "AVAILABLE");
+      setSelectedStationVehicles(vehiclesData.vehicles);
+    } catch (error) {
+      setSelectedStationVehicles([]);
+    } finally {
+      setVehiclesLoading(false);
+    }
   };
 
   const handleMarkerPress = (station: Station) => {
@@ -295,7 +308,11 @@ setErrorMessage(
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.modalScrollContent}
                 >
-                  <StationDetailsCard station={selectedStation} />
+                  <StationDetailsCard 
+                    station={selectedStation} 
+                    vehicles={selectedStationVehicles}
+                    vehiclesLoading={vehiclesLoading}
+                  />
                 </ScrollView>
               </View>
             </View>

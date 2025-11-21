@@ -18,6 +18,7 @@ import ProfileMenu from "../../components/profile/ProfileMenu";
 import { authApi } from "../../api/authApi";
 import { User } from "../../types/auth";
 import { bookingService } from "../../services/bookingService";
+import { rentalService } from "../../services/rentalService";
 
 interface MenuItem {
   id: string;
@@ -61,27 +62,56 @@ const ProfileScreen = () => {
     try {
       // Fetch all bookings of user
       const bookings = await bookingService.getUserBookings();
-      
+
+      // Fetch all rentals of user
+      const rentalsResponse = await rentalService.getUserRentals();
+      const rentals = rentalsResponse.rentals;
+
       // Tính tổng số bookings
       const totalBookings = bookings.length;
-      
-      // Tính tổng tiền đã tiêu (chỉ lấy bookings đã cọc thành công)
-      // Lọc bookings có status = CONFIRMED (đã thanh toán deposit thành công)
+
+      // Tính tổng tiền đã tiêu:
+      // 1. Deposit từ bookings đã thanh toán thành công (CONFIRMED + payment SUCCESS)
       const paidBookings = bookings.filter(
         (booking) =>
           booking.status === "CONFIRMED" &&
           booking.payment?.status === "SUCCESS"
       );
-      
-      const totalSpent = paidBookings.reduce((sum, booking) => {
+
+      const totalDeposit = paidBookings.reduce((sum, booking) => {
         const deposit = booking.pricing_snapshot?.deposit || 0;
         return sum + deposit;
       }, 0);
-      
+
+      // 2. Tổng tiền từ rentals đã hoàn thành (COMPLETED)
+      const completedRentals = rentals.filter(
+        (rental) => rental.status === "COMPLETED"
+      );
+
+      const totalRentalCharges = completedRentals.reduce((sum, rental) => {
+        // Lấy tổng tiền từ charges.total, nếu không có thì dùng 0
+        const rentalTotal = Math.max(
+          0,
+          (rental.pricing_snapshot.base_price || 0) +
+            (rental.charges.cleaning_fee || 0) +
+            (rental.charges.late_fee || 0) +
+            (rental.charges.damage_fee || 0) +
+            (rental.charges.other_fees || 0) +
+            (rental.pricing_snapshot?.taxes || 0) -
+            (rental.pricing_snapshot?.deposit || 0)
+        );
+        return sum + rentalTotal;
+      }, 0);
+
+      // Tổng tiền đã tiêu = Deposit + Tổng tiền rental đã hoàn thành
+      const totalSpent = totalDeposit + totalRentalCharges;
+
       setUserStats({
         totalBookings,
         totalSpent,
-      });} catch (error) {// Keep default values on error
+      });
+    } catch (error) {
+      // Keep default values on error
     }
   };
 
@@ -99,7 +129,8 @@ const ProfileScreen = () => {
       const currentUser = await authApi.getCurrentUser();
       updateUserInfo(currentUser);
       setUser(currentUser);
-    } catch (error) {// Nếu lỗi, dùng stored user
+    } catch (error) {
+      // Nếu lỗi, dùng stored user
       const storedUser = await authApi.getStoredUser();
       if (storedUser) {
         updateUserInfo(storedUser);
@@ -174,7 +205,8 @@ const ProfileScreen = () => {
               index: 0,
               routes: [{ name: "AuthLanding" as never }],
             });
-          } catch (error) {Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
+          } catch (error) {
+            Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
           } finally {
             setLoggingOut(false);
           }

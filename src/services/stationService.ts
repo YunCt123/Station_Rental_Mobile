@@ -40,6 +40,7 @@ class StationService {
 
   /**
    * Get vehicles at a specific station
+   * Uses /vehicles endpoint with station_id filter (same as web)
    */
   async getStationVehicles(
     id: string,
@@ -53,21 +54,48 @@ class StationService {
     vehicles: StationVehicle[];
     count: number;
   }> {
-    const response = await api.get<
-      ApiResponse<{
-        station: {
-          id: string;
-          name: string;
-          address: string;
-        };
-        vehicles: StationVehicle[];
-        count: number;
-      }>
-    >(STATION_ENDPOINTS.VEHICLES(id), {
-      params: status ? { status } : {},
-    });
+    try {
+      // First, get station info
+      const stationData = await this.getStationById(id, false);
+      
+      // Then, get vehicles using /vehicles endpoint with station_id filter (like web)
+      const params: any = { station_id: id };
+      if (status) params.status = status;
+      
+      const response = await api.get('/vehicles', { params });
+      
+      // Handle potential double-wrapped response
+      let vehicles: any[] = [];
+      if (Array.isArray(response)) {
+        vehicles = response;
+      } else if ((response as any).data) {
+        vehicles = Array.isArray((response as any).data) ? (response as any).data : [];
+      }
 
-    return response.data;
+      // Map backend vehicles to frontend format (StationVehicle)
+      const mappedVehicles: StationVehicle[] = vehicles.map((vehicle: any) => ({
+        _id: vehicle._id,
+        model: vehicle.model || vehicle.name || '',
+        brand: vehicle.brand || '',
+        type: vehicle.type || '',
+        batteryLevel: vehicle.battery_soc || vehicle.batteryLevel || 0,
+        pricePerHour: vehicle.pricing?.hourly || vehicle.pricePerHour || 0,
+        image: vehicle.image || '',
+        status: vehicle.status || 'AVAILABLE',
+      }));
+      
+      return {
+        station: {
+          id: stationData._id,
+          name: stationData.name,
+          address: stationData.address
+        },
+        vehicles: mappedVehicles,
+        count: mappedVehicles.length
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**

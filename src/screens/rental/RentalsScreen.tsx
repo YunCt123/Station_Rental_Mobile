@@ -34,50 +34,34 @@ const RentalsScreen = () => {
     try {
       setLoading(true);
 
-      console.log("🔍 [RentalsScreen] Starting fetchRentals, activeTab:", activeTab);
-
       // Fetch all rentals from backend
       const response = await rentalService.getUserRentals({ limit: 100 });
       
-      console.log("📦 [RentalsScreen] Response received:", JSON.stringify(response, null, 2));
-      console.log("📊 [RentalsScreen] Response type:", typeof response);
-      console.log("📊 [RentalsScreen] Response keys:", Object.keys(response || {}));
-      
       const allRentals = response.rentals || [];
-
-      console.log("📦 [RentalsScreen] All rentals fetched:", allRentals.length);
-      console.log("📦 [RentalsScreen] All rentals data:", JSON.stringify(allRentals, null, 2));
 
       // Filter based on tab
       let filtered: Rental[] = [];
 
       if (activeTab === "active") {
-        // Show rentals that are active (ONGOING, RETURN_PENDING)
+        // Show rentals that are active (CONFIRMED - waiting for pickup, ONGOING, RETURN_PENDING)
         filtered = allRentals.filter((r) => {
           const status = r.status?.toUpperCase();
-          console.log(`  🔍 Rental ${r._id}: status = ${status}`);
-          return status === "ONGOING" || status === "RETURN_PENDING";
+          return status === "CONFIRMED" || status === "ONGOING" || status === "RETURN_PENDING";
         });
-        console.log("✅ Active rentals filtered:", filtered.length);
       } else {
         // Show completed or cancelled rentals
         filtered = allRentals.filter((r) => {
           const status = r.status?.toUpperCase();
-          console.log(`  🔍 Rental ${r._id}: status = ${status}`);
           return (
             status === "COMPLETED" ||
             status === "REJECTED" ||
             status === "DISPUTED"
           );
         });
-        console.log("📜 History rentals filtered:", filtered.length);
       }
 
       setRentals(filtered);
     } catch (error: any) {
-      console.error("❌ [RentalsScreen] Error fetching rentals:", error);
-      console.error("❌ [RentalsScreen] Error response:", error.response);
-      console.error("❌ [RentalsScreen] Error message:", error.message);
       setErrorMessage(
         error.response?.data?.message ||
           error.message ||
